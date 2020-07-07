@@ -1,0 +1,10 @@
+.bin/
+.bin_obj/
+.vs/
+
+*.filters
+*.ini
+*.log
+*.sln
+*.user
+*.vcxproj
