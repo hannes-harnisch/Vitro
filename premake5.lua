@@ -1,143 +1,86 @@
-workspace "Vitro ALT"
-	architecture		"x64"
-	platforms			{ "DirectX", "Vulkan" }
-	configurations		{ "Debug", "Development", "Release" }
-	flags				{ "MultiProcessorCompile" }
-	startproject		"VitroTests"
+output_dir				= '%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}'
 
-outputdir = "%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}"
-build_optimization_flags = { "/GT", "/GL", "/Ot", "/Ob3" }
-link_optimization_flags = { "/LTCG" }
+workspace 'Vitro'
+	startproject		'VitroMain'
+	architecture		'x64'
+	configurations		{ 'Debug', 'Development', 'Release' }
+	flags				{ 'MultiProcessorCompile' }
+	language			'C++'
+	cppdialect			'C++latest'
+	conformancemode		'On'
+	warnings			'Extra'
+	disablewarnings		'4201'
+	floatingpoint		'Fast'
+	files				{
+							'%{prj.name}/**.cc',
+							'%{prj.name}/**.hh'
+						}
+	removefiles			{ '%{prj.name}/**/**.*.*' }
+	files				{ '%{prj.name}/**.hlsl' } -- Add shaders only after removing files with two dots
+	objdir				('.bin_int/' .. output_dir .. '/%{prj.name}')
+	targetdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
+	debugdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
 
-group "Dependencies"
-	include "External/assimp"
-	include "External/imgui"
-	include "External/stb"
-group ""
+	filter 'files:**.cc'
+		compileas		'Module'
 
-project "VitroEngine"
-	location			"VitroEngine"
-	kind				"StaticLib"
-	language			"C++"
-	cppdialect			"C++17"
-	staticruntime		"on"
-	rtti				"off"
-	objdir				(".bin_obj/" .. outputdir .. "/%{prj.name}")
-	targetdir			(".bin/"	 .. outputdir .. "/%{prj.name}")
-	libdirs				"External"
-	pchsource			"%{prj.name}/_pch.cpp"
-	pchheader			"_pch.h"
-	links				{ "assimp", "imgui" }
+	filter 'files:**.hh'
+		compileas		'HeaderUnit'
 
-	files
-	{
-		"%{prj.name}/**.cpp",
-		"%{prj.name}/**.h",
-		"%{prj.name}/**.hpp",
-		"%{prj.name}/**.inl"
-	}
+	filter 'files:**.hlsl'
+		buildmessage	'Compiling shader %{file.relpath}'
+		buildcommands	'dxc -spirv "%{cfg.targetdir}/%{file.basename}.spv" "%{file.relpath}"'
+		buildoutputs	'%{cfg.targetdir}/%{file.basename}.spv'
 
-	includedirs
-	{
-		"%{prj.name}",
-		"External"
-	}
+	filter 'configurations:Debug'
+		symbols			'On'
+		runtime			'Debug'
+		defines			'VE_DEBUG'
 
-	filter "system:windows"
-		systemversion	"latest"
-		defines			{ "VTR_SYSTEM_WINDOWS", "WIN32_LEAN_AND_MEAN" }
+	filter 'configurations:Development'
+		symbols			'On'
+		optimize		'Speed'
+		runtime			'Debug'
+		defines			'VE_DEBUG'
 
-	filter "system:linux"
-		systemversion	"latest"
-		pic				"on"
-		
-	filter "configurations:Debug"
-		runtime			"Debug"
-		symbols			"on"
-		defines			{ "VTR_DEBUG", "VTR_ENGINE_LOG_LEVEL=VTR_LOG_LEVEL_DEBUG" }
-		
-	filter "configurations:Development"
-		runtime			"Debug"
-		symbols			"on"
-		optimize		"speed"
-		buildoptions	(build_optimization_flags)
-		linkoptions		(link_optimization_flags)
-		defines			{ "VTR_DEBUG", "VTR_ENGINE_LOG_LEVEL=VTR_LOG_LEVEL_DEBUG" }
+	filter 'configurations:Release'
+		optimize		'Speed'
+		runtime			'Release'
 
-	filter "configurations:Release"
-		runtime			"Release"
-		optimize		"speed"
-		buildoptions	(build_optimization_flags)
-		linkoptions		(link_optimization_flags)
-		defines			{ "VTR_RELEASE", "VTR_ENGINE_LOG_LEVEL=VTR_LOG_LEVEL_ERROR" }
+group 'Dependencies'
+group ''
 
-	filter "platforms:DirectX"
-		defines			"VTR_API_DIRECTX"
-		links			"d3d11"
+project 'VitroEngine'
+	location			'%{prj.name}'
+	kind				'StaticLib'
+	includedirs			{ '%{prj.name}', 'Dependencies' }
+	libdirs				'Dependencies'
+	defines				'VE_ENGINE_NAME="%{prj.name}"'
 
-	filter "platforms:Vulkan"
-		defines			"VTR_API_VULKAN"
+	filter 'system:Windows'
+		systemversion	'latest'
+		files			{
+							'%{prj.name}/**/Windows.*.*',
+							'%{prj.name}/**/Direct3D.*.*',
+							'%{prj.name}/**/Vulkan.*.*',
+							'%{prj.name}/**/VulkanWindows.*.*'
+						}
+		includedirs		'C:/VulkanSDK/1.2.154.1/Include'
+		libdirs			'C:/VulkanSDK/1.2.154.1/Lib'
+		links			{ 'd3d12', 'dxgi' }
+		defines			{ 'VE_SYSTEM=Windows', 'VE_GHI=Direct3D' }
 
-project "VitroTests"
-	location			"VitroTests"
-	kind				"ConsoleApp"
-	language			"C++"
-	cppdialect			"C++17"
-	staticruntime		"on"
-	objdir				(".bin_obj/" .. outputdir .. "/%{prj.name}")
-	targetdir			(".bin/"	 .. outputdir .. "/%{prj.name}")
-	debugdir			(".bin/"	 .. outputdir .. "/%{prj.name}")
-	links				"VitroEngine"
+project 'VitroMain'
+	location			'%{prj.name}'
+	kind				'ConsoleApp'
+	links				'VitroEngine'
 
-	files
-	{
-		"%{prj.name}/**.cpp",
-		"%{prj.name}/**.h",
-		"%{prj.name}/**.hlsl"
-	}
+project 'VitroTests'
+	location			'%{prj.name}'
+	kind				'SharedLib'
+	includedirs			{ 'VitroEngine' }
+	links				'VitroEngine'
 
-	includedirs
-	{
-		"VitroEngine"
-	}
-	
-	filter "files:**.hlsl"
-		flags			"ExcludeFromBuild"
-		shadermodel		"5.0"
-		
-	filter "files:**Vertex.hlsl"
-		removeflags		"ExcludeFromBuild"
-		shadertype		"Vertex"
-		
-	filter "files:**Fragment.hlsl"
-		removeflags		"ExcludeFromBuild"
-		shadertype		"Pixel"
-
-	filter "system:windows"
-		systemversion	"latest"
-		defines			{ "VTR_SYSTEM_WINDOWS", "WIN32_LEAN_AND_MEAN" }
-
-	filter "system:linux"
-		systemversion	"latest"
-		pic				"on"
-		defines			"VTR_SYSTEM_LINUX"
-		
-	filter "configurations:Debug"
-		runtime			"Debug"
-		symbols			"on"
-		
-	filter "configurations:Development"
-		runtime			"Debug"
-		symbols			"on"
-		optimize		"speed"
-		buildoptions	(build_optimization_flags)
-		linkoptions		(link_optimization_flags)
-
-	filter "configurations:Release"
-		runtime			"Release"
-		optimize		"speed"
-		buildoptions	(build_optimization_flags)
-		linkoptions		(link_optimization_flags)
-
-	filter "platforms:DirectX"
-		defines			"VTR_API_DIRECTX"
+	filter 'configurations:Release'
+		kind			'WindowedApp'
+		entrypoint		'mainCRTStartup'

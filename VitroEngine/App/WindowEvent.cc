@@ -1,0 +1,199 @@
+module;
+#include "Core/Enum.hh"
+
+#include <format>
+export module Vitro.App.WindowEvent;
+
+import Vitro.App.Event;
+import Vitro.App.KeyCode;
+import Vitro.App.MouseCode;
+import Vitro.App.Window;
+import Vitro.Math.Rectangle;
+import Vitro.Math.Vector;
+
+class WindowEvent : public Event
+{
+public:
+	Window& window;
+
+	std::string toString() const override
+	{
+		return std::format("{}: Window({})", Event::toString(), window.handle());
+	}
+
+protected:
+	WindowEvent(Window& window) : window(window)
+	{}
+};
+
+export class WindowOpenEvent : public WindowEvent
+{
+public:
+	WindowOpenEvent(Window& window) : WindowEvent(window)
+	{}
+};
+
+export class WindowCloseEvent : public WindowEvent
+{
+public:
+	WindowCloseEvent(Window& window) : WindowEvent(window)
+	{}
+};
+
+export class WindowFocusEvent : public WindowEvent
+{
+public:
+	WindowFocusEvent(Window& window) : WindowEvent(window)
+	{}
+};
+
+export class WindowUnfocusEvent : public WindowEvent
+{
+public:
+	WindowUnfocusEvent(Window& window) : WindowEvent(window)
+	{}
+};
+
+export class WindowSizeEvent : public WindowEvent
+{
+public:
+	const Rectangle size;
+
+	WindowSizeEvent(Window& window, Rectangle size) : WindowEvent(window), size(size)
+	{}
+
+	std::string toString() const override
+	{
+		return std::format("{}, Size({})", WindowEvent::toString(), size.toString());
+	}
+};
+
+export class WindowMoveEvent : public WindowEvent
+{
+public:
+	const Int2 position;
+
+	WindowMoveEvent(Window& window, Int2 position) : WindowEvent(window), position(position)
+	{}
+
+	std::string toString() const override
+	{
+		return std::format("{}, Position({})", WindowEvent::toString(), position.toString());
+	}
+};
+
+class KeyEvent : public WindowEvent
+{
+public:
+	const KeyCode key;
+
+	std::string toString() const override
+	{
+		return std::format("{}, Key({})", WindowEvent::toString(), enum_name(key));
+	}
+
+protected:
+	KeyEvent(Window& window, KeyCode key) : WindowEvent(window), key(key)
+	{}
+};
+
+export class KeyDownEvent : public KeyEvent
+{
+public:
+	const uint32_t repeats;
+
+	KeyDownEvent(Window& window, KeyCode key, uint32_t repeats) : KeyEvent(window, key), repeats(repeats)
+	{}
+
+	std::string toString() const override
+	{
+		return std::format("{}, Repeats({})", KeyEvent::toString(), repeats);
+	}
+};
+
+export class KeyUpEvent : public KeyEvent
+{
+public:
+	KeyUpEvent(Window& window, KeyCode key) : KeyEvent(window, key)
+	{}
+};
+
+export class KeyTextEvent : public KeyEvent
+{
+public:
+	const std::string text;
+
+	KeyTextEvent(Window& window, KeyCode key, std::string text) : KeyEvent(window, key), text(std::move(text))
+	{}
+
+	std::string toString() const override
+	{
+		return std::format("{}, Text({})", KeyEvent::toString(), text);
+	}
+};
+
+class MouseEvent : public WindowEvent
+{
+public:
+	const MouseCode button;
+
+	std::string toString() const override
+	{
+		return std::format("{}, Button({})", WindowEvent::toString(), enum_name(button));
+	}
+
+protected:
+	MouseEvent(Window& window, MouseCode button) : WindowEvent(window), button(button)
+	{}
+};
+
+export class MouseMoveEvent : public MouseEvent
+{
+public:
+	const Int2 position, direction;
+
+	MouseMoveEvent(Window& window, Int2 position, Int2 direction) :
+		MouseEvent(window, MouseCode::None), position(position), direction(direction)
+	{}
+
+	std::string toString() const override
+	{
+		return std::format("{}, Position({}), Direction({})", MouseEvent::toString(), position.toString(),
+						   direction.toString());
+	}
+};
+
+export class MouseDownEvent : public MouseEvent
+{
+public:
+	MouseDownEvent(Window& window, MouseCode button) : MouseEvent(window, button)
+	{}
+};
+
+export class MouseUpEvent : public MouseEvent
+{
+public:
+	MouseUpEvent(Window& window, MouseCode button) : MouseEvent(window, button)
+	{}
+};
+
+export class DoubleClickEvent : public MouseEvent
+{
+public:
+	DoubleClickEvent(Window& window, MouseCode button) : MouseEvent(window, button)
+	{}
+};
+
+export class MouseScrollEvent : public MouseEvent
+{
+public:
+	const Float2 offset;
+
+	MouseScrollEvent(Window& window, Float2 offset) : MouseEvent(window, MouseCode::Wheel), offset(offset)
+	{}
+
+	std::string toString() const override
+	{
+		return std::format("{}, Offset({})", MouseEvent::toString(), offset.toString());
+	}
+};

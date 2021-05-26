@@ -53,8 +53,6 @@ DisableFormat: 'false'
 FixNamespaceComments: 'false'
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex:		'_pch\.h'
-    Priority:	-1
   - Regex:		'.+\.(hpp|hh)'
     Priority:	0
 IndentCaseLabels: 'true'
