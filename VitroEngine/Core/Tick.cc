@@ -40,7 +40,7 @@ public:
 
 	std::string toString() const
 	{
-		return std::format("{} ms", milliseconds());
+		return std::format("{:.3f} ms", milliseconds());
 	}
 
 	operator float() const

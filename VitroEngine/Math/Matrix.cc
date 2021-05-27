@@ -300,7 +300,11 @@ export template<typename T, int R, int C> struct Matrix
 	}
 
 	friend constexpr std::optional<Matrix> invert(const Matrix& mat) requires(R == C)
-	{}
+	{
+		T det = determinant(mat);
+		if(det == 0)
+			return {};
+	}
 };
 
 export using Float2x2 = Matrix<float, 2, 2>;
