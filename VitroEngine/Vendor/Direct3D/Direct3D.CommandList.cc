@@ -12,7 +12,7 @@ namespace Direct3D
 	public:
 		void bindPipeline(const Pipeline& pipeline)
 		{
-			commandList->SetPipelineState(pipeline.handle());
+			// commandList->SetPipelineState(pipeline.handle());
 		}
 
 	private:

@@ -8,7 +8,7 @@ import Vitro.Trace.SignalHandler;
 
 namespace Windows
 {
-	LONG NTAPI forwardToStandardSignalHandlers(EXCEPTION_POINTERS* exceptionInfo)
+	LONG NTAPI forwardToStandardSignalHandlers(EXCEPTION_POINTERS* const exceptionInfo)
 	{
 		switch(exceptionInfo->ExceptionRecord->ExceptionCode)
 		{

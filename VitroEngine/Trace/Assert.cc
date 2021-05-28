@@ -1,6 +1,6 @@
 #include "Assert.hh"
 
-void crash(std::string_view message)
+void crash(const std::string_view message)
 {
 	std::printf("Critical failure: %s", message.data());
 

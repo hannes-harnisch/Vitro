@@ -1,8 +1,8 @@
-export module Vitro.App.IWindow;
+export module Vitro.App.WindowBase;
 
 import Vitro.Math.Rectangle;
 
-export class IWindow
+export class WindowBase
 {
 public:
 	virtual void open()					  = 0;

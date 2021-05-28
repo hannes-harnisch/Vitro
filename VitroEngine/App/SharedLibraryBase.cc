@@ -1,8 +1,8 @@
 module;
 #include <string_view>
-export module Vitro.App.ISharedLibrary;
+export module Vitro.App.SharedLibraryBase;
 
-export class ISharedLibrary
+export class SharedLibraryBase
 {
 public:
 	[[nodiscard]] virtual bool reload() = 0;

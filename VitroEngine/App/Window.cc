@@ -2,7 +2,7 @@ module;
 #include <string_view>
 export module Vitro.App.Window;
 
-import Vitro.App.IAppContext;
+import Vitro.App.AppContextBase;
 import Vitro.VE_SYSTEM.Window;
 
 export class Window : public VE_SYSTEM::Window
@@ -17,7 +17,7 @@ public:
 		   int y		  = Platform::DefaultY) :
 		Platform(title, size, {x, y})
 	{
-		IAppContext::get().submitWindow(handle(), this);
+		AppContextBase::get().submitWindow(handle(), this);
 	}
 
 	Window(Window&& other) noexcept : Platform(std::move(other))
@@ -39,13 +39,13 @@ public:
 	}
 
 private:
-	void replaceOtherInWindowMap(IWindow& other)
+	void replaceOtherInWindowMap(WindowBase& other)
 	{
-		IAppContext::get().submitWindow(other.handle(), this);
+		AppContextBase::get().submitWindow(other.handle(), this);
 	}
 
 	void eraseSelfFromWindowMap()
 	{
-		IAppContext::get().removeWindow(handle());
+		AppContextBase::get().removeWindow(handle());
 	}
 };

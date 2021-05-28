@@ -6,7 +6,7 @@ export module Vitro.Windows.StringUtils;
 
 namespace Windows
 {
-	export std::wstring widenString(std::string_view in)
+	export std::wstring widenString(const std::string_view in)
 	{
 		const int inLength	= static_cast<int>(in.length());
 		const int outLength = ::MultiByteToWideChar(CP_UTF8, 0, in.data(), inLength, nullptr, 0);
@@ -15,7 +15,7 @@ namespace Windows
 		return out;
 	}
 
-	export std::string narrowString(std::wstring_view in)
+	export std::string narrowString(const std::wstring_view in)
 	{
 		const int inLength	= static_cast<int>(in.length());
 		const int outLength = ::WideCharToMultiByte(CP_UTF8, 0, in.data(), inLength, nullptr, 0, nullptr, nullptr);

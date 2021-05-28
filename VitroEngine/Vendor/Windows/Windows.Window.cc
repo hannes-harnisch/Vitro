@@ -4,8 +4,8 @@ module;
 #include <string_view>
 export module Vitro.Windows.Window;
 
-import Vitro.App.IAppContext;
-import Vitro.App.IWindow;
+import Vitro.App.AppContextBase;
+import Vitro.App.WindowBase;
 import Vitro.Core.Unique;
 import Vitro.Math.Rectangle;
 import Vitro.Math.Vector;
@@ -13,16 +13,17 @@ import Vitro.Windows.StringUtils;
 
 namespace Windows
 {
-	export class Window : public IWindow
+	export class Window : public WindowBase
 	{
 	public:
 		constexpr static auto WindowClassName = TEXT(VE_ENGINE_NAME);
 		constexpr static Rectangle DefaultSize {uint32_t(CW_USEDEFAULT), uint32_t(CW_USEDEFAULT)};
 		constexpr static int DefaultX = CW_USEDEFAULT;
 		constexpr static int DefaultY = CW_USEDEFAULT;
-		static const inline Int2 DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO: constexpr after compiler fix
+		const static inline Int2 DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO: constexpr after compiler fix
 
-		Window(std::string_view title, Rectangle size, Int2 position) : windowHandle(createWindowHandle(title, size, position))
+		Window(const std::string_view title, const Rectangle size, const Int2 position) :
+			windowHandle(createWindowHandle(title, size, position))
 		{}
 
 		void open() final override
@@ -60,10 +61,10 @@ namespace Windows
 	private:
 		Unique<HWND, ::DestroyWindow> windowHandle;
 
-		static HWND createWindowHandle(std::string_view title, Rectangle size, Int2 position)
+		static HWND createWindowHandle(const std::string_view title, const Rectangle size, const Int2 position)
 		{
 			const auto widenedTitle	  = widenString(title);
-			const auto instanceHandle = static_cast<HINSTANCE>(IAppContext::get().handle());
+			const auto instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
 			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, position.x, position.y, size.width,
 								  size.height, nullptr, nullptr, instanceHandle, nullptr);
 		}

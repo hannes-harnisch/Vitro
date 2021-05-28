@@ -1,10 +1,10 @@
 module;
 #include <unordered_map>
-export module Vitro.App.IAppContext;
+export module Vitro.App.AppContextBase;
 
 import Vitro.Core.Singleton;
 
-export class IAppContext : public Singleton<IAppContext>
+export class AppContextBase : public Singleton<AppContextBase>
 {
 public:
 	virtual void pollEvents() const = 0;
@@ -22,8 +22,9 @@ public:
 
 	Window* findWindow(void* nativeHandle)
 	{
-		if(nativeWindowToEngineWindow.contains(nativeHandle))
-			return nativeWindowToEngineWindow[nativeHandle];
+		auto it = nativeWindowToEngineWindow.find(nativeHandle);
+		if(it != nativeWindowToEngineWindow.end())
+			return it->second;
 		else
 			return nullptr;
 	}

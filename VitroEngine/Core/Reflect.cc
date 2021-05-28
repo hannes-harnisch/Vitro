@@ -22,7 +22,7 @@ constexpr std::string demangle(std::string_view symbol)
 	removeFirstOf(name, "enum ");
 #else
 	int status;
-	char* nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
+	const char* const nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
 	std::string name(nameBuffer);
 	std::free(nameBuffer);
 #endif

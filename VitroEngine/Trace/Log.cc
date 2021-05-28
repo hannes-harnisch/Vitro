@@ -49,28 +49,28 @@ export class Logger : public Singleton<Logger>
 	friend class Log;
 
 public:
-	void disableChannel(LogChannel channel)
+	void disableChannel(const LogChannel channel)
 	{
 		const std::lock_guard lock(mutex);
 		const size_t channelIndex = *enum_index(channel);
 		disabledChannels.set(channelIndex, true);
 	}
 
-	void enableChannel(LogChannel channel)
+	void enableChannel(const LogChannel channel)
 	{
 		const std::lock_guard lock(mutex);
 		const size_t channelIndex = *enum_index(channel);
 		disabledChannels.set(channelIndex, false);
 	}
 
-	void disableLevel(LogLevel level)
+	void disableLevel(const LogLevel level)
 	{
 		const std::lock_guard lock(mutex);
 		const size_t levelIndex = *enum_index(level);
 		disabledChannels.set(levelIndex, true);
 	}
 
-	void enableLevel(LogLevel level)
+	void enableLevel(const LogLevel level)
 	{
 		const std::lock_guard lock(mutex);
 		const size_t levelIndex = *enum_index(level);
@@ -93,7 +93,7 @@ private:
 	std::bitset<sizeFromEnumMax<LogLevel>()> disabledLevels;
 	std::atomic_bool isAcceptingLogs = true;
 
-	static const char* prepareArgument(bool arg)
+	static const char* prepareArgument(const bool arg)
 	{
 		return arg ? "true" : "false";
 	}
@@ -103,7 +103,7 @@ private:
 		return arg;
 	}
 
-	template<typename T> static std::string_view prepareArgument(T arg) requires std::is_enum_v<T>
+	template<typename T> static std::string_view prepareArgument(const T arg) requires std::is_enum_v<T>
 	{
 		return enum_name(arg);
 	}
@@ -125,7 +125,7 @@ private:
 		return stream.str();
 	}
 
-	static std::string makeTimestamp(std::chrono::system_clock::duration now)
+	static std::string makeTimestamp(const std::chrono::system_clock::duration now)
 	{
 		using namespace std::chrono;
 		const int64_t secs = duration_cast<seconds>(now).count();
@@ -139,7 +139,7 @@ private:
 
 	Logger() = default;
 
-	template<typename... Ts> void submit(LogLevel level, LogChannel channel, Ts&&... ts)
+	template<typename... Ts> void submit(const LogLevel level, const LogChannel channel, Ts&&... ts)
 	{
 		if(isLevelDisabled(level) || isChannelDisabled(channel))
 			return;
@@ -148,24 +148,24 @@ private:
 		condition.notify_one();
 	}
 
-	bool isChannelDisabled(LogChannel channel) const
+	bool isChannelDisabled(const LogChannel channel) const
 	{
 		const size_t channelIndex = *enum_index(channel);
 		return disabledChannels.test(channelIndex);
 	}
 
-	bool isLevelDisabled(LogLevel level) const
+	bool isLevelDisabled(const LogLevel level) const
 	{
 		const size_t levelIndex = *enum_index(level);
 		return disabledLevels.test(levelIndex);
 	}
 
-	void enqueue(LogLevel level, LogChannel channel, std::string message)
+	void enqueue(const LogLevel level, const LogChannel channel, std::string message)
 	{
-		auto now = std::chrono::system_clock::now().time_since_epoch();
+		const auto now = std::chrono::system_clock::now().time_since_epoch();
 
 		const std::lock_guard lock(mutex);
-		queue.emplace(level, channel, now, message);
+		queue.emplace(level, channel, now, std::move(message));
 	}
 
 	void runQueueProcessing()
@@ -181,10 +181,11 @@ private:
 	{
 		std::unique_lock lock(mutex);
 		condition.wait(lock, [&] { return !queue.empty() || !isAcceptingLogs; });
+
 		if(!isAcceptingLogs)
 			return;
 
-		const Entry entry = dequeue();
+		const auto entry = dequeue();
 		lock.unlock();
 
 		writeLog(entry);
@@ -192,7 +193,7 @@ private:
 
 	Entry dequeue()
 	{
-		const auto entry = std::move(queue.front());
+		auto entry = std::move(queue.front());
 		queue.pop();
 		return entry;
 	}
@@ -238,7 +239,8 @@ export class Log
 {
 public:
 	// TODO: change to default parameter once stable
-	Log() : channel(extractChannelFromPath(std::source_location::current().file_name()))
+	Log(/*LogChannel channel = extractChannelFromPath(std::source_location::current().file_name())*/) :
+		channel(extractChannelFromPath(std::source_location::current().file_name()))
 	{}
 
 	template<typename... Ts> void verbose(Ts&&... ts) const
@@ -274,7 +276,7 @@ public:
 private:
 	LogChannel channel;
 
-	template<typename... Ts> void log(LogLevel level, Ts&&... ts) const
+	template<typename... Ts> void log(const LogLevel level, Ts&&... ts) const
 	{
 		Logger::get().submit(level, channel, std::forward<Ts>(ts)...);
 	}

@@ -1,17 +1,17 @@
-module;
+﻿module;
 #include "Windows.API.hh"
 
 #include <optional>
 #include <string_view>
 export module Vitro.Windows.SharedLibrary;
 
-import Vitro.App.ISharedLibrary;
+import Vitro.App.SharedLibraryBase;
 import Vitro.Core.Unique;
 import Vitro.Windows.StringUtils;
 
 namespace Windows
 {
-	export class SharedLibrary : public ISharedLibrary
+	export class SharedLibrary : public SharedLibraryBase
 	{
 	public:
 		static std::optional<SharedLibrary> from(std::string_view name)

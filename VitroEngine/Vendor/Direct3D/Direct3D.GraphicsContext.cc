@@ -58,9 +58,10 @@ namespace Direct3D
 				DXGI_ADAPTER_DESC1 adapterInfo;
 				adapter->GetDesc1(&adapterInfo);
 
-				bool isNotSoftwareAdapter = (adapterInfo.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0;
-				bool canCreateDevice  = SUCCEEDED(D3D12CreateDevice(adapter, FeatureLevel, __uuidof(ID3D12Device), nullptr));
-				bool vramIsSufficient = adapterInfo.DedicatedVideoMemory > maxDedicatedVideoMemory;
+				const bool isNotSoftwareAdapter = (adapterInfo.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0;
+				const bool canCreateDevice =
+					SUCCEEDED(D3D12CreateDevice(adapter, FeatureLevel, __uuidof(ID3D12Device), nullptr));
+				const bool vramIsSufficient = adapterInfo.DedicatedVideoMemory > maxDedicatedVideoMemory;
 				if(isNotSoftwareAdapter && canCreateDevice && vramIsSufficient)
 				{
 					maxDedicatedVideoMemory = adapterInfo.DedicatedVideoMemory;

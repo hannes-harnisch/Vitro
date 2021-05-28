@@ -3,7 +3,7 @@ module;
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
 
-import Vitro.App.IAppContext;
+import Vitro.App.AppContextBase;
 import Vitro.App.EventSystem;
 import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
@@ -17,7 +17,7 @@ import Vitro.Windows.StringUtils;
 class AppSystem;
 namespace Windows
 {
-	export class AppContext final : public IAppContext
+	export class AppContext final : public AppContextBase
 	{
 		friend ::AppSystem;
 
@@ -43,7 +43,7 @@ namespace Windows
 		unsigned keyRepeats {};
 		Int2 lastMousePosition;
 
-		static LRESULT CALLBACK forwardMessages(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+		static LRESULT CALLBACK forwardMessages(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
 		{
 			switch(message)
 			{
@@ -83,31 +83,31 @@ namespace Windows
 			return ::DefWindowProc(hwnd, message, wParam, lParam);
 		}
 
-		static void notifyWindowMoveEvent(HWND hwnd, LPARAM lp)
+		static void notifyWindowMoveEvent(const HWND hwnd, const LPARAM lp)
 		{
 			auto& window = *get().findWindow(hwnd);
 			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
 			EventSystem::get().notify<WindowMoveEvent>(window, position);
 		}
 
-		static void notifyWindowSizeEvent(HWND hwnd, LPARAM lp)
+		static void notifyWindowSizeEvent(const HWND hwnd, const LPARAM lp)
 		{
 			auto& window = *get().findWindow(hwnd);
 			Rectangle size(LOWORD(lp), HIWORD(lp));
 			EventSystem::get().notify<WindowSizeEvent>(window, size);
 		}
 
-		template<typename E> static void notifyWindowEvent(HWND hwnd)
+		template<typename E> static void notifyWindowEvent(const HWND hwnd)
 		{
 			auto window = get().findWindow(hwnd);
 			if(window)
 				EventSystem::get().notify<E>(*window);
 		}
 
-		static void notifyRawInput(HWND hwnd, LPARAM lp)
+		static void notifyRawInput(const HWND hwnd, const LPARAM lp)
 		{
 			UINT size {};
-			auto inputHandle = reinterpret_cast<HRAWINPUT>(lp);
+			const auto inputHandle = reinterpret_cast<HRAWINPUT>(lp);
 
 			::GetRawInputData(inputHandle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
 			Array<BYTE> bytes(size);
@@ -116,15 +116,15 @@ namespace Windows
 
 			auto& self	 = static_cast<AppContext&>(get());
 			auto& window = *self.findWindow(hwnd);
-			Int2 direction {input->data.mouse.lLastX, -input->data.mouse.lLastY};
+			const Int2 direction {input->data.mouse.lLastX, -input->data.mouse.lLastY};
 			EventSystem::get().notify<MouseMoveEvent>(window, self.lastMousePosition, direction);
 		}
 
-		static void notifyKeyDownEvent(HWND hwnd, WPARAM wp)
+		static void notifyKeyDownEvent(const HWND hwnd, const WPARAM wp)
 		{
-			auto& self	 = static_cast<AppContext&>(get());
-			auto& window = *self.findWindow(hwnd);
-			auto key	 = static_cast<KeyCode>(wp);
+			auto& self	   = static_cast<AppContext&>(get());
+			auto& window   = *self.findWindow(hwnd);
+			const auto key = static_cast<KeyCode>(wp);
 
 			if(self.lastKeyCode == key)
 				self.keyRepeats++;
@@ -135,27 +135,27 @@ namespace Windows
 			EventSystem::get().notify<KeyDownEvent>(window, key, self.keyRepeats);
 		}
 
-		static void notifyKeyUpEvent(HWND hwnd, WPARAM wp)
+		static void notifyKeyUpEvent(const HWND hwnd, const WPARAM wp)
 		{
 			auto& self		 = static_cast<AppContext&>(get());
 			auto& window	 = *self.findWindow(hwnd);
 			self.lastKeyCode = KeyCode::None;
 			self.keyRepeats	 = 0;
 
-			auto key = static_cast<KeyCode>(wp);
+			const auto key = static_cast<KeyCode>(wp);
 			EventSystem::get().notify<KeyUpEvent>(window, key);
 		}
 
-		static void notifyKeyTextEvent(HWND hwnd, WPARAM wp)
+		static void notifyKeyTextEvent(const HWND hwnd, const WPARAM wp)
 		{
 			auto& self	 = static_cast<AppContext&>(get());
 			auto& window = *self.findWindow(hwnd);
 
-			wchar_t chars[] {static_cast<wchar_t>(wp), L'\0'};
+			const wchar_t chars[] {static_cast<wchar_t>(wp), L'\0'};
 			EventSystem::get().notify<KeyTextEvent>(window, self.lastKeyCode, narrowString(chars));
 		}
 
-		static void storeLastMousePosition(LPARAM lp)
+		static void storeLastMousePosition(const LPARAM lp)
 		{
 			auto& self = static_cast<AppContext&>(get());
 
@@ -163,28 +163,28 @@ namespace Windows
 			self.lastMousePosition.y = GET_Y_LPARAM(lp);
 		}
 
-		template<typename E> static void notifyMouseEvent(HWND hwnd, MouseCode button)
+		template<typename E> static void notifyMouseEvent(const HWND hwnd, const MouseCode button)
 		{
 			auto& window = *get().findWindow(hwnd);
 			EventSystem::get().notify<E>(window, button);
 		}
 
-		static MouseCode getExtraMouseButton(WPARAM wp)
+		static MouseCode getExtraMouseButton(const WPARAM wp)
 		{
 			return static_cast<MouseCode>(HIWORD(wp) + 3);
 		}
 
-		static void notifyVerticalScrollEvent(HWND hwnd, WPARAM wp)
+		static void notifyVerticalScrollEvent(const HWND hwnd, const WPARAM wp)
 		{
 			auto& window = *get().findWindow(hwnd);
-			Float2 offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
+			const Float2 offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
 			EventSystem::get().notify<MouseScrollEvent>(window, offset);
 		}
 
-		static void notifyHorizontalScrollEvent(HWND hwnd, WPARAM wp)
+		static void notifyHorizontalScrollEvent(const HWND hwnd, const WPARAM wp)
 		{
 			auto& window = *get().findWindow(hwnd);
-			Float2 offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
+			const Float2 offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
 			EventSystem::get().notify<MouseScrollEvent>(window, offset);
 		}
 

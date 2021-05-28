@@ -4,7 +4,7 @@
 
 #include <string_view>
 
-void crash(std::string_view crashMessage);
+void crash(const std::string_view crashMessage);
 
 #if VE_DEBUG
 
