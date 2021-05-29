@@ -10,7 +10,7 @@ export class Window : public VE_SYSTEM::Window
 	using Platform = VE_SYSTEM::Window;
 
 public:
-	// TODO: change to Int2 after compiler fix
+	// TODO ICE
 	Window(std::string_view title,
 		   Rectangle size = Platform::DefaultSize,
 		   int x		  = Platform::DefaultX,

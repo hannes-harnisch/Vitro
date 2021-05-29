@@ -267,43 +267,72 @@ export template<typename T, int R, int C> struct Matrix
 		return result;
 	}
 
-	friend constexpr T determinant(Matrix mat) requires(R == C)
+	friend constexpr T determinant(const Matrix& mat) requires(R == C && R == 1)
 	{
-		T det = 1;
-		for(int i = 0; i < R; ++i)
-		{
-			int k = i;
-			for(int j = i + 1; j < R; ++j)
-				if(std::abs(mat[j][i]) > std::abs(mat[k][i]))
-					k = j;
+		return mat[0][0];
+	}
 
-			if(std::abs(mat[k][i]) < std::numeric_limits<T>::epsilon())
+	friend constexpr T determinant(const Matrix& mat) requires(R == C && R == 2)
+	{
+		return mat[0][0] * mat[1][1] - mat[1][0] * mat[0][1];
+	}
+
+	friend constexpr T determinant(const Matrix& mat) requires(R == C && R > 2)
+	{
+		Matrix<T, R - 1, R - 1> m;
+		T det {};
+		for(int j1 {}; j1 != R; ++j1)
+		{
+			for(int i = 1; i != R; ++i)
 			{
-				det = 0;
-				break;
+				int j2 {};
+				for(int j {}; j != R; ++j)
+				{
+					if(j == j1)
+						continue;
+					m[i - 1][j2] = mat[i][j];
+					++j2;
+				}
 			}
 
-			std::swap(mat[i], mat[k]);
-			if(i != k)
-				det = -det;
-
-			det *= mat[i][i];
-			for(int j = i + 1; j < R; ++j)
-				mat[i][j] /= mat[i][i];
-
-			for(int j = 0; j < R; ++j)
-				if(j != i && std::abs(mat[j][i]) > std::numeric_limits<T>::epsilon())
-					for(int l = i + 1; l < R; ++l)
-						mat[j][l] -= mat[i][l] * mat[j][i];
+			T d = determinant(m);
+			if(j1 & 1)
+				d = -d;
+			det += mat[0][j1] * d;
 		}
 		return det;
 	}
 
-	friend constexpr std::optional<Matrix> invert(const Matrix& mat) requires(R == C)
+	friend constexpr Matrix inverse(const Matrix& mat) requires(R == C)
 	{
-		T det = determinant(mat);
-		if(det == 0)
-			return {};
+		Matrix cofactor;
+		Matrix<T, R - 1, R - 1> m;
+		for(int j {}; j != R; ++j)
+		{
+			for(int i {}; i != R; ++i)
+			{
+				int i1 {};
+				for(int ii {}; ii != R; ++ii)
+				{
+					if(ii == i)
+						continue;
+					int j1 {};
+					for(int jj {}; jj != R; ++jj)
+					{
+						if(jj == j)
+							continue;
+						m[i1][j1] = mat[ii][jj];
+						++j1;
+					}
+					++i1;
+				}
+				T det = determinant(m);
+				if((i + j) & 1)
+					det = -det;
+				cofactor[i][j] = det;
+			}
+		}
+		return transpose(cofactor) * (1 / determinant(mat));
 	}
 };
 

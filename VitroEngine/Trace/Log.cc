@@ -238,7 +238,7 @@ consteval LogChannel extractChannelFromPath(std::string_view path)
 export class Log
 {
 public:
-	// TODO: change to default parameter once stable
+	// TODO ICE
 	Log(/*LogChannel channel = extractChannelFromPath(std::source_location::current().file_name())*/) :
 		channel(extractChannelFromPath(std::source_location::current().file_name()))
 	{}

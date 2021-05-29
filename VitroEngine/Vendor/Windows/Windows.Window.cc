@@ -20,7 +20,7 @@ namespace Windows
 		constexpr static Rectangle DefaultSize {uint32_t(CW_USEDEFAULT), uint32_t(CW_USEDEFAULT)};
 		constexpr static int DefaultX = CW_USEDEFAULT;
 		constexpr static int DefaultY = CW_USEDEFAULT;
-		const static inline Int2 DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO: constexpr after compiler fix
+		const static inline Int2 DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
 
 		Window(const std::string_view title, const Rectangle size, const Int2 position) :
 			windowHandle(createWindowHandle(title, size, position))

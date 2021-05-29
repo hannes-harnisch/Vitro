@@ -111,25 +111,5 @@ namespace Direct3D
 			desc.Type = D3D12_COMMAND_LIST_TYPE_COPY;
 			veEnsureResult(device->CreateCommandQueue(&desc, IID_PPV_ARGS(&copyQueue)), "Cannot get D3D12 copy queue.");
 		}
-
-		bool checkForTearingSupport()
-		{
-			BOOL hasTearing {};
-
-			// Rather than create the DXGI 1.5 factory interface directly, we create the
-			// DXGI 1.4 interface and query for the 1.5 interface. This is to enable the
-			// graphics debugging tools which will not support the 1.5 factory interface
-			// until a future update.
-			Unique<IDXGIFactory4> factory4;
-			if(SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory4))))
-			{
-				Unique<IDXGIFactory5> factory5;
-				if(SUCCEEDED(factory4.queryFor(&factory5)))
-					if(FAILED(
-						   factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &hasTearing, sizeof hasTearing)))
-						hasTearing = FALSE;
-			}
-			return hasTearing == TRUE;
-		}
 	};
 }
