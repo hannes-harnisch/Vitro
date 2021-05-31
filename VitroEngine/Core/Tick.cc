@@ -10,7 +10,7 @@ public:
 	static uint64_t measureTime()
 	{
 		using namespace std::chrono;
-		const auto now = steady_clock::now().time_since_epoch();
+		auto const now = steady_clock::now().time_since_epoch();
 		return duration_cast<microseconds>(now).count();
 	}
 
@@ -18,7 +18,7 @@ public:
 
 	void update(uint64_t& previousTime)
 	{
-		const uint64_t current = Tick::measureTime();
+		uint64_t const current = Tick::measureTime();
 		secs				   = (current - previousTime) / 1000000.0f;
 		previousTime		   = current;
 	}

@@ -1,6 +1,7 @@
 module;
 #include "Windows.API.hh"
 
+#include <array>
 #include <string_view>
 export module Vitro.Windows.Window;
 
@@ -20,9 +21,9 @@ namespace Windows
 		constexpr static Rectangle DefaultSize {uint32_t(CW_USEDEFAULT), uint32_t(CW_USEDEFAULT)};
 		constexpr static int DefaultX = CW_USEDEFAULT;
 		constexpr static int DefaultY = CW_USEDEFAULT;
-		const static inline Int2 DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
+		static inline Int2 const DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
 
-		Window(const std::string_view title, const Rectangle size, const Int2 position) :
+		Window(std::string_view const title, Rectangle const size, Int2 const position) :
 			windowHandle(createWindowHandle(title, size, position))
 		{}
 
@@ -46,6 +47,25 @@ namespace Windows
 			::CloseWindow(windowHandle);
 		}
 
+		void enableCursor() final override
+		{
+			while(::ShowCursor(true) < 0)
+			{}
+
+			::ClipCursor(nullptr);
+		}
+
+		void disableCursor() final override
+		{
+			while(::ShowCursor(false) >= 0)
+			{}
+
+			RECT rect;
+			::GetClientRect(windowHandle, &rect);
+			::MapWindowPoints(windowHandle, nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
+			::ClipCursor(&rect);
+		}
+
 		Rectangle getViewport() const final override
 		{
 			RECT rect;
@@ -61,10 +81,10 @@ namespace Windows
 	private:
 		Unique<HWND, ::DestroyWindow> windowHandle;
 
-		static HWND createWindowHandle(const std::string_view title, const Rectangle size, const Int2 position)
+		static HWND createWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
 		{
-			const auto widenedTitle	  = widenString(title);
-			const auto instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
+			auto const widenedTitle	  = widenString(title);
+			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
 			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, position.x, position.y, size.width,
 								  size.height, nullptr, nullptr, instanceHandle, nullptr);
 		}

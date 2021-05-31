@@ -24,7 +24,7 @@ public:
 	void notify(Unique<Event> event)
 	{
 		{
-			const std::lock_guard lock(mutex);
+			std::lock_guard const lock(mutex);
 			events.emplace(std::move(event));
 		}
 		condition.notify_one();
@@ -37,13 +37,13 @@ public:
 
 	template<typename... Ts> void submitHandler(Ts&&... ts)
 	{
-		const std::lock_guard lock(mutex);
+		std::lock_guard const lock(mutex);
 		handlers.emplace_back(std::forward<Ts>(ts)...);
 	}
 
 	void removeHandlersByTarget(void* target)
 	{
-		std::erase_if(handlers, [=](const EventHandler& handler) { return handler.callTarget == target; });
+		std::erase_if(handlers, [=](EventHandler const& handler) { return handler.callTarget == target; });
 	}
 
 private:

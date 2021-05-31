@@ -14,7 +14,7 @@ namespace Direct3D
 	{
 	public:
 		// TODO ICE: Rectangle here
-		SwapChain(void* const nativeWindow, uint32_t width, uint32_t height, const uint32_t bufferCount)
+		SwapChain(void* const nativeWindow, uint32_t const width, uint32_t const height, uint32_t const bufferCount)
 		{
 			Unique<IDXGIFactory4> factory;
 			UINT factoryFlags = 0;

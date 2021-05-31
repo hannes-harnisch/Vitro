@@ -15,7 +15,7 @@ using magic_enum::enum_values;
 
 template<typename E> constexpr size_t sizeFromEnumMax()
 {
-	const auto values = enum_values<E>();
-	const auto max	  = std::max_element(values.begin(), values.end());
+	auto const values = enum_values<E>();
+	auto const max	  = std::max_element(values.begin(), values.end());
 	return static_cast<size_t>(*max) + 1;
 }

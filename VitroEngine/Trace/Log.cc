@@ -4,8 +4,8 @@ module;
 #include <bitset>
 #include <concepts>
 #include <condition_variable>
+#include <cstdio>
 #include <filesystem>
-#include <iostream>
 #include <mutex>
 #include <queue>
 #include <source_location>
@@ -15,17 +15,6 @@ export module Vitro.Trace.Log;
 import Vitro.Core.Singleton;
 import Vitro.Trace.Console;
 import Vitro.Trace.LogLevel;
-
-template<typename T> concept OverloadsArrowOperator = requires(T t)
-{
-	t->toString();
-};
-
-template<typename T>
-concept OverloadsStreamOperator = !std::same_as<bool, T> && !std::is_enum_v<T> && requires(T t, std::ostream& stream)
-{
-	stream << t;
-};
 
 export enum class LogChannel : unsigned char {
 	App,
@@ -43,37 +32,48 @@ export enum class LogChannel : unsigned char {
 	Vulkan
 };
 
+template<typename T> concept OverloadsArrowOperator = requires(T t)
+{
+	t->toString();
+};
+
+template<typename T>
+concept OverloadsStreamOperator = !std::same_as<bool, T> && !std::is_enum_v<T> && requires(T t, std::ostream& stream)
+{
+	stream << t;
+};
+
 export class Logger : public Singleton<Logger>
 {
 	friend class TraceSystem;
 	friend class Log;
 
 public:
-	void disableChannel(const LogChannel channel)
+	void disableChannel(LogChannel const channel)
 	{
-		const std::lock_guard lock(mutex);
-		const size_t channelIndex = *enum_index(channel);
+		std::lock_guard const lock(mutex);
+		size_t const channelIndex = *enum_index(channel);
 		disabledChannels.set(channelIndex, true);
 	}
 
-	void enableChannel(const LogChannel channel)
+	void enableChannel(LogChannel const channel)
 	{
-		const std::lock_guard lock(mutex);
-		const size_t channelIndex = *enum_index(channel);
+		std::lock_guard const lock(mutex);
+		size_t const channelIndex = *enum_index(channel);
 		disabledChannels.set(channelIndex, false);
 	}
 
-	void disableLevel(const LogLevel level)
+	void disableLevel(LogLevel const level)
 	{
-		const std::lock_guard lock(mutex);
-		const size_t levelIndex = *enum_index(level);
+		std::lock_guard const lock(mutex);
+		size_t const levelIndex = *enum_index(level);
 		disabledChannels.set(levelIndex, true);
 	}
 
-	void enableLevel(const LogLevel level)
+	void enableLevel(LogLevel const level)
 	{
-		const std::lock_guard lock(mutex);
-		const size_t levelIndex = *enum_index(level);
+		std::lock_guard const lock(mutex);
+		size_t const levelIndex = *enum_index(level);
 		disabledChannels.set(levelIndex, false);
 	}
 
@@ -93,7 +93,7 @@ private:
 	std::bitset<sizeFromEnumMax<LogLevel>()> disabledLevels;
 	std::atomic_bool isAcceptingLogs = true;
 
-	static const char* prepareArgument(const bool arg)
+	static const char* prepareArgument(bool const arg)
 	{
 		return arg ? "true" : "false";
 	}
@@ -103,7 +103,7 @@ private:
 		return arg;
 	}
 
-	template<typename T> static std::string_view prepareArgument(const T arg) requires std::is_enum_v<T>
+	template<typename T> static std::string_view prepareArgument(T const arg) requires std::is_enum_v<T>
 	{
 		return enum_name(arg);
 	}
@@ -125,10 +125,10 @@ private:
 		return stream.str();
 	}
 
-	static std::string makeTimestamp(const std::chrono::system_clock::duration now)
+	static std::string makeTimestamp(std::chrono::system_clock::duration const now)
 	{
 		using namespace std::chrono;
-		const int64_t secs = duration_cast<seconds>(now).count();
+		int64_t const secs = duration_cast<seconds>(now).count();
 		std::tm calendarTime;
 		localtime_s(&calendarTime, &secs);
 
@@ -139,7 +139,7 @@ private:
 
 	Logger() = default;
 
-	template<typename... Ts> void submit(const LogLevel level, const LogChannel channel, Ts&&... ts)
+	template<typename... Ts> void submit(LogLevel const level, LogChannel const channel, Ts&&... ts)
 	{
 		if(isLevelDisabled(level) || isChannelDisabled(channel))
 			return;
@@ -148,23 +148,23 @@ private:
 		condition.notify_one();
 	}
 
-	bool isChannelDisabled(const LogChannel channel) const
+	bool isChannelDisabled(LogChannel const channel) const
 	{
-		const size_t channelIndex = *enum_index(channel);
+		size_t const channelIndex = *enum_index(channel);
 		return disabledChannels.test(channelIndex);
 	}
 
-	bool isLevelDisabled(const LogLevel level) const
+	bool isLevelDisabled(LogLevel const level) const
 	{
-		const size_t levelIndex = *enum_index(level);
+		size_t const levelIndex = *enum_index(level);
 		return disabledLevels.test(levelIndex);
 	}
 
-	void enqueue(const LogLevel level, const LogChannel channel, std::string message)
+	void enqueue(LogLevel const level, LogChannel const channel, std::string message)
 	{
-		const auto now = std::chrono::system_clock::now().time_since_epoch();
+		auto const now = std::chrono::system_clock::now().time_since_epoch();
 
-		const std::lock_guard lock(mutex);
+		std::lock_guard const lock(mutex);
 		queue.emplace(level, channel, now, std::move(message));
 	}
 
@@ -185,7 +185,7 @@ private:
 		if(!isAcceptingLogs)
 			return;
 
-		const auto entry = dequeue();
+		auto const entry = dequeue();
 		lock.unlock();
 
 		writeLog(entry);
@@ -198,14 +198,14 @@ private:
 		return entry;
 	}
 
-	void writeLog(const Entry& entry)
+	void writeLog(Entry const& entry)
 	{
-		const auto level   = enum_name(entry.level);
-		const auto channel = enum_name(entry.channel);
+		auto const level   = enum_name(entry.level);
+		auto const channel = enum_name(entry.channel);
 
 		using namespace std::chrono;
-		const auto timestamp	= makeTimestamp(entry.time);
-		const int64_t millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
+		auto const timestamp	= makeTimestamp(entry.time);
+		int64_t const millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
 
 		Console::get().setTextColor(entry.level);
 		std::printf("[ %s.%03lli | %s | %s ] %s\n", timestamp.data(), millisecs, level.data(), channel.data(),
@@ -221,16 +221,16 @@ private:
 
 consteval LogChannel extractChannelFromPath(std::string_view path)
 {
-	const size_t dirBegin	= path.rfind(VE_ENGINE_NAME) + sizeof VE_ENGINE_NAME;
-	const auto pathAfterDir = path.substr(dirBegin);
-	const size_t dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
-	const auto dir			= pathAfterDir.substr(0, dirEnd);
-	const auto channel		= enum_cast<LogChannel>(dir);
+	size_t const dirBegin	= path.rfind(VE_ENGINE_NAME) + sizeof VE_ENGINE_NAME;
+	auto const pathAfterDir = path.substr(dirBegin);
+	size_t const dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
+	auto const dir			= pathAfterDir.substr(0, dirEnd);
+	auto const channel		= enum_cast<LogChannel>(dir);
 
-	const auto restPath		 = pathAfterDir.substr(dirEnd + 1);
-	const size_t vendorEnd	 = restPath.find(std::filesystem::path::preferred_separator);
-	const auto vendorDir	 = restPath.substr(0, vendorEnd);
-	const auto vendorChannel = enum_cast<LogChannel>(vendorDir);
+	auto const restPath		 = pathAfterDir.substr(dirEnd + 1);
+	size_t const vendorEnd	 = restPath.find(std::filesystem::path::preferred_separator);
+	auto const vendorDir	 = restPath.substr(0, vendorEnd);
+	auto const vendorChannel = enum_cast<LogChannel>(vendorDir);
 
 	return channel.value_or(vendorChannel.value_or(LogChannel::Client));
 }
@@ -276,7 +276,7 @@ public:
 private:
 	LogChannel channel;
 
-	template<typename... Ts> void log(const LogLevel level, Ts&&... ts) const
+	template<typename... Ts> void log(LogLevel const level, Ts&&... ts) const
 	{
 		Logger::get().submit(level, channel, std::forward<Ts>(ts)...);
 	}

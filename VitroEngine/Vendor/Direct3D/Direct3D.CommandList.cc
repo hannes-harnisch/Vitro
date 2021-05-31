@@ -10,12 +10,12 @@ namespace Direct3D
 	export class CommandList
 	{
 	public:
-		void bindPipeline(const Pipeline& pipeline)
+		void bindPipeline(Pipeline const& pipeline)
 		{
 			// commandList->SetPipelineState(pipeline.handle());
 		}
 
 	private:
-		Unique<ID3D12GraphicsCommandList6> commandList;
+		Unique<ID3D12GraphicsCommandList> commandList;
 	};
 }

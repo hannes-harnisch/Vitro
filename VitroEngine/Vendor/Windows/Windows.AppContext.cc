@@ -38,154 +38,60 @@ namespace Windows
 		}
 
 	private:
-		const HINSTANCE instanceHandle;
+		HINSTANCE const instanceHandle;
 		KeyCode lastKeyCode {};
 		unsigned keyRepeats {};
 		Int2 lastMousePosition;
 
-		static LRESULT CALLBACK forwardMessages(const HWND hwnd, const UINT message, const WPARAM wParam, const LPARAM lParam)
+		static AppContext& get()
+		{
+			return static_cast<AppContext&>(AppContextBase::get());
+		}
+
+		static LRESULT CALLBACK forwardMessages(HWND const hwnd, UINT const message, WPARAM const wParam, LPARAM const lParam)
 		{
 			switch(message)
 			{
-				case WM_MOVE: notifyWindowMoveEvent(hwnd, lParam); return 0;
-				case WM_SIZE: notifyWindowSizeEvent(hwnd, lParam); return 0;
-				case WM_SETFOCUS: notifyWindowEvent<WindowFocusEvent>(hwnd); return 0;
-				case WM_KILLFOCUS: notifyWindowEvent<WindowUnfocusEvent>(hwnd); return 0;
-				case WM_CLOSE: notifyWindowEvent<WindowCloseEvent>(hwnd); return 0;
+				case WM_MOVE: get().notifyWindowMoveEvent(hwnd, lParam); return 0;
+				case WM_SIZE: get().notifyWindowSizeEvent(hwnd, lParam); return 0;
+				case WM_ACTIVATE: get().restoreWindowCursorState(hwnd, wParam); return 0;
+				case WM_SETFOCUS: get().notifyWindowEvent<WindowFocusEvent>(hwnd); return 0;
+				case WM_KILLFOCUS: get().notifyWindowEvent<WindowUnfocusEvent>(hwnd); return 0;
+				case WM_CLOSE: get().notifyWindowEvent<WindowCloseEvent>(hwnd); return 0;
 				case WM_SHOWWINDOW:
 					if(wParam)
-						notifyWindowEvent<WindowOpenEvent>(hwnd);
+						get().notifyWindowEvent<WindowOpenEvent>(hwnd);
 					return 0;
-				case WM_INPUT: notifyRawInput(hwnd, lParam); return 0;
+				case WM_INPUT: get().notifyRawInput(hwnd, lParam); return 0;
 				case WM_KEYDOWN:
-				case WM_SYSKEYDOWN: notifyKeyDownEvent(hwnd, wParam); return 0;
+				case WM_SYSKEYDOWN: get().notifyKeyDownEvent(hwnd, wParam); return 0;
 				case WM_KEYUP:
-				case WM_SYSKEYUP: notifyKeyUpEvent(hwnd, wParam); return 0;
+				case WM_SYSKEYUP: get().notifyKeyUpEvent(hwnd, wParam); return 0;
 				case WM_CHAR:
-				case WM_SYSCHAR: notifyKeyTextEvent(hwnd, wParam); return 0;
-				case WM_UNICHAR: notifyKeyTextEvent(hwnd, wParam); return wParam == UNICODE_NOCHAR;
-				case WM_MOUSEMOVE: storeLastMousePosition(lParam); return 0;
-				case WM_LBUTTONDOWN: notifyMouseEvent<MouseDownEvent>(hwnd, MouseCode::Mouse1); return 0;
-				case WM_RBUTTONDOWN: notifyMouseEvent<MouseDownEvent>(hwnd, MouseCode::Mouse2); return 0;
-				case WM_MBUTTONDOWN: notifyMouseEvent<MouseDownEvent>(hwnd, MouseCode::Wheel); return 0;
-				case WM_XBUTTONDOWN: notifyMouseEvent<MouseDownEvent>(hwnd, getExtraMouseButton(wParam)); return true;
-				case WM_LBUTTONUP: notifyMouseEvent<MouseUpEvent>(hwnd, MouseCode::Mouse1); return 0;
-				case WM_RBUTTONUP: notifyMouseEvent<MouseUpEvent>(hwnd, MouseCode::Mouse2); return 0;
-				case WM_MBUTTONUP: notifyMouseEvent<MouseUpEvent>(hwnd, MouseCode::Wheel); return 0;
-				case WM_XBUTTONUP: notifyMouseEvent<MouseUpEvent>(hwnd, getExtraMouseButton(wParam)); return true;
-				case WM_LBUTTONDBLCLK: notifyMouseEvent<DoubleClickEvent>(hwnd, MouseCode::Mouse1); return 0;
-				case WM_RBUTTONDBLCLK: notifyMouseEvent<DoubleClickEvent>(hwnd, MouseCode::Mouse2); return 0;
-				case WM_MBUTTONDBLCLK: notifyMouseEvent<DoubleClickEvent>(hwnd, MouseCode::Wheel); return 0;
-				case WM_XBUTTONDBLCLK: notifyMouseEvent<DoubleClickEvent>(hwnd, getExtraMouseButton(wParam)); return true;
-				case WM_MOUSEWHEEL: notifyVerticalScrollEvent(hwnd, wParam); return 0;
-				case WM_MOUSEHWHEEL: notifyHorizontalScrollEvent(hwnd, wParam); return 0;
+				case WM_SYSCHAR: get().notifyKeyTextEvent(hwnd, wParam); return 0;
+				case WM_UNICHAR: get().notifyKeyTextEvent(hwnd, wParam); return wParam == UNICODE_NOCHAR;
+				case WM_MOUSEMOVE: get().storeLastMousePosition(lParam); return 0;
+				case WM_LBUTTONDOWN: get().notifyMouseEvent<MouseDownEvent>(hwnd, MouseCode::Mouse1); return 0;
+				case WM_RBUTTONDOWN: get().notifyMouseEvent<MouseDownEvent>(hwnd, MouseCode::Mouse2); return 0;
+				case WM_MBUTTONDOWN: get().notifyMouseEvent<MouseDownEvent>(hwnd, MouseCode::Wheel); return 0;
+				case WM_XBUTTONDOWN: get().notifyMouseEvent<MouseDownEvent>(hwnd, getExtraMouseButton(wParam)); return true;
+				case WM_LBUTTONUP: get().notifyMouseEvent<MouseUpEvent>(hwnd, MouseCode::Mouse1); return 0;
+				case WM_RBUTTONUP: get().notifyMouseEvent<MouseUpEvent>(hwnd, MouseCode::Mouse2); return 0;
+				case WM_MBUTTONUP: get().notifyMouseEvent<MouseUpEvent>(hwnd, MouseCode::Wheel); return 0;
+				case WM_XBUTTONUP: get().notifyMouseEvent<MouseUpEvent>(hwnd, getExtraMouseButton(wParam)); return true;
+				case WM_LBUTTONDBLCLK: get().notifyMouseEvent<DoubleClickEvent>(hwnd, MouseCode::Mouse1); return 0;
+				case WM_RBUTTONDBLCLK: get().notifyMouseEvent<DoubleClickEvent>(hwnd, MouseCode::Mouse2); return 0;
+				case WM_MBUTTONDBLCLK: get().notifyMouseEvent<DoubleClickEvent>(hwnd, MouseCode::Wheel); return 0;
+				case WM_XBUTTONDBLCLK: get().notifyMouseEvent<DoubleClickEvent>(hwnd, getExtraMouseButton(wParam)); return true;
+				case WM_MOUSEWHEEL: get().notifyVerticalScrollEvent(hwnd, wParam); return 0;
+				case WM_MOUSEHWHEEL: get().notifyHorizontalScrollEvent(hwnd, wParam); return 0;
 			}
 			return ::DefWindowProc(hwnd, message, wParam, lParam);
 		}
 
-		static void notifyWindowMoveEvent(const HWND hwnd, const LPARAM lp)
-		{
-			auto& window = *get().findWindow(hwnd);
-			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
-			EventSystem::get().notify<WindowMoveEvent>(window, position);
-		}
-
-		static void notifyWindowSizeEvent(const HWND hwnd, const LPARAM lp)
-		{
-			auto& window = *get().findWindow(hwnd);
-			Rectangle size(LOWORD(lp), HIWORD(lp));
-			EventSystem::get().notify<WindowSizeEvent>(window, size);
-		}
-
-		template<typename E> static void notifyWindowEvent(const HWND hwnd)
-		{
-			auto window = get().findWindow(hwnd);
-			if(window)
-				EventSystem::get().notify<E>(*window);
-		}
-
-		static void notifyRawInput(const HWND hwnd, const LPARAM lp)
-		{
-			UINT size {};
-			const auto inputHandle = reinterpret_cast<HRAWINPUT>(lp);
-
-			::GetRawInputData(inputHandle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
-			Array<BYTE> bytes(size);
-			::GetRawInputData(inputHandle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
-			auto input = new(bytes.data()) RAWINPUT;
-
-			auto& self	 = static_cast<AppContext&>(get());
-			auto& window = *self.findWindow(hwnd);
-			const Int2 direction {input->data.mouse.lLastX, -input->data.mouse.lLastY};
-			EventSystem::get().notify<MouseMoveEvent>(window, self.lastMousePosition, direction);
-		}
-
-		static void notifyKeyDownEvent(const HWND hwnd, const WPARAM wp)
-		{
-			auto& self	   = static_cast<AppContext&>(get());
-			auto& window   = *self.findWindow(hwnd);
-			const auto key = static_cast<KeyCode>(wp);
-
-			if(self.lastKeyCode == key)
-				self.keyRepeats++;
-			else
-				self.keyRepeats = 0;
-			self.lastKeyCode = key;
-
-			EventSystem::get().notify<KeyDownEvent>(window, key, self.keyRepeats);
-		}
-
-		static void notifyKeyUpEvent(const HWND hwnd, const WPARAM wp)
-		{
-			auto& self		 = static_cast<AppContext&>(get());
-			auto& window	 = *self.findWindow(hwnd);
-			self.lastKeyCode = KeyCode::None;
-			self.keyRepeats	 = 0;
-
-			const auto key = static_cast<KeyCode>(wp);
-			EventSystem::get().notify<KeyUpEvent>(window, key);
-		}
-
-		static void notifyKeyTextEvent(const HWND hwnd, const WPARAM wp)
-		{
-			auto& self	 = static_cast<AppContext&>(get());
-			auto& window = *self.findWindow(hwnd);
-
-			const wchar_t chars[] {static_cast<wchar_t>(wp), L'\0'};
-			EventSystem::get().notify<KeyTextEvent>(window, self.lastKeyCode, narrowString(chars));
-		}
-
-		static void storeLastMousePosition(const LPARAM lp)
-		{
-			auto& self = static_cast<AppContext&>(get());
-
-			self.lastMousePosition.x = GET_X_LPARAM(lp);
-			self.lastMousePosition.y = GET_Y_LPARAM(lp);
-		}
-
-		template<typename E> static void notifyMouseEvent(const HWND hwnd, const MouseCode button)
-		{
-			auto& window = *get().findWindow(hwnd);
-			EventSystem::get().notify<E>(window, button);
-		}
-
-		static MouseCode getExtraMouseButton(const WPARAM wp)
+		static MouseCode getExtraMouseButton(WPARAM const wp)
 		{
 			return static_cast<MouseCode>(HIWORD(wp) + 3);
-		}
-
-		static void notifyVerticalScrollEvent(const HWND hwnd, const WPARAM wp)
-		{
-			auto& window = *get().findWindow(hwnd);
-			const Float2 offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
-			EventSystem::get().notify<MouseScrollEvent>(window, offset);
-		}
-
-		static void notifyHorizontalScrollEvent(const HWND hwnd, const WPARAM wp)
-		{
-			auto& window = *get().findWindow(hwnd);
-			const Float2 offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
-			EventSystem::get().notify<MouseScrollEvent>(window, offset);
 		}
 
 		AppContext() : instanceHandle(::GetModuleHandle(nullptr))
@@ -202,6 +108,116 @@ namespace Windows
 			rawInputDevice.usUsage	   = 0x02; // Usage constant for a generic mouse
 			veEnsure(::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE)),
 					 "Failed to register raw input device.");
+		}
+
+		void notifyWindowMoveEvent(HWND const hwnd, LPARAM const lp)
+		{
+			auto& window = *findWindow(hwnd);
+			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+
+			EventSystem::get().notify<WindowMoveEvent>(window, position);
+		}
+
+		void notifyWindowSizeEvent(HWND const hwnd, LPARAM const lp)
+		{
+			auto& window = *findWindow(hwnd);
+			Rectangle const size(LOWORD(lp), HIWORD(lp));
+
+			EventSystem::get().notify<WindowSizeEvent>(window, size);
+		}
+
+		void restoreWindowCursorState(HWND const hwnd, WPARAM const wp)
+		{
+			auto window = findWindow(hwnd);
+			if(!window || window->cursorEnabled())
+				return;
+
+			if(wp & WA_ACTIVE || wp & WA_CLICKACTIVE)
+				window->disableCursor();
+			else
+				window->enableCursor();
+		}
+
+		template<typename E> void notifyWindowEvent(HWND const hwnd)
+		{
+			auto window = findWindow(hwnd);
+			if(window)
+				EventSystem::get().notify<E>(*window);
+		}
+
+		void notifyRawInput(HWND const hwnd, LPARAM const lp)
+		{
+			UINT size {};
+			auto const inputHandle = reinterpret_cast<HRAWINPUT>(lp);
+
+			::GetRawInputData(inputHandle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
+			Array<BYTE> bytes(size);
+			::GetRawInputData(inputHandle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
+			auto input = new(bytes.data()) RAWINPUT;
+
+			auto& window = *findWindow(hwnd);
+			Int2 const direction {input->data.mouse.lLastX, input->data.mouse.lLastY};
+			EventSystem::get().notify<MouseMoveEvent>(window, lastMousePosition, direction);
+		}
+
+		void notifyKeyDownEvent(HWND const hwnd, WPARAM const wp)
+		{
+			auto const key = static_cast<KeyCode>(wp);
+
+			if(lastKeyCode == key)
+				keyRepeats++;
+			else
+				keyRepeats = 0;
+			lastKeyCode = key;
+
+			auto& window = *findWindow(hwnd);
+			EventSystem::get().notify<KeyDownEvent>(window, key, keyRepeats);
+		}
+
+		void notifyKeyUpEvent(HWND const hwnd, WPARAM const wp)
+		{
+			lastKeyCode = KeyCode::None;
+			keyRepeats	= 0;
+
+			auto& window   = *findWindow(hwnd);
+			auto const key = static_cast<KeyCode>(wp);
+			EventSystem::get().notify<KeyUpEvent>(window, key);
+		}
+
+		void notifyKeyTextEvent(HWND const hwnd, WPARAM const wp)
+		{
+			auto& window = *findWindow(hwnd);
+			wchar_t const chars[] {static_cast<wchar_t>(wp), L'\0'};
+
+			EventSystem::get().notify<KeyTextEvent>(window, lastKeyCode, narrowString(chars));
+		}
+
+		void storeLastMousePosition(LPARAM const lp)
+		{
+			lastMousePosition.x = GET_X_LPARAM(lp);
+			lastMousePosition.y = GET_Y_LPARAM(lp);
+		}
+
+		template<typename E> void notifyMouseEvent(HWND const hwnd, MouseCode const button)
+		{
+			auto& window = *findWindow(hwnd);
+			EventSystem::get().notify<E>(window, button);
+		}
+
+		void notifyVerticalScrollEvent(HWND const hwnd, WPARAM const wp)
+		{
+			auto& window = *findWindow(hwnd);
+			Float2 const offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
+
+			EventSystem::get().notify<MouseScrollEvent>(window, offset);
+		}
+
+		void notifyHorizontalScrollEvent(HWND const hwnd, WPARAM const wp)
+		{
+			auto& window = *findWindow(hwnd);
+			Float2 const offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
+
+			EventSystem::get().notify<MouseScrollEvent>(window, offset);
 		}
 	};
 }

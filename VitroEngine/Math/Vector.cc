@@ -77,6 +77,11 @@ export template<typename From, typename To> concept LosslesslyConvertibleTo = re
 
 export template<typename T, int D> struct Vector : VectorData<T, D>
 {
+	static constexpr size_t size()
+	{
+		return D;
+	}
+
 	template<Scalar S, int D2> constexpr operator Vector<S, D2>() const requires LosslesslyConvertibleTo<T, S>
 	{
 		return to<S, D2>();
@@ -97,46 +102,46 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return this->data[index];
 	}
 
-	template<Scalar S> constexpr bool operator==(const Vector<S, D>& that) const
+	template<Scalar S> constexpr bool operator==(Vector<S, D> const& that) const
 	{
 		return std::equal(std::begin(this->data), std::end(this->data), std::begin(that.data));
 	}
 
-	template<Scalar S> constexpr bool operator!=(const Vector<S, D>& that) const
+	template<Scalar S> constexpr bool operator!=(Vector<S, D> const& that) const
 	{
 		return !operator==(that);
 	}
 
 	constexpr auto operator+() const
 	{
-		Vector<decltype(+this->data[0]), D> result;
+		Vector<decltype(+this->data[0]), D> promoted;
 		for(int i {}; i < D; ++i)
-			result.data[i] = +this->data[i];
-		return result;
+			promoted.data[i] = +this->data[i];
+		return promoted;
 	}
 
-	template<Scalar S> constexpr auto operator+(const Vector<S, D>& that) const
+	template<Scalar S> constexpr auto operator+(Vector<S, D> const& that) const
 	{
-		Vector<decltype(this->data[0] + that[0]), D> result;
+		Vector<decltype(this->data[0] + that[0]), D> sum;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] + that.data[i];
-		return result;
+			sum.data[i] = this->data[i] + that.data[i];
+		return sum;
 	}
 
 	template<Scalar S> constexpr auto operator+(S scalar) const
 	{
-		Vector<decltype(this->data[0] + scalar), D> result;
+		Vector<decltype(this->data[0] + scalar), D> sum;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] + scalar;
-		return result;
+			sum.data[i] = this->data[i] + scalar;
+		return sum;
 	}
 
-	template<Scalar S> friend constexpr auto operator+(S scalar, const Vector& vec)
+	template<Scalar S> friend constexpr auto operator+(S scalar, Vector const& vec)
 	{
 		return vec + scalar;
 	}
 
-	template<Scalar S> constexpr Vector& operator+=(const Vector<S, D>& that)
+	template<Scalar S> constexpr Vector& operator+=(Vector<S, D> const& that)
 	{
 		for(int i {}; i < D; ++i)
 			this->data[i] += that.data[i];
@@ -152,37 +157,37 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 
 	constexpr auto operator-() const
 	{
-		Vector<decltype(-this->data[0]), D> result;
+		Vector<decltype(-this->data[0]), D> negated;
 		for(int i {}; i < D; ++i)
-			result.data[i] = -this->data[i];
-		return result;
+			negated.data[i] = -this->data[i];
+		return negated;
 	}
 
-	template<Scalar S> constexpr auto operator-(const Vector<S, D>& that) const
+	template<Scalar S> constexpr auto operator-(Vector<S, D> const& that) const
 	{
-		Vector<decltype(this->data[0] - that[0]), D> result;
+		Vector<decltype(this->data[0] - that[0]), D> difference;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] - that.data[i];
-		return result;
+			difference.data[i] = this->data[i] - that.data[i];
+		return difference;
 	}
 
 	template<Scalar S> constexpr auto operator-(S scalar) const
 	{
-		Vector<decltype(this->data[0] - scalar), D> result;
+		Vector<decltype(this->data[0] - scalar), D> difference;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] - scalar;
-		return result;
+			difference.data[i] = this->data[i] - scalar;
+		return difference;
 	}
 
-	template<Scalar S> friend constexpr auto operator-(S scalar, const Vector& vec)
+	template<Scalar S> friend constexpr auto operator-(S scalar, Vector const& vec)
 	{
-		Vector<decltype(scalar - vec[0]), D> result;
+		Vector<decltype(scalar - vec[0]), D> difference;
 		for(int i {}; i < D; ++i)
-			result.data[i] = scalar - vec.data[i];
-		return result;
+			difference.data[i] = scalar - vec.data[i];
+		return difference;
 	}
 
-	template<Scalar S> constexpr Vector& operator-=(const Vector<S, D>& that)
+	template<Scalar S> constexpr Vector& operator-=(Vector<S, D> const& that)
 	{
 		for(int i {}; i < D; ++i)
 			this->data[i] -= that.data[i];
@@ -196,28 +201,28 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	template<Scalar S> constexpr auto operator*(const Vector<S, D>& that) const
+	template<Scalar S> constexpr auto operator*(Vector<S, D> const& that) const
 	{
-		Vector<decltype(this->data[0] * that[0]), D> result;
+		Vector<decltype(this->data[0] * that[0]), D> product;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] * that.data[i];
-		return result;
+			product.data[i] = this->data[i] * that.data[i];
+		return product;
 	}
 
 	template<Scalar S> constexpr auto operator*(S scalar) const
 	{
-		Vector<decltype(this->data[0] * scalar), D> result;
+		Vector<decltype(this->data[0] * scalar), D> product;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] * scalar;
-		return result;
+			product.data[i] = this->data[i] * scalar;
+		return product;
 	}
 
-	template<Scalar S> friend constexpr auto operator*(S scalar, const Vector& vec)
+	template<Scalar S> friend constexpr auto operator*(S scalar, Vector const& vec)
 	{
 		return vec * scalar;
 	}
 
-	template<Scalar S> constexpr Vector& operator*=(const Vector<S, D>& that)
+	template<Scalar S> constexpr Vector& operator*=(Vector<S, D> const& that)
 	{
 		for(int i {}; i < D; ++i)
 			this->data[i] *= that.data[i];
@@ -231,31 +236,31 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	template<Scalar S> constexpr auto operator/(const Vector<S, D>& that) const
+	template<Scalar S> constexpr auto operator/(Vector<S, D> const& that) const
 	{
-		Vector<decltype(this->data[0] / that[0]), D> result;
+		Vector<decltype(this->data[0] / that[0]), D> quotient;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] / that.data[i];
-		return result;
+			quotient.data[i] = this->data[i] / that.data[i];
+		return quotient;
 	}
 
 	template<Scalar S> constexpr auto operator/(S scalar) const
 	{
-		Vector<decltype(this->data[0] / scalar), D> result;
+		Vector<decltype(this->data[0] / scalar), D> quotient;
 		for(int i {}; i < D; ++i)
-			result.data[i] = this->data[i] / scalar;
-		return result;
+			quotient.data[i] = this->data[i] / scalar;
+		return quotient;
 	}
 
-	template<Scalar S> friend constexpr auto operator/(S scalar, const Vector& vec)
+	template<Scalar S> friend constexpr auto operator/(S scalar, Vector const& vec)
 	{
-		Vector<decltype(scalar / vec[0]), D> result;
+		Vector<decltype(scalar / vec[0]), D> quotient;
 		for(int i {}; i < D; ++i)
-			result.data[i] = scalar / vec.data[i];
-		return result;
+			quotient.data[i] = scalar / vec.data[i];
+		return quotient;
 	}
 
-	template<Scalar S> constexpr Vector& operator/=(const Vector<S, D>& that)
+	template<Scalar S> constexpr Vector& operator/=(Vector<S, D> const& that)
 	{
 		for(int i {}; i < D; ++i)
 			this->data[i] /= that.data[i];
@@ -269,17 +274,12 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	constexpr size_t size() const
-	{
-		return D;
-	}
-
 	template<Scalar S, int D2> constexpr Vector<S, D2> to() const
 	{
-		Vector<S, D2> result;
+		Vector<S, D2> cast;
 		for(int i {}; i < std::min(D, D2); ++i)
-			result[i] = static_cast<S>(this->data[i]);
-		return result;
+			cast[i] = static_cast<S>(this->data[i]);
+		return cast;
 	}
 
 	std::string toString() const
@@ -289,10 +289,10 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		for(int i = 1; i < D; ++i)
 			str += std::format(", {}", this->data[i]);
 
-		return str + "]";
+		return str + ']';
 	}
 
-	template<typename R, Scalar S = T> friend constexpr Vector<R, D> apply(const Vector& vec, R (*func)(S))
+	template<typename R, Scalar S = T> friend constexpr Vector<R, D> apply(Vector const& vec, R (*func)(S))
 	{
 		Vector<R, D> result;
 		for(int i {}; i < D; ++i)
@@ -300,53 +300,53 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return result;
 	}
 
-	template<Scalar S> friend constexpr auto dot(const Vector& left, const Vector<S, D>& right)
+	template<Scalar S> friend constexpr auto dot(Vector const& left, Vector<S, D> const& right)
 	{
-		const auto hadamard {left * right};
+		auto const hadamard {left * right};
 		decltype(hadamard[0]) dot {};
 		for(auto component : hadamard.data)
 			dot += component;
 		return dot;
 	}
 
-	friend constexpr auto length(const Vector& vec)
+	friend constexpr auto length(Vector const& vec)
 	{
 		return std::sqrt(dot(vec, vec));
 	}
 
-	friend constexpr auto normalize(const Vector& vec)
+	friend constexpr auto normalize(Vector const& vec)
 	{
 		return 1.0f / length(vec) * vec;
 	}
 
-	template<Scalar S> friend constexpr auto distance(const Vector& left, const Vector<S, D>& right)
+	template<Scalar S> friend constexpr auto distance(Vector const& left, Vector<S, D> const& right)
 	{
 		return length(left - right);
 	}
 
-	friend constexpr auto sqrt(const Vector& vec)
+	friend constexpr auto sqrt(Vector const& vec)
 	{
 		return apply<decltype(std::sqrt(vec[0]))>(vec, std::sqrt);
 	}
 
-	friend constexpr auto invSqrt(const Vector& vec)
+	friend constexpr auto invSqrt(Vector const& vec)
 	{
 		return 1.0f / sqrt(vec);
 	}
 
-	friend constexpr auto sin(const Vector& vec)
+	friend constexpr auto sin(Vector const& vec)
 	{
 		return apply<decltype(std::sin(vec[0]))>(vec, std::sin);
 	}
 
-	friend constexpr auto cos(const Vector& vec)
+	friend constexpr auto cos(Vector const& vec)
 	{
 		return apply<decltype(std::cos(vec[0]))>(vec, std::cos);
 	}
 };
 
 export template<typename T, Scalar S>
-constexpr auto cross(const Vector<T, 3>& left, const Vector<S, 3>& right) -> Vector<decltype(left[0] * right[0]), 3>
+constexpr auto cross(Vector<T, 3> const& left, Vector<S, 3> const& right) -> Vector<decltype(left[0] * right[0]), 3>
 {
 	return {left.y * right.z - right.y * left.z, left.z * right.x - right.z * left.x, left.x * right.y - right.x * left.y};
 }

@@ -11,7 +11,6 @@ import Vitro.Core.Singleton;
 import Vitro.Core.Tick;
 import Vitro.Editor.Editor;
 import Vitro.Graphics.GraphicsSystem;
-import Vitro.Task.TaskSystem;
 import Vitro.Trace.Log;
 import Vitro.Trace.TraceSystem;
 
@@ -38,7 +37,6 @@ private:
 	std::vector<std::string_view> commandLineArgs;
 	Tick tick;
 	TraceSystem traceSystem;
-	TaskSystem taskSystem;
 	AppSystem appSystem;
 	GraphicsSystem graphicsSystem;
 	Editor editor;

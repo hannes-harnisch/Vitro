@@ -1,7 +1,6 @@
 module;
 #include <cmath>
 #include <format>
-#include <optional>
 export module Vitro.Math.Matrix;
 
 import Vitro.Math.Vector;
@@ -13,10 +12,25 @@ export template<typename T, int R, int C> struct Matrix
 
 	static constexpr Matrix identity() requires(R == C)
 	{
-		Matrix result;
+		Matrix mat;
 		for(int r {}; r < R; ++r)
-			result[r][r] = 1;
-		return result;
+			mat[r][r] = 1;
+		return mat;
+	}
+
+	static constexpr size_t rowSize()
+	{
+		return R;
+	}
+
+	static constexpr size_t columnSize()
+	{
+		return C;
+	}
+
+	static constexpr size_t size()
+	{
+		return R * C;
 	}
 
 	template<Scalar S, int R2, int C2> constexpr operator Matrix<S, R2, C2>() const requires LosslesslyConvertibleTo<T, S>
@@ -35,51 +49,51 @@ export template<typename T, int R, int C> struct Matrix
 		return rows[index];
 	}
 
-	constexpr const Row& operator[](size_t index) const
+	constexpr Row const& operator[](size_t index) const
 	{
 		return rows[index];
 	}
 
-	template<Scalar S> constexpr bool operator==(const Matrix<S, R, C>& that) const
+	template<Scalar S> constexpr bool operator==(Matrix<S, R, C> const& that) const
 	{
 		return std::equal(std::begin(rows), std::end(rows), std::begin(that.rows));
 	}
 
-	template<Scalar S> constexpr bool operator!=(const Matrix<S, R, C>& that) const
+	template<Scalar S> constexpr bool operator!=(Matrix<S, R, C> const& that) const
 	{
 		return !operator==(that);
 	}
 
 	constexpr auto operator+() const
 	{
-		Matrix<decltype(+rows[0][0]), R, C> result;
+		Matrix<decltype(+rows[0][0]), R, C> promoted;
 		for(int r {}; r < R; ++r)
-			result[r] = +rows[r];
-		return result;
+			promoted[r] = +rows[r];
+		return promoted;
 	}
 
-	template<Scalar S> constexpr auto operator+(const Matrix<S, R, C>& that) const
+	template<Scalar S> constexpr auto operator+(Matrix<S, R, C> const& that) const
 	{
-		Matrix<decltype(rows[0][0] + that[0][0]), R, C> result;
+		Matrix<decltype(rows[0][0] + that[0][0]), R, C> sum;
 		for(int r {}; r < R; ++r)
-			result[r] = rows[r] + that[r];
-		return result;
+			sum[r] = rows[r] + that[r];
+		return sum;
 	}
 
 	template<Scalar S> constexpr auto operator+(S scalar) const
 	{
-		Matrix<decltype(rows[0][0] + scalar), R, C> result;
+		Matrix<decltype(rows[0][0] + scalar), R, C> sum;
 		for(int r {}; r < R; ++r)
-			result[r] = rows[r] + scalar;
-		return result;
+			sum[r] = rows[r] + scalar;
+		return sum;
 	}
 
-	template<Scalar S> friend constexpr auto operator+(S scalar, const Matrix& mat)
+	template<Scalar S> friend constexpr auto operator+(S scalar, Matrix const& mat)
 	{
 		return mat + scalar;
 	}
 
-	template<Scalar S> constexpr Matrix& operator+=(const Matrix<S, R, C>& that)
+	template<Scalar S> constexpr Matrix& operator+=(Matrix<S, R, C> const& that)
 	{
 		for(int r {}; r < R; ++r)
 			rows[r] += that[r];
@@ -95,37 +109,37 @@ export template<typename T, int R, int C> struct Matrix
 
 	constexpr auto operator-() const
 	{
-		Matrix<decltype(-rows[0][0]), R, C> result;
+		Matrix<decltype(-rows[0][0]), R, C> negated;
 		for(int r {}; r < R; ++r)
-			result[r] = -rows[r];
-		return result;
+			negated[r] = -rows[r];
+		return negated;
 	}
 
-	template<Scalar S> constexpr auto operator-(const Matrix<S, R, C>& that) const
+	template<Scalar S> constexpr auto operator-(Matrix<S, R, C> const& that) const
 	{
-		Matrix<decltype(rows[0][0] - that[0][0]), R, C> result;
+		Matrix<decltype(rows[0][0] - that[0][0]), R, C> difference;
 		for(int r {}; r < R; ++r)
-			result[r] = rows[r] - that[r];
-		return result;
+			difference[r] = rows[r] - that[r];
+		return difference;
 	}
 
 	template<Scalar S> constexpr auto operator-(S scalar) const
 	{
-		Matrix<decltype(rows[0][0] - scalar), R, C> result;
+		Matrix<decltype(rows[0][0] - scalar), R, C> difference;
 		for(int r {}; r < R; ++r)
-			result[r] = rows[r] - scalar;
-		return result;
+			difference[r] = rows[r] - scalar;
+		return difference;
 	}
 
-	template<Scalar S> friend constexpr auto operator-(S scalar, const Matrix& mat)
+	template<Scalar S> friend constexpr auto operator-(S scalar, Matrix const& mat)
 	{
-		Matrix<decltype(scalar - mat[0][0]), R, C> result;
+		Matrix<decltype(scalar - mat[0][0]), R, C> difference;
 		for(int r {}; r < R; ++r)
-			result[r] = scalar - mat[r];
-		return result;
+			difference[r] = scalar - mat[r];
+		return difference;
 	}
 
-	template<Scalar S> constexpr Matrix& operator-=(const Matrix<S, R, C>& that)
+	template<Scalar S> constexpr Matrix& operator-=(Matrix<S, R, C> const& that)
 	{
 		for(int r {}; r < R; ++r)
 			rows[r] -= that[r];
@@ -139,48 +153,48 @@ export template<typename T, int R, int C> struct Matrix
 		return *this;
 	}
 
-	template<Scalar S, int C2> constexpr auto operator*(const Matrix<S, C, C2>& that) const
+	template<Scalar S, int C2> constexpr auto operator*(Matrix<S, C, C2> const& that) const
 	{
-		Matrix<decltype(rows[0][0] * that[0][0]), R, C2> result;
+		Matrix<decltype(rows[0][0] * that[0][0]), R, C2> product;
 		for(int r {}; r < R; ++r)
 			for(int c {}; c < C2; ++c)
 				for(int i {}; i < C; ++i)
-					result[r][c] += rows[r][i] * that[i][c];
-		return result;
+					product[r][c] += rows[r][i] * that[i][c];
+		return product;
 	}
 
-	template<Scalar S> constexpr auto operator*(const Vector<S, C>& vec) const
+	template<Scalar S> constexpr auto operator*(Vector<S, C> const& vec) const
 	{
-		Vector<decltype(rows[0][0] * vec[0]), R> result;
+		Vector<decltype(rows[0][0] * vec[0]), R> product;
 		for(int r {}; r < R; ++r)
 			for(int c {}; c < C; ++c)
-				result[r] += rows[c][r] * vec[c];
-		return result;
+				product[r] += rows[c][r] * vec[c];
+		return product;
 	}
 
-	template<Scalar S> friend constexpr auto operator*(const Vector<S, R>& vec, const Matrix& mat)
+	template<Scalar S> friend constexpr auto operator*(Vector<S, R> const& vec, Matrix const& mat)
 	{
-		Vector<decltype(vec[0] * rows[0][0]), C> result;
+		Vector<decltype(vec[0] * rows[0][0]), C> product;
 		for(int c {}; c < C; ++c)
 			for(int r {}; r < R; ++r)
-				result[c] += vec[r] * mat.rows[r][c];
-		return result;
+				product[c] += vec[r] * mat.rows[r][c];
+		return product;
 	}
 
 	template<Scalar S> constexpr auto operator*(S scalar) const
 	{
-		Matrix<decltype(rows[0][0] * scalar), R, C> result;
+		Matrix<decltype(rows[0][0] * scalar), R, C> product;
 		for(int r {}; r < R; ++r)
-			result[r] = rows[r] * scalar;
-		return result;
+			product[r] = rows[r] * scalar;
+		return product;
 	}
 
-	template<Scalar S> friend constexpr auto operator*(S scalar, const Matrix& mat)
+	template<Scalar S> friend constexpr auto operator*(S scalar, Matrix const& mat)
 	{
 		return mat * scalar;
 	}
 
-	template<Scalar S> constexpr Matrix& operator*=(const Matrix<S, R, C>& that)
+	template<Scalar S> constexpr Matrix& operator*=(Matrix<S, R, C> const& that)
 	{
 		return *this = *this * that;
 	}
@@ -194,18 +208,18 @@ export template<typename T, int R, int C> struct Matrix
 
 	template<Scalar S> constexpr auto operator/(S scalar) const
 	{
-		Matrix<decltype(rows[0][0] / scalar), R, C> result;
+		Matrix<decltype(rows[0][0] / scalar), R, C> quotient;
 		for(int r {}; r < R; ++r)
-			result[r] = rows[r] / scalar;
-		return result;
+			quotient[r] = rows[r] / scalar;
+		return quotient;
 	}
 
-	template<Scalar S> friend constexpr auto operator/(S scalar, const Matrix& mat)
+	template<Scalar S> friend constexpr auto operator/(S scalar, Matrix const& mat)
 	{
-		Matrix<decltype(scalar / mat[0][0]), R, C> result;
+		Matrix<decltype(scalar / mat[0][0]), R, C> quotient;
 		for(int r {}; r < R; ++r)
-			result[r] = scalar / mat[r];
-		return result;
+			quotient[r] = scalar / mat[r];
+		return quotient;
 	}
 
 	template<Scalar S> constexpr Matrix& operator/=(S scalar)
@@ -213,21 +227,6 @@ export template<typename T, int R, int C> struct Matrix
 		for(Row& row : rows)
 			row /= scalar;
 		return *this;
-	}
-
-	constexpr size_t rowSize() const
-	{
-		return R;
-	}
-
-	constexpr size_t columnSize() const
-	{
-		return C;
-	}
-
-	constexpr size_t size() const
-	{
-		return R * C;
 	}
 
 	constexpr T* data()
@@ -242,10 +241,10 @@ export template<typename T, int R, int C> struct Matrix
 
 	template<Scalar S, int R2, int C2> constexpr Matrix<S, R2, C2> to() const
 	{
-		Matrix<S, R2, C2> result;
+		Matrix<S, R2, C2> cast;
 		for(int r {}; r < std::min(R, R2); ++r)
-			result[r] = rows[r].to<S, C2>();
-		return result;
+			cast[r] = rows[r].template to<S, C2>();
+		return cast;
 	}
 
 	std::string toString() const
@@ -255,84 +254,80 @@ export template<typename T, int R, int C> struct Matrix
 		for(int r = 1; r < R; ++r)
 			str += std::format(", {}", rows[r].toString());
 
-		return str + "]";
+		return str + ']';
 	}
 
-	friend constexpr Matrix<T, C, R> transpose(const Matrix& mat)
+	friend constexpr Matrix<T, C, R> transpose(Matrix const& mat)
 	{
-		Matrix<T, C, R> result;
+		Matrix<T, C, R> transposed;
 		for(int c {}; c < C; ++c)
 			for(int r {}; r < R; ++r)
-				result[c][r] = mat[r][c];
-		return result;
+				transposed[c][r] = mat[r][c];
+		return transposed;
 	}
 
-	friend constexpr T determinant(const Matrix& mat) requires(R == C && R == 1)
+	friend constexpr T determinant(Matrix const& mat) requires(R == C && R == 1)
 	{
 		return mat[0][0];
 	}
 
-	friend constexpr T determinant(const Matrix& mat) requires(R == C && R == 2)
+	friend constexpr T determinant(Matrix const& mat) requires(R == C && R == 2)
 	{
 		return mat[0][0] * mat[1][1] - mat[1][0] * mat[0][1];
 	}
 
-	friend constexpr T determinant(const Matrix& mat) requires(R == C && R > 2)
+	friend constexpr T determinant(Matrix const& mat) requires(R == C && R > 2)
 	{
-		Matrix<T, R - 1, R - 1> m;
+		Matrix<T, R - 1, R - 1> submatrix;
 		T det {};
-		for(int j1 {}; j1 != R; ++j1)
+		for(int i {}; i != R; ++i)
 		{
-			for(int i = 1; i != R; ++i)
+			for(int r = 1; r != R; ++r)
 			{
-				int j2 {};
-				for(int j {}; j != R; ++j)
+				for(int c {}, subC {}; c != C; ++c)
 				{
-					if(j == j1)
+					if(c == i)
 						continue;
-					m[i - 1][j2] = mat[i][j];
-					++j2;
+					submatrix[r - 1][subC] = mat[r][c];
+					++subC;
 				}
 			}
-
-			T d = determinant(m);
-			if(j1 & 1)
-				d = -d;
-			det += mat[0][j1] * d;
+			T minor = determinant(submatrix);
+			if(i & 1)
+				minor = -minor;
+			det += mat[0][i] * minor;
 		}
 		return det;
 	}
 
-	friend constexpr Matrix inverse(const Matrix& mat) requires(R == C)
+	friend constexpr auto inverse(Matrix const& mat) requires(R == C)
 	{
 		Matrix cofactor;
-		Matrix<T, R - 1, R - 1> m;
-		for(int j {}; j != R; ++j)
+		Matrix<T, R - 1, R - 1> submatrix;
+		for(int cofC {}; cofC != C; ++cofC)
 		{
-			for(int i {}; i != R; ++i)
+			for(int cofR {}; cofR != R; ++cofR)
 			{
-				int i1 {};
-				for(int ii {}; ii != R; ++ii)
+				for(int r {}, subR {}; r != R; ++r)
 				{
-					if(ii == i)
+					if(r == cofR)
 						continue;
-					int j1 {};
-					for(int jj {}; jj != R; ++jj)
+					for(int c {}, subC {}; c != C; ++c)
 					{
-						if(jj == j)
+						if(c == cofC)
 							continue;
-						m[i1][j1] = mat[ii][jj];
-						++j1;
+						submatrix[subR][subC] = mat[r][c];
+						++subC;
 					}
-					++i1;
+					++subR;
 				}
-				T det = determinant(m);
-				if((i + j) & 1)
-					det = -det;
-				cofactor[i][j] = det;
+				T minor = determinant(submatrix);
+				if((cofR + cofC) & 1)
+					minor = -minor;
+				cofactor[cofR][cofC] = minor;
 			}
 		}
-		return transpose(cofactor) * (1 / determinant(mat));
+		return transpose(cofactor) * (1.0f / determinant(mat));
 	}
 };
 

@@ -18,7 +18,7 @@ public:
 
 	std::string toString() const override
 	{
-		return std::format("{}: Window({})", Event::toString(), window.handle());
+		return std::format("{}: Window({})", Event::toString(), reinterpret_cast<uint64_t>(window.handle()));
 	}
 
 protected:
@@ -57,7 +57,7 @@ public:
 export class WindowSizeEvent : public WindowEvent
 {
 public:
-	const Rectangle size;
+	Rectangle const size;
 
 	WindowSizeEvent(Window& window, Rectangle size) : WindowEvent(window), size(size)
 	{}
@@ -71,7 +71,7 @@ public:
 export class WindowMoveEvent : public WindowEvent
 {
 public:
-	const Int2 position;
+	Int2 const position;
 
 	WindowMoveEvent(Window& window, Int2 position) : WindowEvent(window), position(position)
 	{}
@@ -85,7 +85,7 @@ public:
 class KeyEvent : public WindowEvent
 {
 public:
-	const KeyCode key;
+	KeyCode const key;
 
 	std::string toString() const override
 	{
@@ -100,7 +100,7 @@ protected:
 export class KeyDownEvent : public KeyEvent
 {
 public:
-	const uint32_t repeats;
+	uint32_t const repeats;
 
 	KeyDownEvent(Window& window, KeyCode key, uint32_t repeats) : KeyEvent(window, key), repeats(repeats)
 	{}
@@ -121,7 +121,7 @@ public:
 export class KeyTextEvent : public KeyEvent
 {
 public:
-	const std::string text;
+	std::string const text;
 
 	KeyTextEvent(Window& window, KeyCode key, std::string text) : KeyEvent(window, key), text(std::move(text))
 	{}
@@ -135,7 +135,7 @@ public:
 class MouseEvent : public WindowEvent
 {
 public:
-	const MouseCode button;
+	MouseCode const button;
 
 	std::string toString() const override
 	{
@@ -150,7 +150,7 @@ protected:
 export class MouseMoveEvent : public MouseEvent
 {
 public:
-	const Int2 position, direction;
+	Int2 const position, direction;
 
 	MouseMoveEvent(Window& window, Int2 position, Int2 direction) :
 		MouseEvent(window, MouseCode::None), position(position), direction(direction)
@@ -187,7 +187,7 @@ public:
 export class MouseScrollEvent : public MouseEvent
 {
 public:
-	const Float2 offset;
+	Float2 const offset;
 
 	MouseScrollEvent(Window& window, Float2 offset) : MouseEvent(window, MouseCode::Wheel), offset(offset)
 	{}

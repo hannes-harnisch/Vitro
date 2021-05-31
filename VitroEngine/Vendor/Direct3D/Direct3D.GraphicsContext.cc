@@ -16,7 +16,7 @@ namespace Direct3D
 		friend ::GraphicsSystem;
 
 	private:
-		constexpr static D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_11_0;
+		constexpr static D3D_FEATURE_LEVEL Level = D3D_FEATURE_LEVEL_11_0;
 
 #if VE_DEBUG
 		Unique<ID3D12Debug> debug;
@@ -58,10 +58,9 @@ namespace Direct3D
 				DXGI_ADAPTER_DESC1 adapterInfo;
 				adapter->GetDesc1(&adapterInfo);
 
-				const bool isNotSoftwareAdapter = (adapterInfo.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0;
-				const bool canCreateDevice =
-					SUCCEEDED(D3D12CreateDevice(adapter, FeatureLevel, __uuidof(ID3D12Device), nullptr));
-				const bool vramIsSufficient = adapterInfo.DedicatedVideoMemory > maxDedicatedVideoMemory;
+				bool const isNotSoftwareAdapter = (adapterInfo.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0;
+				bool const canCreateDevice		= SUCCEEDED(D3D12CreateDevice(adapter, Level, __uuidof(ID3D12Device), nullptr));
+				bool const vramIsSufficient		= adapterInfo.DedicatedVideoMemory > maxDedicatedVideoMemory;
 				if(isNotSoftwareAdapter && canCreateDevice && vramIsSufficient)
 				{
 					maxDedicatedVideoMemory = adapterInfo.DedicatedVideoMemory;
@@ -73,7 +72,7 @@ namespace Direct3D
 
 		void createDevice()
 		{
-			veEnsureResult(D3D12CreateDevice(adapter, FeatureLevel, IID_PPV_ARGS(&device)), "Cannot get D3D12 device.");
+			veEnsureResult(D3D12CreateDevice(adapter, Level, IID_PPV_ARGS(&device)), "Cannot get D3D12 device.");
 
 #if VE_DEBUG
 			Unique<ID3D12InfoQueue> infoQueue;

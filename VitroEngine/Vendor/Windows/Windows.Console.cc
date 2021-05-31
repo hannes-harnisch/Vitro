@@ -32,20 +32,20 @@ namespace Windows
 		constexpr static uint8_t Yellow = 14;
 		constexpr static uint8_t White	= 15;
 
-		void setTextColor(const LogLevel level)
+		void setTextColor(LogLevel const level)
 		{
 			::SetConsoleTextAttribute(standardOut, getColorMaskFromLogLevel(level));
 		}
 
 	private:
-		const HANDLE standardOut;
+		HANDLE const standardOut;
 
-		static consteval uint16_t makeTextColorMask(const uint8_t foreground, const uint8_t background)
+		static consteval uint16_t makeTextColorMask(uint8_t const foreground, uint8_t const background)
 		{
 			return (foreground * 16) | background;
 		}
 
-		static uint16_t getColorMaskFromLogLevel(const LogLevel level)
+		static uint16_t getColorMaskFromLogLevel(LogLevel const level)
 		{
 			switch(level)
 			{

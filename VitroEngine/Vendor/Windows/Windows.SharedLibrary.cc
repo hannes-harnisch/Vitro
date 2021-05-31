@@ -42,7 +42,7 @@ namespace Windows
 
 		static HMODULE createLibraryHandle(std::string_view name)
 		{
-			const auto widenedPath = widenString(name);
+			auto const widenedPath = widenString(name);
 			return ::LoadLibrary(widenedPath.data());
 		}
 
