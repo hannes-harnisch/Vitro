@@ -4,6 +4,7 @@ module;
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <ranges>
 #include <source_location>
 #include <typeindex>
 #include <utility>
@@ -77,7 +78,7 @@ private:
 	{
 		std::type_index eventType(typeid(*event));
 
-		for(auto&& handler : handlers)
+		for(auto&& handler : handlers | std::views::reverse)
 		{
 			if(handler.eventType == eventType)
 			{

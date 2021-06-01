@@ -1,7 +1,6 @@
-﻿module;
+module;
 #include "Windows.API.hh"
 
-#include <optional>
 #include <string_view>
 export module Vitro.Windows.SharedLibrary;
 
@@ -14,16 +13,7 @@ namespace Windows
 	export class SharedLibrary : public SharedLibraryBase
 	{
 	public:
-		static std::optional<SharedLibrary> from(std::string_view name)
-		{
-			auto handle = createLibraryHandle(name);
-			if(handle)
-				return SharedLibrary(handle, name);
-			else
-				return {};
-		}
-
-		[[nodiscard]] bool reload() override
+		[[nodiscard]] bool reload() final override
 		{
 			libraryHandle.reset();
 			libraryHandle = createLibraryHandle(name);
@@ -31,15 +21,6 @@ namespace Windows
 		}
 
 	protected:
-		void* loadSymbolAddress(std::string_view symbol) const override
-		{
-			return ::GetProcAddress(libraryHandle, symbol.data());
-		}
-
-	private:
-		Unique<HMODULE, ::FreeLibrary> libraryHandle;
-		std::string name;
-
 		static HMODULE createLibraryHandle(std::string_view name)
 		{
 			auto const widenedPath = widenString(name);
@@ -48,5 +29,14 @@ namespace Windows
 
 		SharedLibrary(HMODULE handle, std::string_view name) : libraryHandle(handle), name(name)
 		{}
+
+		void* loadSymbolAddress(std::string_view symbol) const final override
+		{
+			return ::GetProcAddress(libraryHandle, symbol.data());
+		}
+
+	private:
+		Unique<HMODULE, ::FreeLibrary> libraryHandle;
+		std::string name;
 	};
 }

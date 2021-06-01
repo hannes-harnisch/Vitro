@@ -1,7 +1,6 @@
 module;
 #include "Windows.API.hh"
 
-#include <array>
 #include <string_view>
 export module Vitro.Windows.Window;
 
@@ -44,11 +43,12 @@ namespace Windows
 
 		void minimize() final override
 		{
-			::CloseWindow(windowHandle);
+			::ShowWindow(windowHandle, SW_MINIMIZE);
 		}
 
 		void enableCursor() final override
 		{
+			isCursorEnabled = true;
 			while(::ShowCursor(true) < 0)
 			{}
 
@@ -57,6 +57,7 @@ namespace Windows
 
 		void disableCursor() final override
 		{
+			isCursorEnabled = false;
 			while(::ShowCursor(false) >= 0)
 			{}
 

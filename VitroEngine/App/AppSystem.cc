@@ -9,6 +9,7 @@ import Vitro.App.AppContext;
 import Vitro.App.Event;
 import Vitro.App.EventBinding;
 import Vitro.App.EventSystem;
+import Vitro.App.KeyCode;
 import Vitro.App.Input;
 import Vitro.App.Window;
 import Vitro.App.WindowEvent;
@@ -19,7 +20,7 @@ public:
 	AppSystem(std::atomic_bool& engineRunningStatus) :
 		engineRunningStatus(engineRunningStatus),
 		eventWorker(&EventSystem::runEventProcessing, &eventSystem),
-		eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose)
+		eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose, &AppSystem::onEscapeHeld)
 	{}
 
 	~AppSystem()
@@ -49,12 +50,16 @@ private:
 
 	bool onWindowClose(WindowCloseEvent& e)
 	{
-		e.window.close();
 		std::erase(openWindows, &e.window);
-
 		if(openWindows.empty())
 			engineRunningStatus = false;
 
 		return true;
+	}
+
+	void onEscapeHeld(KeyDownEvent& e)
+	{
+		if(e.key == KeyCode::Escape && e.repeats == 10)
+			e.window.close();
 	}
 };

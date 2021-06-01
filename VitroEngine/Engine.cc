@@ -7,7 +7,6 @@ module;
 export module Vitro.Engine;
 
 import Vitro.App.AppSystem;
-import Vitro.Core.Singleton;
 import Vitro.Core.Tick;
 import Vitro.Editor.Editor;
 import Vitro.Graphics.GraphicsSystem;

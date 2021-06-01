@@ -13,7 +13,7 @@ module;
 export module Vitro.Trace.Log;
 
 import Vitro.Core.Singleton;
-import Vitro.Trace.Console;
+import Vitro.Trace.Terminal;
 import Vitro.Trace.LogLevel;
 
 export enum class LogChannel : unsigned char {
@@ -86,6 +86,7 @@ private:
 		std::string message;
 	};
 
+	Terminal terminal;
 	std::queue<Entry> queue;
 	std::mutex mutex;
 	std::condition_variable condition;
@@ -207,7 +208,7 @@ private:
 		auto const timestamp	= makeTimestamp(entry.time);
 		int64_t const millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
 
-		Console::get().setTextColor(entry.level);
+		terminal.setTextColor(entry.level);
 		std::printf("[ %s.%03lli | %s | %s ] %s\n", timestamp.data(), millisecs, level.data(), channel.data(),
 					entry.message.data());
 	}

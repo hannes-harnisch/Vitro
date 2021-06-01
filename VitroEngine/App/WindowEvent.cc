@@ -26,35 +26,35 @@ protected:
 	{}
 };
 
-export class WindowOpenEvent : public WindowEvent
+export class WindowOpenEvent final : public WindowEvent
 {
 public:
 	WindowOpenEvent(Window& window) : WindowEvent(window)
 	{}
 };
 
-export class WindowCloseEvent : public WindowEvent
+export class WindowCloseEvent final : public WindowEvent
 {
 public:
 	WindowCloseEvent(Window& window) : WindowEvent(window)
 	{}
 };
 
-export class WindowFocusEvent : public WindowEvent
+export class WindowFocusEvent final : public WindowEvent
 {
 public:
 	WindowFocusEvent(Window& window) : WindowEvent(window)
 	{}
 };
 
-export class WindowUnfocusEvent : public WindowEvent
+export class WindowUnfocusEvent final : public WindowEvent
 {
 public:
 	WindowUnfocusEvent(Window& window) : WindowEvent(window)
 	{}
 };
 
-export class WindowSizeEvent : public WindowEvent
+export class WindowSizeEvent final : public WindowEvent
 {
 public:
 	Rectangle const size;
@@ -68,7 +68,7 @@ public:
 	}
 };
 
-export class WindowMoveEvent : public WindowEvent
+export class WindowMoveEvent final : public WindowEvent
 {
 public:
 	Int2 const position;
@@ -97,7 +97,7 @@ protected:
 	{}
 };
 
-export class KeyDownEvent : public KeyEvent
+export class KeyDownEvent final : public KeyEvent
 {
 public:
 	uint32_t const repeats;
@@ -111,14 +111,14 @@ public:
 	}
 };
 
-export class KeyUpEvent : public KeyEvent
+export class KeyUpEvent final : public KeyEvent
 {
 public:
 	KeyUpEvent(Window& window, KeyCode key) : KeyEvent(window, key)
 	{}
 };
 
-export class KeyTextEvent : public KeyEvent
+export class KeyTextEvent final : public KeyEvent
 {
 public:
 	std::string const text;
@@ -147,7 +147,7 @@ protected:
 	{}
 };
 
-export class MouseMoveEvent : public MouseEvent
+export class MouseMoveEvent final : public MouseEvent
 {
 public:
 	Int2 const position, direction;
@@ -163,28 +163,28 @@ public:
 	}
 };
 
-export class MouseDownEvent : public MouseEvent
+export class MouseDownEvent final : public MouseEvent
 {
 public:
 	MouseDownEvent(Window& window, MouseCode button) : MouseEvent(window, button)
 	{}
 };
 
-export class MouseUpEvent : public MouseEvent
+export class MouseUpEvent final : public MouseEvent
 {
 public:
 	MouseUpEvent(Window& window, MouseCode button) : MouseEvent(window, button)
 	{}
 };
 
-export class DoubleClickEvent : public MouseEvent
+export class DoubleClickEvent final : public MouseEvent
 {
 public:
 	DoubleClickEvent(Window& window, MouseCode button) : MouseEvent(window, button)
 	{}
 };
 
-export class MouseScrollEvent : public MouseEvent
+export class MouseScrollEvent final : public MouseEvent
 {
 public:
 	Float2 const offset;

@@ -2,7 +2,6 @@ module;
 #include <thread>
 export module Vitro.Trace.TraceSystem;
 
-import Vitro.Trace.Console;
 import Vitro.Trace.Log;
 import Vitro.Trace.SignalHandler;
 import Vitro.VE_SYSTEM.SignalHandler;
@@ -22,7 +21,6 @@ public:
 	}
 
 private:
-	Console console;
 	Logger logger;
 	std::jthread logWorker;
 };

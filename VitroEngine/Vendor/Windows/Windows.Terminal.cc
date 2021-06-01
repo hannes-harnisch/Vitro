@@ -2,18 +2,14 @@ module;
 #include "Windows.API.hh"
 
 #include <cstdint>
-export module Vitro.Windows.Console;
+export module Vitro.Windows.Terminal;
 
-import Vitro.Core.Singleton;
 import Vitro.Trace.LogLevel;
 
-class TraceSystem;
 namespace Windows
 {
-	export class Console : public Singleton<Console>
+	export class Terminal
 	{
-		friend ::TraceSystem;
-
 	public:
 		constexpr static uint8_t Black	= 0;
 		constexpr static uint8_t Navy	= 1;
@@ -37,6 +33,10 @@ namespace Windows
 			::SetConsoleTextAttribute(standardOut, getColorMaskFromLogLevel(level));
 		}
 
+	protected:
+		Terminal() : standardOut(::GetStdHandle(STD_OUTPUT_HANDLE))
+		{}
+
 	private:
 		HANDLE const standardOut;
 
@@ -58,8 +58,5 @@ namespace Windows
 			}
 			return makeTextColorMask(Black, White);
 		}
-
-		Console() : standardOut(::GetStdHandle(STD_OUTPUT_HANDLE))
-		{}
 	};
 }
