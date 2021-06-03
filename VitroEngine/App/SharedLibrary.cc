@@ -1,5 +1,5 @@
 module;
-#include <optional>
+#include <stdexcept>
 #include <string_view>
 export module Vitro.App.SharedLibrary;
 
@@ -8,15 +8,16 @@ import Vitro.VE_SYSTEM.SharedLibrary;
 export class SharedLibrary : public VE_SYSTEM::SharedLibrary
 {
 public:
-	static std::optional<SharedLibrary> from(std::string_view name)
+	SharedLibrary(std::string_view const name) : VE_SYSTEM::SharedLibrary(name)
 	{
-		auto handle = createLibraryHandle(name);
-		if(handle)
-			return SharedLibrary(handle, name);
-		else
-			return {};
+		if(!handle())
+			throw std::runtime_error("File not found.");
+	}
+
+	template<typename TSymbol> TSymbol* loadSymbol(std::string_view symbol) const
+	{
+		return static_cast<TSymbol*>(loadSymbolAddress(symbol));
 	}
 
 private:
-	using VE_SYSTEM::SharedLibrary::SharedLibrary;
 };

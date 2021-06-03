@@ -234,7 +234,7 @@ export template<typename T, int R, int C> struct Matrix
 		return rows[0].data;
 	}
 
-	constexpr const T* data() const
+	constexpr T const* data() const
 	{
 		return rows[0].data;
 	}

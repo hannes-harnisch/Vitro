@@ -29,8 +29,14 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
-		buildcommands	'dxc -spirv "%{cfg.targetdir}/%{file.basename}.spv" "%{file.relpath}"'
+		buildcommands	'C:/VulkanSDK/1.2.176.1/bin/dxc %{file.relpath} /Fo %{cfg.targetdir}/%{file.basename}.spv -spirv -T ^'
 		buildoutputs	'%{cfg.targetdir}/%{file.basename}.spv'
+
+	filter 'files:**.vert.hlsl'
+		buildcommands	'vs_6_6'
+
+	filter 'files:**.frag.hlsl'
+		buildcommands	'ps_6_6'
 
 	filter 'configurations:Debug'
 		symbols			'On'

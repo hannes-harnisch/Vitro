@@ -32,7 +32,7 @@ export enum class LogChannel : unsigned char {
 	Vulkan
 };
 
-template<typename T> concept OverloadsArrowOperator = requires(T t)
+template<typename T> concept IndirectlyConvertibleToString = requires(T t)
 {
 	t->toString();
 };
@@ -94,7 +94,7 @@ private:
 	std::bitset<sizeFromEnumMax<LogLevel>()> disabledLevels;
 	std::atomic_bool isAcceptingLogs = true;
 
-	static const char* prepareArgument(bool const arg)
+	static char const* prepareArgument(bool const arg)
 	{
 		return arg ? "true" : "false";
 	}
@@ -109,7 +109,7 @@ private:
 		return enum_name(arg);
 	}
 
-	static std::string prepareArgument(OverloadsArrowOperator auto&& arg)
+	static std::string prepareArgument(IndirectlyConvertibleToString auto&& arg)
 	{
 		return arg->toString();
 	}

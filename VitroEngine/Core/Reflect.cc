@@ -12,7 +12,7 @@ export module Vitro.Core.Reflect;
 
 import Vitro.Core.StringUtils;
 
-constexpr std::string demangle(std::string_view symbol)
+constexpr std::string demangle(std::string_view const symbol)
 {
 #if VE_COMPILER_MSVC
 	std::string name(symbol);
@@ -22,7 +22,7 @@ constexpr std::string demangle(std::string_view symbol)
 	removeFirstOf(name, "enum ");
 #else
 	int status;
-	const char* const nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
+	char const* const nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
 	std::string name(nameBuffer);
 	std::free(nameBuffer);
 #endif

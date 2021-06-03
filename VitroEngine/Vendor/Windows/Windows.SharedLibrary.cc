@@ -15,28 +15,31 @@ namespace Windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			libraryHandle.reset();
-			libraryHandle = createLibraryHandle(name);
+			libraryHandle.reset(makeLibraryHandle());
+			return libraryHandle != nullptr;
+		}
+
+		void* handle() final override
+		{
 			return libraryHandle;
 		}
 
 	protected:
-		static HMODULE createLibraryHandle(std::string_view name)
-		{
-			auto const widenedPath = widenString(name);
-			return ::LoadLibrary(widenedPath.data());
-		}
-
-		SharedLibrary(HMODULE handle, std::string_view name) : libraryHandle(handle), name(name)
+		SharedLibrary(std::string_view const name) : name(widenString(name)), libraryHandle(makeLibraryHandle())
 		{}
 
-		void* loadSymbolAddress(std::string_view symbol) const final override
+		void* loadSymbolAddress(std::string_view const symbol) const final override
 		{
 			return ::GetProcAddress(libraryHandle, symbol.data());
 		}
 
 	private:
+		std::wstring name;
 		Unique<HMODULE, ::FreeLibrary> libraryHandle;
-		std::string name;
+
+		HMODULE makeLibraryHandle() const
+		{
+			return ::LoadLibrary(name.data());
+		}
 	};
 }

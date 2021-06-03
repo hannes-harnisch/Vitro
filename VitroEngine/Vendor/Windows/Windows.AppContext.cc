@@ -157,7 +157,7 @@ namespace Windows
 			auto const inputHandle = reinterpret_cast<HRAWINPUT>(lp);
 
 			::GetRawInputData(inputHandle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
-			Array<BYTE> bytes(size);
+			alignas(RAWINPUT) Array<BYTE> bytes(size);
 			::GetRawInputData(inputHandle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
 			auto const input = new(bytes.data()) RAWINPUT;
 
@@ -170,7 +170,7 @@ namespace Windows
 		{
 			auto const key = static_cast<KeyCode>(wp);
 
-			if(lastKeyCode == key)
+			if(key == lastKeyCode)
 				++keyRepeats;
 			else
 				keyRepeats = 0;

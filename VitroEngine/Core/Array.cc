@@ -107,7 +107,7 @@ public:
 
 	[[nodiscard]] constexpr bool operator==(auto const& that) const noexcept
 	{
-		return size() == that.size() && std::equal(begin(), end(), that.begin());
+		return size() == std::size(that) && std::equal(begin(), end(), std::begin(that));
 	}
 
 	[[nodiscard]] constexpr bool operator!=(auto const& that) const noexcept
@@ -117,7 +117,7 @@ public:
 
 	[[nodiscard]] constexpr bool operator<(auto const& that) const noexcept
 	{
-		return std::lexicographical_compare(begin(), end(), that.begin(), that.end());
+		return std::lexicographical_compare(begin(), end(), std::begin(that), std::end(that));
 	}
 
 	[[nodiscard]] constexpr bool operator>(auto const& that) const noexcept
@@ -137,7 +137,7 @@ public:
 
 	[[nodiscard]] constexpr auto operator<=>(auto const& that) const noexcept
 	{
-		return std::lexicographical_compare_three_way(begin(), end(), that.begin(), that.end());
+		return std::lexicographical_compare_three_way(begin(), end(), std::begin(that), std::end(that));
 	}
 
 	[[nodiscard]] constexpr Reference at(SizeType const index)
