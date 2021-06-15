@@ -6,28 +6,28 @@
 
 void crash(std::string_view const crashMessage);
 
-#if VE_DEBUG
+#if VT_DEBUG
 
-	#define veEnsure(condition, message)                                                                                       \
+	#define vtEnsure(condition, message)                                                                                       \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 				veDebugBreak();                                                                                                \
 		}
 
-	#define veAssert(condition, message)	   veEnsure(condition, message)
-	#define veEnsureResult(condition, message) veEnsure(int(condition) >= 0, message)
-	#define veAssertResult(condition, message) veEnsure(int(condition) >= 0, message)
+	#define vtAssert(condition, message)	   vtEnsure(condition, message)
+	#define vtEnsureResult(condition, message) vtEnsure(int(condition) >= 0, message)
+	#define vtAssertResult(condition, message) vtEnsure(int(condition) >= 0, message)
 
 #else
 
-	#define veEnsure(condition, message)                                                                                       \
+	#define vtEnsure(condition, message)                                                                                       \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 				crash("Assertion failed: " #condition);                                                                        \
 		}
 
-	#define veAssert(condition, message)	   void(condition)
-	#define veEnsureResult(condition, message) veEnsure(int(condition) >= 0, message)
-	#define veAssertResult(condition, message) void(condition)
+	#define vtAssert(condition, message)	   void(condition)
+	#define vtEnsureResult(condition, message) vtEnsure(int(condition) >= 0, message)
+	#define vtAssertResult(condition, message) void(condition)
 
 #endif

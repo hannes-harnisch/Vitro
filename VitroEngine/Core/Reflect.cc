@@ -5,7 +5,7 @@ module;
 #include <string_view>
 #include <typeinfo>
 
-#if !VE_COMPILER_MSVC
+#if !VT_COMPILER_MSVC
 	#include <cxxabi.h>
 #endif
 export module Vitro.Core.Reflect;
@@ -14,7 +14,7 @@ import Vitro.Core.StringUtils;
 
 constexpr std::string demangle(std::string_view const symbol)
 {
-#if VE_COMPILER_MSVC
+#if VT_COMPILER_MSVC
 	std::string name(symbol);
 	removeFirstOf(name, "class ");
 	removeFirstOf(name, "struct ");

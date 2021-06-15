@@ -3,7 +3,7 @@ module;
 #include "Trace/Assert.hh"
 export module Vitro.Core.Singleton;
 
-extern "C" VE_DLLEXPORT void setEngineInterface(class Engine*);
+extern "C" VT_DLLEXPORT void setEngineInterface(class Engine*);
 
 export template<typename T> class Singleton
 {
@@ -20,7 +20,7 @@ protected:
 
 	Singleton()
 	{
-		veEnsure(!instance, "This type can only be instantiated once.");
+		vtEnsure(!instance, "This type can only be instantiated once.");
 		instance = static_cast<T*>(this);
 	}
 };

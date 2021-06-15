@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -16,7 +16,7 @@ namespace Windows
 	export class Window : public WindowBase
 	{
 	public:
-		constexpr static auto WindowClassName = TEXT(VE_ENGINE_NAME);
+		constexpr static auto WindowClassName = TEXT(VT_ENGINE_NAME);
 		constexpr static Rectangle DefaultSize {uint32_t(CW_USEDEFAULT), uint32_t(CW_USEDEFAULT)};
 		constexpr static int DefaultX = CW_USEDEFAULT;
 		constexpr static int DefaultY = CW_USEDEFAULT;

@@ -19,14 +19,14 @@ export template<typename T> concept Scalar = IsScalar<T>::value;
 
 template<typename T, int D> struct VectorData
 {
-	T data[D] {};
+	T data[D];
 };
 
 template<typename T> struct VectorData<T, 2>
 {
 	union
 	{
-		T data[2] {};
+		T data[2];
 		struct
 		{
 			T x, y;
@@ -42,7 +42,7 @@ template<typename T> struct VectorData<T, 3>
 {
 	union
 	{
-		T data[3] {};
+		T data[3];
 		struct
 		{
 			T x, y, z;
@@ -58,7 +58,7 @@ template<typename T> struct VectorData<T, 4>
 {
 	union
 	{
-		T data[4] {};
+		T data[4];
 		struct
 		{
 			T x, y, z, w;

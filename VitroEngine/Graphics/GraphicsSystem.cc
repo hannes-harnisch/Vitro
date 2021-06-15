@@ -1,13 +1,13 @@
 export module Vitro.Graphics.GraphicsSystem;
 
-import Vitro.Graphics.GraphicsContext;
+import Vitro.Graphics.DriverContext;
 
 export class GraphicsSystem
 {
 	friend class Engine;
 
 private:
-	GraphicsContext graphicsContext;
+	DriverContext graphicsContext;
 
 	GraphicsSystem() = default;
 };

@@ -47,12 +47,12 @@ namespace Windows
 			windowClass.lpfnWndProc	  = forwardMessages;
 			windowClass.hInstance	  = instanceHandle;
 			windowClass.lpszClassName = Window::WindowClassName;
-			veEnsure(::RegisterClass(&windowClass), "Failed to register window class.");
+			vtEnsure(::RegisterClass(&windowClass), "Failed to register window class.");
 
 			RAWINPUTDEVICE rawInputDevice {};
 			rawInputDevice.usUsagePage = 0x01; // Usage page constant for generic desktop controls
 			rawInputDevice.usUsage	   = 0x02; // Usage constant for a generic mouse
-			veEnsure(::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE)),
+			vtEnsure(::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE)),
 					 "Failed to register raw input device.");
 		}
 

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Enum.hh"
 
 #include <bitset>
@@ -222,7 +222,7 @@ private:
 
 consteval LogChannel extractChannelFromPath(std::string_view path)
 {
-	size_t const dirBegin	= path.rfind(VE_ENGINE_NAME) + sizeof VE_ENGINE_NAME;
+	size_t const dirBegin	= path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
 	auto const pathAfterDir = path.substr(dirBegin);
 	size_t const dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
 	auto const dir			= pathAfterDir.substr(0, dirEnd);

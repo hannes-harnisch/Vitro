@@ -1,11 +1,11 @@
-export module Vitro.Editor.Editor;
+﻿export module Vitro.Editor.Editor;
 
 import Vitro.App.Window;
 
 export class Editor
 {
 public:
-	Editor() : window(VE_ENGINE_NAME)
+	Editor() : window(VT_ENGINE_NAME)
 	{
 		window.open();
 	}

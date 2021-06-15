@@ -29,7 +29,7 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
-		buildcommands	'C:/VulkanSDK/1.2.176.1/bin/dxc %{file.relpath} /Fo %{cfg.targetdir}/%{file.basename}.spv -spirv -T ^'
+		buildcommands	'C:/VulkanSDK/1.2.176.1/bin/dxc %{file.relpath} /Fo %{cfg.targetdir}/%{file.basename}.spv -spirv -O3 -T ^'
 		buildoutputs	'%{cfg.targetdir}/%{file.basename}.spv'
 
 	filter 'files:**.vert.hlsl'
@@ -41,13 +41,13 @@ workspace 'Vitro'
 	filter 'configurations:Debug'
 		symbols			'On'
 		runtime			'Debug'
-		defines			'VE_DEBUG'
+		defines			'VT_DEBUG'
 
 	filter 'configurations:Development'
 		symbols			'On'
 		optimize		'Speed'
 		runtime			'Debug'
-		defines			'VE_DEBUG'
+		defines			'VT_DEBUG'
 
 	filter 'configurations:Release'
 		optimize		'Speed'
@@ -61,7 +61,7 @@ project 'VitroEngine'
 	kind				'StaticLib'
 	includedirs			{ '%{prj.name}', 'Dependencies' }
 	libdirs				'Dependencies'
-	defines				'VE_ENGINE_NAME="%{prj.name}"'
+	defines				'VT_ENGINE_NAME="%{prj.name}"'
 
 	filter 'system:Windows'
 		systemversion	'latest'
@@ -74,7 +74,7 @@ project 'VitroEngine'
 		includedirs		'C:/VulkanSDK/1.2.176.1/Include'
 		libdirs			'C:/VulkanSDK/1.2.176.1/Lib'
 		links			{ 'd3d12', 'dxgi' }
-		defines			{ 'VE_SYSTEM=Windows', 'VE_GHI=Direct3D' }
+		defines			{ 'VT_SYSTEM=Windows', 'VT_GHI=Direct3D' }
 
 project 'VitroMain'
 	location			'%{prj.name}'

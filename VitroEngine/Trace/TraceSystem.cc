@@ -4,7 +4,7 @@ export module Vitro.Trace.TraceSystem;
 
 import Vitro.Trace.Log;
 import Vitro.Trace.SignalHandler;
-import Vitro.VE_SYSTEM.SignalHandler;
+import Vitro.VT_SYSTEM.SignalHandler;
 
 export class TraceSystem
 {
@@ -12,7 +12,7 @@ public:
 	TraceSystem() : logWorker(&Logger::runQueueProcessing, &logger)
 	{
 		setCommonSignalHandlers();
-		VE_SYSTEM::setPlatformSignalHandlers();
+		VT_SYSTEM::setPlatformSignalHandlers();
 	}
 
 	~TraceSystem()

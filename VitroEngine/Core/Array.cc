@@ -49,7 +49,7 @@ public:
 	template<typename U>
 	constexpr Array(SizeType const count, std::initializer_list<U> initializers) : Array(allocate(count), count)
 	{
-		veAssert(count >= initializers.size(), "Size of initializer list exceeds array size.");
+		vtAssert(count >= initializers.size(), "Size of initializer list exceeds array size.");
 
 		Allocator alloc;
 		auto element = begin();
@@ -95,13 +95,13 @@ public:
 
 	[[nodiscard]] constexpr Reference operator[](SizeType const index) noexcept
 	{
-		veAssert(index < count, "Index into array was out of range.");
+		vtAssert(index < count, "Index into array was out of range.");
 		return arr[index];
 	}
 
 	[[nodiscard]] constexpr ConstReference operator[](SizeType const index) const noexcept
 	{
-		veAssert(index < count, "Index into array was out of range.");
+		vtAssert(index < count, "Index into array was out of range.");
 		return arr[index];
 	}
 
@@ -366,7 +366,7 @@ private:
 
 	private:
 		V* pos {};
-#if VE_DEBUG
+#if VT_DEBUG
 		V* begin {};
 		V* end {};
 
@@ -379,13 +379,13 @@ private:
 
 		constexpr void incrementPosition(DifferenceType const offset) noexcept
 		{
-			veAssert(pos < end, "Cannot increment iterator past end.");
+			vtAssert(pos < end, "Cannot increment iterator past end.");
 			pos += offset;
 		}
 
 		constexpr void decrementPosition(DifferenceType const offset) noexcept
 		{
-			veAssert(begin < pos, "Cannot decrement iterator before begin.");
+			vtAssert(begin < pos, "Cannot decrement iterator before begin.");
 			pos -= offset;
 		}
 	};
@@ -398,7 +398,7 @@ public:
 
 	[[nodiscard]] constexpr Iterator begin() noexcept
 	{
-#if VE_DEBUG
+#if VT_DEBUG
 		return {arr, arr, arr + count};
 #else
 		return {arr};
@@ -407,7 +407,7 @@ public:
 
 	[[nodiscard]] constexpr ConstIterator begin() const noexcept
 	{
-#if VE_DEBUG
+#if VT_DEBUG
 		return {arr, arr, arr + count};
 #else
 		return {arr};
@@ -416,7 +416,7 @@ public:
 
 	[[nodiscard]] constexpr Iterator end() noexcept
 	{
-#if VE_DEBUG
+#if VT_DEBUG
 		Pointer const endPos = arr + count;
 		return {endPos, arr, endPos};
 #else
@@ -426,7 +426,7 @@ public:
 
 	[[nodiscard]] constexpr ConstIterator end() const noexcept
 	{
-#if VE_DEBUG
+#if VT_DEBUG
 		Pointer const endPos = arr + count;
 		return {endPos, arr, endPos};
 #else

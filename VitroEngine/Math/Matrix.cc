@@ -12,7 +12,7 @@ export template<typename T, int R, int C> struct Matrix
 
 	static constexpr Matrix identity() requires(R == C)
 	{
-		Matrix mat;
+		Matrix mat {};
 		for(int r {}; r < R; ++r)
 			mat[r][r] = 1;
 		return mat;
@@ -155,7 +155,7 @@ export template<typename T, int R, int C> struct Matrix
 
 	template<Scalar S, int C2> constexpr auto operator*(Matrix<S, C, C2> const& that) const
 	{
-		Matrix<decltype(rows[0][0] * that[0][0]), R, C2> product;
+		Matrix<decltype(rows[0][0] * that[0][0]), R, C2> product {};
 		for(int r {}; r < R; ++r)
 			for(int c {}; c < C2; ++c)
 				for(int i {}; i < C; ++i)
@@ -165,7 +165,7 @@ export template<typename T, int R, int C> struct Matrix
 
 	template<Scalar S> constexpr auto operator*(Vector<S, C> const& vec) const
 	{
-		Vector<decltype(rows[0][0] * vec[0]), R> product;
+		Vector<decltype(rows[0][0] * vec[0]), R> product {};
 		for(int r {}; r < R; ++r)
 			for(int c {}; c < C; ++c)
 				product[r] += rows[c][r] * vec[c];
@@ -174,7 +174,7 @@ export template<typename T, int R, int C> struct Matrix
 
 	template<Scalar S> friend constexpr auto operator*(Vector<S, R> const& vec, Matrix const& mat)
 	{
-		Vector<decltype(vec[0] * rows[0][0]), C> product;
+		Vector<decltype(vec[0] * rows[0][0]), C> product {};
 		for(int c {}; c < C; ++c)
 			for(int r {}; r < R; ++r)
 				product[c] += vec[r] * mat.rows[r][c];

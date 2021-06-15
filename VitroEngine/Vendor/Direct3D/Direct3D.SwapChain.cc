@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Direct3D.API.hh"
 #include "Trace/Assert.hh"
 
@@ -18,10 +18,10 @@ namespace Direct3D
 		{
 			Unique<IDXGIFactory4> factory;
 			UINT factoryFlags = 0;
-#if VE_DEBUG
+#if VT_DEBUG
 			factoryFlags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
-			veEnsureResult(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&factory)), "Failed to create DXGI factory.");
+			vtEnsureResult(CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&factory)), "Failed to create DXGI factory.");
 
 			DXGI_SWAP_CHAIN_DESC1 swapChainDesc {};
 			swapChainDesc.Width		  = width;

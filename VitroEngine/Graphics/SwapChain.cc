@@ -1,4 +1,4 @@
 export module Vitro.Graphics.SwapChain;
 
-import Vitro.VE_GHI.SwapChain;
-export using SwapChain = VE_GHI::SwapChain;
+import Vitro.VT_GHI.SwapChain;
+export using SwapChain = VT_GHI::SwapChain;

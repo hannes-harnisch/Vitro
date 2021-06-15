@@ -1,13 +1,13 @@
-module;
+﻿module;
 #include <string_view>
 export module Vitro.App.Window;
 
 import Vitro.App.AppContextBase;
-import Vitro.VE_SYSTEM.Window;
+import Vitro.VT_SYSTEM.Window;
 
-export class Window : public VE_SYSTEM::Window
+export class Window : public VT_SYSTEM::Window
 {
-	using Platform = VE_SYSTEM::Window;
+	using Platform = VT_SYSTEM::Window;
 
 public:
 	// TODO ICE

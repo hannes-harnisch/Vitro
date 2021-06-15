@@ -1,4 +1,4 @@
-#include "Core/Intrinsics.hh"
+﻿#include "Core/Intrinsics.hh"
 
-extern "C" VE_DLLEXPORT void setEngineInterface(class Engine*)
+extern "C" VT_DLLEXPORT void setEngineInterface(class Engine*)
 {}
