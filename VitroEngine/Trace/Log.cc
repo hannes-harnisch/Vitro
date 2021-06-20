@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Enum.hh"
 
 #include <bitset>

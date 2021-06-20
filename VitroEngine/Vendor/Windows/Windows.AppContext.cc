@@ -73,7 +73,7 @@ namespace Windows
 				case WM_KILLFOCUS: get().onWindowEvent<WindowUnfocusEvent>(hwnd); return 0;
 				case WM_CLOSE: get().onWindowClose(hwnd); return 0;
 				case WM_SHOWWINDOW: get().onWindowShow(hwnd, wParam); return 0;
-				case WM_INPUT: get().onRawInput(hwnd, lParam); return 0;
+				case WM_INPUT: get().onRawInput(hwnd, lParam); break;
 				case WM_KEYDOWN:
 				case WM_SYSKEYDOWN: get().onKeyDown(hwnd, wParam); return 0;
 				case WM_KEYUP:
