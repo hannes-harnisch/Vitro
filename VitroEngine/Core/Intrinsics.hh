@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #if __clang__
 	#define VT_COMPILER_CLANG __clang__
@@ -13,14 +13,14 @@
 	#define VT_DLLEXPORT __declspec(dllexport)
 	#define VT_INLINE	 __attribute__((always_inline))
 
-	#define veDebugBreak() __builtin_debugtrap()
+	#define vtDebugBreak() __builtin_debugtrap()
 
 #elif VT_COMPILER_MSVC
 
 	#define VT_DLLEXPORT __declspec(dllexport)
 	#define VT_INLINE	 __forceinline
 
-	#define veDebugBreak() __debugbreak()
+	#define vtDebugBreak() __debugbreak()
 
 #elif VT_COMPILER_GCC
 
@@ -28,6 +28,6 @@
 	#define VT_INLINE	 __attribute__((always_inline)) inline
 
 	#include <csignal>
-	#define veDebugBreak() std::raise(SIGTRAP)
+	#define vtDebugBreak() std::raise(SIGTRAP)
 
 #endif

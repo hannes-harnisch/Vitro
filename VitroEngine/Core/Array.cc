@@ -26,7 +26,7 @@ public:
 
 	constexpr Array() noexcept = default;
 
-	constexpr Array(ValueType arr[], SizeType const count) noexcept : arr(arr), count(count)
+	constexpr Array(Pointer const arr, SizeType const count) noexcept : arr(arr), count(count)
 	{}
 
 	constexpr Array(SizeType const count) : Array(allocate(count), count)

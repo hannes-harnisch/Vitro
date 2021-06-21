@@ -1,8 +1,10 @@
 export module Vitro.Graphics.PipelineHandle;
 
-import Vitro.Direct3D.Pipeline;
+import Vitro.D3D12.Pipeline;
+// import Vitro.Vulkan.Pipeline;
 
 export union PipelineHandle
 {
-	Direct3D::Pipeline d3d;
+	D3D12::Pipeline d3d;
+	// Vulkan::Pipeline vlk;
 };

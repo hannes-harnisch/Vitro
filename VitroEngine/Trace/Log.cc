@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Enum.hh"
 
 #include <bitset>
@@ -28,7 +28,7 @@ export enum class LogChannel : unsigned char {
 	Physics,
 	Trace,
 	Windows,
-	Direct3D,
+	D3D12,
 	Vulkan
 };
 

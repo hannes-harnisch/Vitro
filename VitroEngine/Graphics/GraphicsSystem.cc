@@ -1,6 +1,6 @@
 export module Vitro.Graphics.GraphicsSystem;
 
-import Vitro.Graphics.DriverContext;
+import Vitro.Graphics.Driver;
 import Vitro.Graphics.DynamicGraphicsAPI;
 
 export class GraphicsSystem
@@ -9,7 +9,7 @@ export class GraphicsSystem
 
 private:
 	DynamicGraphicsAPI dynamicApi;
-	DriverContext driverContext;
+	Driver driver;
 
 	GraphicsSystem() = default;
 };

@@ -157,7 +157,7 @@ namespace Windows
 			auto const inputHandle = reinterpret_cast<HRAWINPUT>(lp);
 
 			::GetRawInputData(inputHandle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
-			alignas(RAWINPUT) Array<BYTE> bytes(size);
+			Array<BYTE> bytes(size);
 			::GetRawInputData(inputHandle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
 			auto const input = new(bytes.data()) RAWINPUT;
 

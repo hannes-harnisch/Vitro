@@ -67,14 +67,14 @@ project 'VitroEngine'
 		systemversion	'latest'
 		files			{
 							'%{prj.name}/**/Windows.*.*',
-							'%{prj.name}/**/Direct3D.*.*',
+							'%{prj.name}/**/D3D12.*.*',
 							'%{prj.name}/**/Vulkan.*.*',
 							'%{prj.name}/**/VulkanWindows.*.*'
 						}
 		includedirs		'C:/VulkanSDK/1.2.176.1/Include'
 		libdirs			'C:/VulkanSDK/1.2.176.1/Lib'
 		links			{ 'd3d12', 'dxgi' }
-		defines			{ 'VT_SYSTEM=Windows', 'VT_GHI=Direct3D' }
+		defines			{ 'VT_SYSTEM=Windows', 'VT_GHI=D3D12' }
 
 project 'VitroMain'
 	location			'%{prj.name}'

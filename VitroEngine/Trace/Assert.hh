@@ -11,7 +11,7 @@ void crash(std::string_view const crashMessage);
 	#define vtEnsure(condition, message)                                                                                       \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
-				veDebugBreak();                                                                                                \
+				vtDebugBreak();                                                                                                \
 		}
 
 	#define vtAssert(condition, message)	   vtEnsure(condition, message)
