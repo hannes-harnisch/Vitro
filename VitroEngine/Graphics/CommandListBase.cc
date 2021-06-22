@@ -1,6 +1,6 @@
 export module Vitro.Graphics.CommandListBase;
 
-import Vitro.Graphics.PipelineHandle;
+import Vitro.Graphics.Pipeline;
 
 export class CommandListBase
 {

@@ -14,7 +14,7 @@ namespace D3D12
 	public:
 		void bindPipeline(PipelineHandle const pipeline) override
 		{
-			commands->SetPipelineState(pipeline.d3d.handle);
+			commands->SetPipelineState(pipeline.d3d12.handle);
 		}
 
 		void end() override

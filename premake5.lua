@@ -72,8 +72,6 @@ project 'VitroEngine'
 							'%{prj.name}/**/VulkanWindows.*.*'
 						}
 		includedirs		'C:/VulkanSDK/1.2.176.1/Include'
-		libdirs			'C:/VulkanSDK/1.2.176.1/Lib'
-		links			{ 'd3d12', 'dxgi' }
 		defines			{ 'VT_SYSTEM=Windows', 'VT_GHI=D3D12' }
 
 project 'VitroMain'

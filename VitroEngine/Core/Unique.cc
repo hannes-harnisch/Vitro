@@ -7,18 +7,24 @@ export template<typename T> void defaultDelete(T* ptr)
 	delete ptr;
 }
 
-template<typename TFunction> struct DeleterTraits;
+template<typename> struct DeleterTraits;
+
 template<typename TReturn, typename TParam> struct DeleterTraits<TReturn (*)(TParam)>
 {
-	using TParameter = TParam;
+	using TargetType = TParam;
+};
+
+template<typename TReturn, typename TClass> struct DeleterTraits<TReturn (TClass::*)()>
+{
+	using TargetType = TClass;
 };
 
 export template<typename T, auto Delete = defaultDelete<T>> class Unique
 {
 	template<typename, auto> friend class Unique;
 
-	using TDeleterParameter = typename DeleterTraits<decltype(Delete)>::TParameter;
-	using THandle			= std::conditional_t<std::convertible_to<T*, TDeleterParameter>, T*, TDeleterParameter>;
+	using TDeleterTarget = typename DeleterTraits<decltype(Delete)>::TargetType;
+	using THandle		 = std::conditional_t<std::convertible_to<T*, TDeleterTarget>, T*, TDeleterTarget>;
 
 public:
 	template<typename... Ts> static Unique from(Ts&&... ts)
@@ -131,6 +137,9 @@ protected:
 
 	void deleteHandle()
 	{
-		Delete(handle);
+		if constexpr(std::is_member_function_pointer_v<decltype(Delete)>)
+			(handle.*Delete)();
+		else
+			Delete(handle);
 	}
 };
