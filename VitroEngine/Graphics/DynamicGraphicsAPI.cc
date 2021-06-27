@@ -14,6 +14,16 @@ public:
 		return get().api;
 	}
 
+	static bool isD3D12()
+	{
+		return current() == GraphicsAPI::D3D12;
+	}
+
+	static bool isVulkan()
+	{
+		return current() == GraphicsAPI::Vulkan;
+	}
+
 private:
 	GraphicsAPI api;
 

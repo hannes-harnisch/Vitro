@@ -292,11 +292,19 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return str + ']';
 	}
 
-	template<typename R, Scalar S = T> friend constexpr Vector<R, D> apply(Vector const& vec, R (*func)(S))
+	friend constexpr auto apply(Vector const& vec, auto func)
 	{
-		Vector<R, D> result;
+		Vector<decltype(func(vec[0])), D> result;
 		for(int i {}; i < D; ++i)
 			result.data[i] = func(vec.data[i]);
+		return result;
+	}
+
+	template<auto F> friend constexpr auto apply(Vector const& vec)
+	{
+		Vector<decltype(F(vec[0])), D> result;
+		for(int i {}; i < D; ++i)
+			result.data[i] = F(vec.data[i]);
 		return result;
 	}
 
@@ -326,7 +334,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 
 	friend constexpr auto sqrt(Vector const& vec)
 	{
-		return apply<decltype(std::sqrt(vec[0]))>(vec, std::sqrt);
+		return apply<std::sqrt>(vec);
 	}
 
 	friend constexpr auto invSqrt(Vector const& vec)
@@ -336,12 +344,12 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 
 	friend constexpr auto sin(Vector const& vec)
 	{
-		return apply<decltype(std::sin(vec[0]))>(vec, std::sin);
+		return apply(vec, [](auto component) { return std::sin(component); });
 	}
 
 	friend constexpr auto cos(Vector const& vec)
 	{
-		return apply<decltype(std::cos(vec[0]))>(vec, std::cos);
+		return apply(vec, [](auto component) { return std::cos(component); });
 	}
 };
 
@@ -357,3 +365,9 @@ export using Int4	= Vector<int, 4>;
 export using Float2 = Vector<float, 2>;
 export using Float3 = Vector<float, 3>;
 export using Float4 = Vector<float, 4>;
+
+export auto x()
+{
+	Float4 f;
+	return sin(f);
+}

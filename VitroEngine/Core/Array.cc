@@ -26,10 +26,7 @@ public:
 
 	constexpr Array() noexcept = default;
 
-	constexpr Array(Pointer const arr, SizeType const count) noexcept : arr(arr), count(count)
-	{}
-
-	constexpr Array(SizeType const count) : Array(allocate(count), count)
+	constexpr Array(SizeType const count) : arr(allocate(count)), count(count)
 	{
 		if constexpr(std::is_default_constructible_v<ValueType>)
 		{
@@ -39,37 +36,37 @@ public:
 		}
 	}
 
-	template<typename... Ts> constexpr Array(SizeType const count, Ts&&... ts) : Array(allocate(count), count)
+	template<typename... Ts> constexpr Array(SizeType const count, Ts&&... ts) : arr(allocate(count)), count(count)
 	{
 		Allocator alloc;
 		for(auto& element : *this)
-			AllocTraits::construct(alloc, &element, std::forward<Ts>(ts)...);
+			AllocTraits::construct(alloc, &element, ts...);
 	}
 
 	template<typename U>
-	constexpr Array(SizeType const count, std::initializer_list<U> initializers) : Array(allocate(count), count)
+	constexpr Array(SizeType const count, std::initializer_list<U> initializers) : arr(allocate(count)), count(count)
 	{
 		vtAssert(count >= initializers.size(), "Size of initializer list exceeds array size.");
 
 		Allocator alloc;
 		auto element = begin();
 		for(auto&& init : initializers)
-			AllocTraits::construct(alloc, &*element++, init);
+			AllocTraits::construct(alloc, &*element++, std::move(init));
 
 		if constexpr(std::is_default_constructible_v<ValueType>)
 			for(auto&& rest : *this | std::views::drop(initializers.size()))
 				AllocTraits::construct(alloc, &rest);
 	}
 
-	template<typename U, typename V>
-	constexpr Array(SizeType count, std::initializer_list<U> initializers, V&& fallback) : Array(count, initializers)
+	template<typename U>
+	constexpr Array(SizeType count, std::initializer_list<U> initializers, auto&& fallback) : Array(count, initializers)
 	{
 		Allocator alloc;
 		for(auto&& element : *this | std::views::drop(initializers.size()))
-			AllocTraits::construct(alloc, &element, std::forward<V>(fallback));
+			AllocTraits::construct(alloc, &element, fallback);
 	}
 
-	constexpr Array(Array const& that) : Array(allocate(that.count), that.count)
+	constexpr Array(Array const& that) : arr(allocate(that.count)), count(that.count)
 	{
 		Allocator alloc;
 		auto other = that.begin();
@@ -77,7 +74,7 @@ public:
 			AllocTraits::construct(alloc, &element, *other++);
 	}
 
-	constexpr Array(Array&& that) noexcept : Array()
+	constexpr Array(Array&& that) noexcept
 	{
 		swap(that);
 	}
@@ -144,32 +141,32 @@ public:
 	{
 		if(index < count)
 			return arr[index];
-		else
-			throw std::out_of_range("Index into array was out of range.");
+
+		throw std::out_of_range("Index into array was out of range.");
 	}
 
 	[[nodiscard]] constexpr ConstReference at(SizeType const index) const
 	{
 		if(index < count)
 			return arr[index];
-		else
-			throw std::out_of_range("Index into array was out of range.");
+
+		throw std::out_of_range("Index into array was out of range.");
 	}
 
 	[[nodiscard]] constexpr Pointer get(SizeType const index) noexcept
 	{
 		if(index < count)
 			return arr + index;
-		else
-			return nullptr;
+
+		return {};
 	}
 
 	[[nodiscard]] constexpr ConstPointer get(SizeType const index) const noexcept
 	{
 		if(index < count)
 			return arr + index;
-		else
-			return nullptr;
+
+		return {};
 	}
 
 	[[nodiscard]] constexpr Reference front() noexcept
@@ -212,17 +209,17 @@ public:
 		return arr;
 	}
 
-	template<typename U> constexpr void fill(U&& value) noexcept
+	constexpr void fill(auto&& value) noexcept
 	{
-		std::fill(begin(), end(), std::forward<U>(value));
+		std::fill(begin(), end(), value);
 	}
 
 	[[nodiscard]] constexpr Pointer release() noexcept
 	{
-		return std::exchange(arr, Pointer());
+		return std::exchange(arr, {});
 	}
 
-	constexpr void reset(Pointer const resetValue = Pointer()) noexcept
+	constexpr void reset(Pointer const resetValue = {}) noexcept
 	{
 		destruct();
 		arr = resetValue;

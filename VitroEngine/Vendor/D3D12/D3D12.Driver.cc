@@ -52,29 +52,32 @@ namespace D3D12
 #if VT_DEBUG
 		Unique<ID3D12Debug> debug;
 #endif
-		Unique<IDXGIFactory2> factory;
+		Unique<IDXGIFactory5> factory;
 
 		ID3D12Debug* makeDebugInterface()
 		{
-			ID3D12Debug* d3d12Debug;
-			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&d3d12Debug));
+			ID3D12Debug* debugInterface;
+			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 			vtEnsureResult(result, "Failed to get D3D12 debug interface.");
 
-			d3d12Debug->EnableDebugLayer();
-			return d3d12Debug;
+			debugInterface->EnableDebugLayer();
+			return debugInterface;
 		}
 
-		IDXGIFactory2* makeFactory()
+		IDXGIFactory5* makeFactory()
 		{
 			UINT flags = 0;
 #if VT_DEBUG
 			flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-			IDXGIFactory2* dxgiFactory;
-			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&dxgiFactory));
-			vtEnsureResult(result, "Failed to get DXGI factory.");
-			return dxgiFactory;
+			Unique<IDXGIFactory2> proxyFactory;
+			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&proxyFactory));
+			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
+
+			IDXGIFactory5* mainFactory;
+			vtEnsureResult(proxyFactory.queryFor(&mainFactory), "Failed to get main DXGI factory.");
+			return mainFactory;
 		}
 	};
 }

@@ -3,6 +3,8 @@ module;
 #include <utility>
 export module Vitro.Graphics.InterfaceObject;
 
+#if VT_DYNAMIC_GHI
+
 import Vitro.Graphics.DynamicGraphicsAPI;
 
 export template<typename TInterface, typename TD3D12, typename TVulkan> class InterfaceObject
@@ -10,7 +12,7 @@ export template<typename TInterface, typename TD3D12, typename TVulkan> class In
 public:
 	template<typename... Ts> InterfaceObject(Ts&&... ts)
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			new(&d3d12) TD3D12(std::forward<Ts>(ts)...);
 		else
 			new(&vulkan) TVulkan(std::forward<Ts>(ts)...);
@@ -18,7 +20,7 @@ public:
 
 	InterfaceObject(InterfaceObject const& other)
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			new(&d3d12) TD3D12(other.d3d12);
 		else
 			new(&vulkan) TVulkan(other.vulkan);
@@ -26,7 +28,7 @@ public:
 
 	InterfaceObject(InterfaceObject&& other) noexcept
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			new(&d3d12) TD3D12(std::move(other.d3d12));
 		else
 			new(&vulkan) TVulkan(std::move(other.vulkan));
@@ -34,7 +36,7 @@ public:
 
 	~InterfaceObject()
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			d3d12.~TD3D12();
 		else
 			vulkan.~TVulkan();
@@ -42,7 +44,7 @@ public:
 
 	InterfaceObject& operator=(InterfaceObject const& other)
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			d3d12 = other.d3d12;
 		else
 			vulkan = other.vulkan;
@@ -51,7 +53,7 @@ public:
 
 	InterfaceObject& operator=(InterfaceObject&& other) noexcept
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			d3d12 = std::move(other.d3d12);
 		else
 			vulkan = std::move(other.vulkan);
@@ -60,7 +62,7 @@ public:
 
 	TInterface* operator->() noexcept
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			return &d3d12;
 		else
 			return &vulkan;
@@ -68,7 +70,7 @@ public:
 
 	TInterface const* operator->() const noexcept
 	{
-		if(DynamicGraphicsAPI::current() == GraphicsAPI::D3D12)
+		if(DynamicGraphicsAPI::isD3D12())
 			return &d3d12;
 		else
 			return &vulkan;
@@ -81,3 +83,27 @@ private:
 		TVulkan vulkan;
 	};
 };
+
+#else
+
+export template<typename T> class InterfaceObject
+{
+public:
+	template<typename... Ts> InterfaceObject(Ts&&... ts) : object(std::forward<Ts>(ts)...)
+	{}
+
+	T* operator->() noexcept
+	{
+		return &object;
+	}
+
+	T const* operator->() const noexcept
+	{
+		return &object;
+	}
+
+private:
+	T object;
+};
+
+#endif
