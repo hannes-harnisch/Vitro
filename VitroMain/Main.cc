@@ -2,5 +2,5 @@ import Vitro.Engine;
 
 int main(int argc, char* argv[])
 {
-	return engineMain(argc, argv);
+	return vt::engineMain(argc, argv);
 }

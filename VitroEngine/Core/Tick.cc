@@ -4,50 +4,53 @@ module;
 #include <format>
 export module Vitro.Core.Tick;
 
-export struct Tick
+namespace vt
 {
-public:
-	static uint64_t measureTime()
+	export struct Tick
 	{
-		using namespace std::chrono;
-		auto const now = steady_clock::now().time_since_epoch();
-		return duration_cast<microseconds>(now).count();
-	}
+	public:
+		static uint64_t measureTime()
+		{
+			using namespace std::chrono;
+			auto const now = steady_clock::now().time_since_epoch();
+			return duration_cast<microseconds>(now).count();
+		}
 
-	Tick() = default;
+		Tick() = default;
 
-	void update(uint64_t& previousTime)
-	{
-		uint64_t const current = Tick::measureTime();
-		secs				   = (current - previousTime) / 1000000.0f;
-		previousTime		   = current;
-	}
+		void update(uint64_t& previousTime)
+		{
+			uint64_t const current = Tick::measureTime();
+			secs				   = (current - previousTime) / 1000000.0f;
+			previousTime		   = current;
+		}
 
-	float seconds() const
-	{
-		return secs;
-	}
+		float seconds() const
+		{
+			return secs;
+		}
 
-	float milliseconds() const
-	{
-		return secs * 1000;
-	}
+		float milliseconds() const
+		{
+			return secs * 1000;
+		}
 
-	auto operator<=>(Tick other) const
-	{
-		return secs <=> other.secs;
-	}
+		auto operator<=>(Tick other) const
+		{
+			return secs <=> other.secs;
+		}
 
-	std::string toString() const
-	{
-		return std::format("{:.3f} ms", milliseconds());
-	}
+		std::string toString() const
+		{
+			return std::format("{:.3f} ms", milliseconds());
+		}
 
-	operator float() const
-	{
-		return secs;
-	}
+		operator float() const
+		{
+			return secs;
+		}
 
-private:
-	float secs {};
-};
+	private:
+		float secs = 0;
+	};
+}

@@ -1,15 +1,18 @@
-﻿export module Vitro.Editor.Editor;
+export module Vitro.Editor.Editor;
 
 import Vitro.App.Window;
 
-export class Editor
+namespace vt
 {
-public:
-	Editor() : window(VT_ENGINE_NAME)
+	export class Editor
 	{
-		window.open();
-	}
+	public:
+		Editor() : window(VT_ENGINE_NAME)
+		{
+			window.open();
+		}
 
-private:
-	Window window;
-};
+	private:
+		Window window;
+	};
+}

@@ -14,52 +14,55 @@ import Vitro.App.Input;
 import Vitro.App.Window;
 import Vitro.App.WindowEvent;
 
-export class AppSystem
+namespace vt
 {
-public:
-	AppSystem(std::atomic_bool& engineRunningStatus) :
-		engineRunningStatus(engineRunningStatus),
-		eventWorker(&EventSystem::runEventProcessing, &eventSystem),
-		eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose, &AppSystem::onEscapeHeld)
-	{}
-
-	~AppSystem()
+	export class AppSystem
 	{
-		eventSystem.quit();
-	}
+	public:
+		AppSystem(std::atomic_bool& engineRunningStatus) :
+			engineRunningStatus(engineRunningStatus),
+			eventWorker(&EventSystem::runEventProcessing, &eventSystem),
+			eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose, &AppSystem::onEscapeHeld)
+		{}
 
-	void pollEvents()
-	{
-		appContext.pollEvents();
-	}
+		~AppSystem()
+		{
+			eventSystem.quit();
+		}
 
-private:
-	std::atomic_bool& engineRunningStatus;
-	AppContext appContext;
-	EventSystem eventSystem;
-	Input input;
-	std::jthread eventWorker;
-	std::vector<Window*> openWindows;
-	EventBinding eventBinding;
+		void pollEvents()
+		{
+			appContext.pollEvents();
+		}
 
-	bool onWindowOpen(WindowOpenEvent& e)
-	{
-		openWindows.emplace_back(&e.window);
-		return true;
-	}
+	private:
+		std::atomic_bool& engineRunningStatus;
+		AppContext appContext;
+		EventSystem eventSystem;
+		Input input;
+		std::jthread eventWorker;
+		std::vector<Window*> openWindows;
+		EventBinding eventBinding;
 
-	bool onWindowClose(WindowCloseEvent& e)
-	{
-		std::erase(openWindows, &e.window);
-		if(openWindows.empty())
-			engineRunningStatus = false;
+		bool onWindowOpen(WindowOpenEvent& e)
+		{
+			openWindows.emplace_back(&e.window);
+			return true;
+		}
 
-		return true;
-	}
+		bool onWindowClose(WindowCloseEvent& e)
+		{
+			std::erase(openWindows, &e.window);
+			if(openWindows.empty())
+				engineRunningStatus = false;
 
-	void onEscapeHeld(KeyDownEvent& e)
-	{
-		if(e.key == KeyCode::Escape && e.repeats == 10)
-			e.window.close();
-	}
-};
+			return true;
+		}
+
+		void onEscapeHeld(KeyDownEvent& e)
+		{
+			if(e.key == KeyCode::Escape && e.repeats == 10)
+				e.window.close();
+		}
+	};
+}

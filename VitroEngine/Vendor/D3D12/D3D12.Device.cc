@@ -9,29 +9,29 @@ import Vitro.Graphics.DeviceBase;
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.Handle;
 
-namespace D3D12
+namespace vt::d3d12
 {
 	export class Device final : public DeviceBase
 	{
 	public:
-		Device(::Adapter const& adapter, ::Driver const& driver) :
-			device(makeDevice(adapter, driver)),
+		Device(vt::Driver const& driver, vt::Adapter const& adapter) :
+			device(makeDevice(driver, adapter)),
 			graphicsQueue(makeQueue(D3D12_COMMAND_LIST_TYPE_DIRECT)),
 			computeQueue(makeQueue(D3D12_COMMAND_LIST_TYPE_COMPUTE)),
 			copyQueue(makeQueue(D3D12_COMMAND_LIST_TYPE_COPY))
 		{}
 
-		void destroyBuffer(BufferHandle const buffer) override
+		void destroyBuffer(BufferHandle const buffer) const override
 		{
 			buffer.d3d12.handle->Release();
 		}
 
-		void destroyPipeline(PipelineHandle const pipeline) override
+		void destroyPipeline(PipelineHandle const pipeline) const override
 		{
 			pipeline.d3d12.handle->Release();
 		}
 
-		void destroyTexture(TextureHandle const texture) override
+		void destroyTexture(TextureHandle const texture) const override
 		{
 			texture.d3d12.handle->Release();
 		}
@@ -49,9 +49,9 @@ namespace D3D12
 		Unique<ID3D12CommandQueue> computeQueue;
 		Unique<ID3D12CommandQueue> copyQueue;
 
-		static Unique<ID3D12Device> makeDevice(::Adapter const& adapter, ::Driver const& driver)
+		static Unique<ID3D12Device> makeDevice(vt::Driver const& driver, vt::Adapter const& adapter)
 		{
-			auto d3d12CreateDevice = driver.d3d12().getDeviceCreationFunction();
+			auto const d3d12CreateDevice = driver.d3d12().getDeviceCreationFunction();
 
 			Unique<ID3D12Device> device;
 			auto result = d3d12CreateDevice(adapter.d3d12().handle(), TargetFeatureLevel, IID_PPV_ARGS(&device));
@@ -62,7 +62,9 @@ namespace D3D12
 
 		Unique<ID3D12CommandQueue> makeQueue(D3D12_COMMAND_LIST_TYPE const queueType)
 		{
-			D3D12_COMMAND_QUEUE_DESC desc {.Type = queueType};
+			D3D12_COMMAND_QUEUE_DESC const desc {
+				.Type = queueType,
+			};
 
 			Unique<ID3D12CommandQueue> queue;
 			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue));

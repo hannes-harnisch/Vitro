@@ -12,7 +12,7 @@ import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DriverBase;
 import Vitro.Windows.StringUtils;
 
-namespace D3D12
+namespace vt::d3d12
 {
 	export class Driver final : public DriverBase
 	{
@@ -29,15 +29,16 @@ namespace D3D12
 			factory(makeFactory())
 		{}
 
-		std::vector<::Adapter> enumerateAdapters() const override
+		std::vector<vt::Adapter> enumerateAdapters() const override
 		{
-			std::vector<::Adapter> adapters;
-			UINT index {};
-			HRESULT result {};
-			while(result != DXGI_ERROR_NOT_FOUND)
+			std::vector<vt::Adapter> adapters;
+			for(UINT index = 0;; ++index)
 			{
 				Unique<IDXGIAdapter> adapter;
-				result = factory->EnumAdapters(index++, &adapter);
+				auto result = factory->EnumAdapters(index, &adapter);
+				if(result == DXGI_ERROR_NOT_FOUND)
+					break;
+
 				adapters.emplace_back(std::move(adapter));
 			}
 			return adapters;
@@ -55,10 +56,10 @@ namespace D3D12
 
 		bool isSwapChainTearingAvailable() const
 		{
-			bool isAvailable;
-			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &isAvailable, sizeof isAvailable);
+			BOOL available;
+			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &available, sizeof available);
 			vtEnsureResult(result, "Failed to check for swap chain tearing support.");
-			return isAvailable;
+			return available;
 		}
 
 	private:

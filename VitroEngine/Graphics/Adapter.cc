@@ -8,12 +8,18 @@ import Vitro.Graphics.InterfaceObject;
 import Vitro.D3D12.Adapter;
 import Vitro.Vulkan.Adapter;
 
-export using Adapter = InterfaceObject<AdapterBase, D3D12::Adapter, Vulkan::Adapter>;
+namespace vt
+{
+	export using Adapter = InterfaceObject<AdapterBase, D3D12::Adapter, Vulkan::Adapter>;
+}
 
 #else
 
-import Vitro.VT_GHI.Adapter;
+import Vitro.VT_GHI_MODULE.Adapter;
 
-export using Adapter = InterfaceObject<AdapterBase, VT_GHI::Adapter>;
+namespace vt
+{
+	export using Adapter = InterfaceObject<AdapterBase, VT_GHI_NAME::Adapter>;
+}
 
 #endif

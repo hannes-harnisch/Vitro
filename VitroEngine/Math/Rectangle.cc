@@ -1,14 +1,18 @@
 module;
 #include <cstdint>
 #include <format>
+#include <string>
 export module Vitro.Math.Rectangle;
 
-export struct Rectangle
+namespace vt
 {
-	uint32_t width {}, height {};
-
-	std::string toString() const
+	export struct Rectangle
 	{
-		return std::format("[{}, {}]", width, height);
-	}
-};
+		uint32_t width = 0, height = 0;
+
+		std::string toString() const
+		{
+			return std::format("[{}, {}]", width, height);
+		}
+	};
+}

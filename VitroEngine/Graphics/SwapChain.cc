@@ -8,12 +8,18 @@ import Vitro.Graphics.SwapChainBase;
 import Vitro.D3D12.SwapChain;
 import Vitro.Vulkan.SwapChain;
 
-export using SwapChain = InterfaceObject<SwapChainBase, D3D12::SwapChain, Vulkan::SwapChain>;
+namespace vt
+{
+	export using SwapChain = InterfaceObject<SwapChainBase, D3D12::SwapChain, Vulkan::SwapChain>;
+}
 
 #else
 
-import Vitro.VT_GHI.SwapChain;
+import Vitro.VT_GHI_MODULE.SwapChain;
 
-export using SwapChain = InterfaceObject<SwapChainBase, VT_GHI::SwapChain>;
+namespace vt
+{
+	export using SwapChain = InterfaceObject<SwapChainBase, VT_GHI_NAME::SwapChain>;
+}
 
 #endif

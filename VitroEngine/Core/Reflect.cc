@@ -12,24 +12,27 @@ export module Vitro.Core.Reflect;
 
 import Vitro.Core.StringUtils;
 
-constexpr std::string demangle(std::string_view const symbol)
+namespace vt
 {
+	constexpr std::string demangle(std::string_view const symbol)
+	{
 #if VT_COMPILER_MSVC
-	std::string name(symbol);
-	removeFirstOf(name, "class ");
-	removeFirstOf(name, "struct ");
-	removeFirstOf(name, "union ");
-	removeFirstOf(name, "enum ");
+		std::string name(symbol);
+		removeFirstOf(name, "class vt::");
+		removeFirstOf(name, "struct vt::");
+		removeFirstOf(name, "union vt::");
+		removeFirstOf(name, "enum vt::");
 #else
-	int status;
-	char const* const nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
-	std::string name(nameBuffer);
-	std::free(nameBuffer);
+		int status;
+		char const* const nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
+		std::string name(nameBuffer);
+		std::free(nameBuffer);
 #endif
-	return name;
-}
+		return name;
+	}
 
-export std::string nameOf(auto&& object)
-{
-	return demangle(typeid(object).name());
+	export std::string nameOf(auto&& object)
+	{
+		return demangle(typeid(object).name());
+	}
 }

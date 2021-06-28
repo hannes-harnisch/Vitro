@@ -1,10 +1,13 @@
-﻿export module Vitro.Trace.Terminal;
+export module Vitro.Trace.Terminal;
 
-import Vitro.VT_SYSTEM.Terminal;
+import Vitro.VT_SYSTEM_MODULE.Terminal;
 
-export class Terminal : public VT_SYSTEM::Terminal
+namespace vt
 {
-	friend class Logger;
+	export class Terminal : public VT_SYSTEM_NAME::Terminal
+	{
+		friend class Logger;
 
-	Terminal() = default;
-};
+		Terminal() = default;
+	};
+}

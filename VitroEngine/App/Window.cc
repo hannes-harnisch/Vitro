@@ -1,51 +1,59 @@
-﻿module;
+module;
 #include <string_view>
 export module Vitro.App.Window;
 
 import Vitro.App.AppContextBase;
-import Vitro.VT_SYSTEM.Window;
+import Vitro.Graphics.GraphicsSystem;
+import Vitro.Math.Rectangle;
+import Vitro.VT_SYSTEM_MODULE.Window;
 
-export class Window : public VT_SYSTEM::Window
+namespace vt
 {
-	using Platform = VT_SYSTEM::Window;
-
-public:
-	// TODO ICE
-	Window(std::string_view title,
-		   Rectangle size = Platform::DefaultSize,
-		   int x		  = Platform::DefaultX,
-		   int y		  = Platform::DefaultY) :
-		Platform(title, size, {x, y})
+	export class Window : public VT_SYSTEM_NAME::Window
 	{
-		AppContextBase::get().submitWindow(handle(), this);
-	}
+		using Platform = VT_SYSTEM_NAME::Window;
 
-	Window(Window&& other) noexcept : Platform(std::move(other))
-	{
-		replaceOtherInWindowMap(other);
-	}
+	public:
+		// TODO ICE
+		Window(std::string_view const title,
+			   Rectangle const size = Platform::DefaultSize,
+			   int const x			= Platform::DefaultX,
+			   int const y			= Platform::DefaultY) :
+			Platform(title, size, {x, y})
+		{
+			AppContextBase::get().notifyWindowConstruction(handle(), *this);
+			GraphicsSystem::get().notifyWindowConstruction(handle(), *this);
+		}
 
-	~Window()
-	{
-		eraseSelfFromWindowMap();
-	}
+		Window(Window&& other) noexcept : Platform(std::move(other))
+		{
+			notifyReplacement(other);
+		}
 
-	Window& operator=(Window&& other) noexcept
-	{
-		Platform::operator=(std::move(other));
-		eraseSelfFromWindowMap();
-		replaceOtherInWindowMap(other);
-		return *this;
-	}
+		~Window()
+		{
+			notifyDestruction();
+		}
 
-private:
-	void replaceOtherInWindowMap(WindowBase& other)
-	{
-		AppContextBase::get().submitWindow(other.handle(), this);
-	}
+		Window& operator=(Window&& other) noexcept
+		{
+			Platform::operator=(std::move(other));
+			notifyDestruction();
+			notifyReplacement(other);
+			return *this;
+		}
 
-	void eraseSelfFromWindowMap()
-	{
-		AppContextBase::get().removeWindow(handle());
-	}
-};
+	private:
+		void notifyReplacement(Window& oldWindow)
+		{
+			AppContextBase::get().notifyWindowConstruction(oldWindow.handle(), *this);
+			GraphicsSystem::get().notifyWindowReplacement(oldWindow, *this);
+		}
+
+		void notifyDestruction()
+		{
+			AppContextBase::get().notifyWindowDestruction(handle());
+			GraphicsSystem::get().notifyWindowDestruction(*this);
+		}
+	};
+}

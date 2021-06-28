@@ -11,58 +11,61 @@ import Vitro.App.WindowEvent;
 import Vitro.Core.Singleton;
 import Vitro.Math.Vector;
 
-export class Input : public Singleton<Input>
+namespace vt
 {
-	friend class AppSystem;
-
-public:
-	static bool isDown(KeyCode key)
+	export class Input : public Singleton<Input>
 	{
-		return get().keyDownStates[static_cast<size_t>(key)];
-	}
+		friend class AppSystem;
 
-	static bool isDown(MouseCode button)
-	{
-		return get().mouseDownStates[static_cast<size_t>(button)];
-	}
+	public:
+		static bool isDown(KeyCode key)
+		{
+			return get().keyDownStates[static_cast<size_t>(key)];
+		}
 
-	static Int2 mousePosition()
-	{
-		return get().mousePos;
-	}
+		static bool isDown(MouseCode button)
+		{
+			return get().mouseDownStates[static_cast<size_t>(button)];
+		}
 
-private:
-	std::bitset<sizeFromEnumMax<KeyCode>()> keyDownStates;
-	std::bitset<sizeFromEnumMax<MouseCode>()> mouseDownStates;
-	Int2 mousePos;
-	EventBinding eventBinding;
+		static Int2 mousePosition()
+		{
+			return get().mousePos;
+		}
 
-	Input() :
-		eventBinding(this, &Input::onKeyDown, &Input::onKeyUp, &Input::onMouseDown, &Input::onMouseUp, &Input::onMouseMove)
-	{}
+	private:
+		std::bitset<sizeFromEnumMax<KeyCode>()> keyDownStates;
+		std::bitset<sizeFromEnumMax<MouseCode>()> mouseDownStates;
+		Int2 mousePos;
+		EventBinding eventBinding;
 
-	void onKeyDown(KeyDownEvent& e)
-	{
-		keyDownStates[static_cast<size_t>(e.key)] = true;
-	}
+		Input() :
+			eventBinding(this, &Input::onKeyDown, &Input::onKeyUp, &Input::onMouseDown, &Input::onMouseUp, &Input::onMouseMove)
+		{}
 
-	void onKeyUp(KeyUpEvent& e)
-	{
-		keyDownStates[static_cast<size_t>(e.key)] = false;
-	}
+		void onKeyDown(KeyDownEvent& e)
+		{
+			keyDownStates[static_cast<size_t>(e.key)] = true;
+		}
 
-	void onMouseDown(MouseDownEvent& e)
-	{
-		mouseDownStates[static_cast<size_t>(e.button)] = true;
-	}
+		void onKeyUp(KeyUpEvent& e)
+		{
+			keyDownStates[static_cast<size_t>(e.key)] = false;
+		}
 
-	void onMouseUp(MouseUpEvent& e)
-	{
-		mouseDownStates[static_cast<size_t>(e.button)] = false;
-	}
+		void onMouseDown(MouseDownEvent& e)
+		{
+			mouseDownStates[static_cast<size_t>(e.button)] = true;
+		}
 
-	void onMouseMove(MouseMoveEvent& e)
-	{
-		mousePos = e.position;
-	}
-};
+		void onMouseUp(MouseUpEvent& e)
+		{
+			mouseDownStates[static_cast<size_t>(e.button)] = false;
+		}
+
+		void onMouseMove(MouseMoveEvent& e)
+		{
+			mousePos = e.position;
+		}
+	};
+}

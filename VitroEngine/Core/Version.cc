@@ -3,14 +3,17 @@ module;
 #include <format>
 export module Vitro.Core.Version;
 
-export struct Version
+namespace vt
 {
-	uint16_t major {};
-	uint16_t minor {};
-	uint16_t patch {};
-
-	std::string toString() const
+	export struct Version
 	{
-		return std::format("{}.{}.{}", major, minor, patch);
-	}
-};
+		uint16_t major = 0;
+		uint16_t minor = 0;
+		uint16_t patch = 0;
+
+		std::string toString() const
+		{
+			return std::format("{}.{}.{}", major, minor, patch);
+		}
+	};
+}

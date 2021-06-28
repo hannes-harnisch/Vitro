@@ -1,4 +1,7 @@
-﻿export module Vitro.App.App;
+export module Vitro.App.App;
 
-export class App
-{};
+namespace vt
+{
+	export class App
+	{};
+}

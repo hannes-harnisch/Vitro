@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Windows.API.hh"
 
 #include <csignal>
@@ -6,7 +6,7 @@ export module Vitro.Windows.SignalHandler;
 
 import Vitro.Trace.SignalHandler;
 
-namespace Windows
+namespace vt::windows
 {
 	LONG NTAPI forwardToStandardSignalHandlers(EXCEPTION_POINTERS* const exceptionInfo)
 	{

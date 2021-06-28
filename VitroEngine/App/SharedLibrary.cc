@@ -3,19 +3,22 @@ module;
 #include <string_view>
 export module Vitro.App.SharedLibrary;
 
-import Vitro.VT_SYSTEM.SharedLibrary;
+import Vitro.VT_SYSTEM_MODULE.SharedLibrary;
 
-export class SharedLibrary : public VT_SYSTEM::SharedLibrary
+namespace vt
 {
-public:
-	SharedLibrary(std::string_view const name) : VT_SYSTEM::SharedLibrary(name)
+	export class SharedLibrary : public VT_SYSTEM_NAME::SharedLibrary
 	{
-		if(!handle())
-			throw std::runtime_error("Shared library file not found.");
-	}
+	public:
+		SharedLibrary(std::string_view const name) : VT_SYSTEM_NAME::SharedLibrary(name)
+		{
+			if(!handle())
+				throw std::runtime_error("Shared library file not found.");
+		}
 
-	template<typename TSymbol> TSymbol* loadSymbol(std::string_view const symbol) const
-	{
-		return static_cast<TSymbol*>(loadSymbolAddress(symbol));
-	}
-};
+		template<typename TSymbol> TSymbol* loadSymbol(std::string_view const symbol) const
+		{
+			return static_cast<TSymbol*>(loadSymbolAddress(symbol));
+		}
+	};
+}

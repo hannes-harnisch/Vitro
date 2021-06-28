@@ -4,7 +4,7 @@ module;
 #include <string_view>
 export module Vitro.Windows.StringUtils;
 
-namespace Windows
+namespace vt::windows
 {
 	export std::wstring widenString(std::string_view const in)
 	{

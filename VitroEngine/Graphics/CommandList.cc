@@ -8,12 +8,18 @@ import Vitro.Graphics.InterfaceObject;
 import Vitro.D3D12.CommandList;
 import Vitro.Vulkan.CommandList;
 
-export using CommandList = InterfaceObject<CommandListBase, D3D12::CommandList, Vulkan::CommandList>;
+namespace vt
+{
+	export using CommandList = InterfaceObject<CommandListBase, D3D12::CommandList, Vulkan::CommandList>;
+}
 
 #else
 
-import Vitro.VT_GHI.CommandList;
+import Vitro.VT_GHI_MODULE.CommandList;
 
-export using CommandList = InterfaceObject<CommandListBase, VT_GHI::CommandList>;
+namespace vt
+{
+	export using CommandList = InterfaceObject<CommandListBase, VT_GHI_NAME::CommandList>;
+}
 
 #endif

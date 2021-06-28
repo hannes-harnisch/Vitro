@@ -4,32 +4,35 @@ export module Vitro.App.AppContextBase;
 
 import Vitro.Core.Singleton;
 
-export class AppContextBase : public Singleton<AppContextBase>
+namespace vt
 {
-public:
-	virtual void pollEvents() const = 0;
-	virtual void* handle()			= 0;
-
-	void submitWindow(void* const nativeHandle, class Window* const window)
+	export class AppContextBase : public Singleton<AppContextBase>
 	{
-		nativeWindowToEngineWindow[nativeHandle] = window;
-	}
+	public:
+		virtual void pollEvents() const = 0;
+		virtual void* handle()			= 0;
 
-	void removeWindow(void* const nativeHandle)
-	{
-		nativeWindowToEngineWindow.erase(nativeHandle);
-	}
+		void notifyWindowConstruction(void* const nativeHandle, class Window& window)
+		{
+			nativeWindowToEngineWindow[nativeHandle] = &window;
+		}
 
-	Window* findWindow(void* const nativeHandle)
-	{
-		auto it = nativeWindowToEngineWindow.find(nativeHandle);
+		void notifyWindowDestruction(void* const nativeHandle)
+		{
+			nativeWindowToEngineWindow.erase(nativeHandle);
+		}
 
-		if(it == nativeWindowToEngineWindow.end())
-			return nullptr;
+		Window* findWindow(void* const nativeHandle)
+		{
+			auto it = nativeWindowToEngineWindow.find(nativeHandle);
 
-		return it->second;
-	}
+			if(it == nativeWindowToEngineWindow.end())
+				return nullptr;
 
-private:
-	std::unordered_map<void*, Window*> nativeWindowToEngineWindow;
-};
+			return it->second;
+		}
+
+	private:
+		std::unordered_map<void*, Window*> nativeWindowToEngineWindow;
+	};
+}

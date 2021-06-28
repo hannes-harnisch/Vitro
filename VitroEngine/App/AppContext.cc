@@ -1,5 +1,8 @@
 export module Vitro.App.AppContext;
 
-import Vitro.VT_SYSTEM.AppContext;
+import Vitro.VT_SYSTEM_MODULE.AppContext;
 
-export using AppContext = VT_SYSTEM::AppContext;
+namespace vt
+{
+	export using AppContext = VT_SYSTEM_NAME::AppContext;
+}

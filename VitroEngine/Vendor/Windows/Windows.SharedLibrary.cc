@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -8,7 +8,7 @@ import Vitro.App.SharedLibraryBase;
 import Vitro.Core.Unique;
 import Vitro.Windows.StringUtils;
 
-namespace Windows
+namespace vt::windows
 {
 	export class SharedLibrary : public SharedLibraryBase
 	{

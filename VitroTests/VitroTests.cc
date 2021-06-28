@@ -1,9 +1,9 @@
 import Vitro.App.App;
 import Vitro.App.Window;
 
-class VitroTests : public App
+class VitroTests : public vt::App
 {
-	Window window;
+	vt::Window window;
 
 public:
 	VitroTests() : window {"A", {600, 600}, 600, 600}

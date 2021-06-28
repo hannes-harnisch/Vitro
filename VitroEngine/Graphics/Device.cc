@@ -8,12 +8,18 @@ import Vitro.Graphics.InterfaceObject;
 import Vitro.D3D12.Device;
 import Vitro.Vulkan.Device;
 
-export using Device = InterfaceObject<DeviceBase, D3D12::Device, Vulkan::Device>;
+namespace vt
+{
+	export using Device = InterfaceObject<DeviceBase, D3D12::Device, Vulkan::Device>;
+}
 
 #else
 
-import Vitro.VT_GHI.Device;
+import Vitro.VT_GHI_MODULE.Device;
 
-export using Device = InterfaceObject<DeviceBase, VT_GHI::Device>;
+namespace vt
+{
+	export using Device = InterfaceObject<DeviceBase, VT_GHI_NAME::Device>;
+}
 
 #endif

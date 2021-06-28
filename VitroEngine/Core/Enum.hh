@@ -13,9 +13,12 @@ using magic_enum::enum_index;
 using magic_enum::enum_name;
 using magic_enum::enum_values;
 
-template<typename E> constexpr size_t sizeFromEnumMax()
+namespace vt
 {
-	auto const values = enum_values<E>();
-	auto const max	  = std::max_element(values.begin(), values.end());
-	return static_cast<size_t>(*max) + 1;
+	template<typename E> constexpr size_t sizeFromEnumMax()
+	{
+		auto const values = enum_values<E>();
+		auto const max	  = std::max_element(values.begin(), values.end());
+		return static_cast<size_t>(*max) + 1;
+	}
 }

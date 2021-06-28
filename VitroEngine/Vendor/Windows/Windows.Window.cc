@@ -11,7 +11,7 @@ import Vitro.Math.Rectangle;
 import Vitro.Math.Vector;
 import Vitro.Windows.StringUtils;
 
-namespace Windows
+namespace vt::windows
 {
 	export class Window : public WindowBase
 	{

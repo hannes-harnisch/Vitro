@@ -14,7 +14,7 @@ import Vitro.Math.Rectangle;
 import Vitro.Math.Vector;
 import Vitro.Windows.StringUtils;
 
-namespace Windows
+namespace vt::windows
 {
 	export class AppContext final : public AppContextBase
 	{
@@ -26,16 +26,18 @@ namespace Windows
 
 		AppContext() : instanceHandle(::GetModuleHandle(nullptr))
 		{
-			WNDCLASS windowClass {};
-			windowClass.style		  = CS_DBLCLKS;
-			windowClass.lpfnWndProc	  = forwardMessages;
-			windowClass.hInstance	  = instanceHandle;
-			windowClass.lpszClassName = Window::WindowClassName;
+			WNDCLASS const windowClass {
+				.style		   = CS_DBLCLKS,
+				.lpfnWndProc   = forwardMessages,
+				.hInstance	   = instanceHandle,
+				.lpszClassName = Window::WindowClassName,
+			};
 			vtEnsure(::RegisterClass(&windowClass), "Failed to register window class.");
 
-			RAWINPUTDEVICE rawInputDevice {};
-			rawInputDevice.usUsagePage = 0x01; // Usage page constant for generic desktop controls
-			rawInputDevice.usUsage	   = 0x02; // Usage constant for a generic mouse
+			RAWINPUTDEVICE const rawInputDevice {
+				.usUsagePage = 0x01, // Usage page constant for generic desktop controls
+				.usUsage	 = 0x02, // Usage constant for a generic mouse
+			};
 			vtEnsure(::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE)),
 					 "Failed to register raw input device.");
 		}
@@ -57,9 +59,9 @@ namespace Windows
 
 	private:
 		HINSTANCE const instanceHandle;
-		KeyCode lastKeyCode {};
-		uint32_t keyRepeats {};
-		Int2 lastMousePosition;
+		KeyCode lastKeyCode = KeyCode::None;
+		uint32_t keyRepeats = 0;
+		Int2 lastMousePosition {};
 
 		static LRESULT CALLBACK forwardMessages(HWND const hwnd, UINT const message, WPARAM const wParam, LPARAM const lParam)
 		{
@@ -152,7 +154,7 @@ namespace Windows
 
 		void onRawInput(HWND const hwnd, LPARAM const lp)
 		{
-			UINT size {};
+			UINT size;
 			auto const inputHandle = reinterpret_cast<HRAWINPUT>(lp);
 
 			::GetRawInputData(inputHandle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));

@@ -9,7 +9,7 @@ import Vitro.D3D12.Unique;
 import Vitro.Graphics.AdapterBase;
 import Vitro.Windows.StringUtils;
 
-namespace D3D12
+namespace vt::d3d12
 {
 	export class Adapter final : public AdapterBase
 	{
@@ -20,7 +20,7 @@ namespace D3D12
 			auto result = adapter->GetDesc(&desc);
 			vtEnsureResult(result, "Failed to get D3D12 adapter info.");
 
-			name = Windows::narrowString(desc.Description);
+			name = windows::narrowString(desc.Description);
 			vram = desc.DedicatedVideoMemory;
 		}
 
@@ -29,7 +29,7 @@ namespace D3D12
 			return name;
 		}
 
-		size_t getVRAM() const override
+		size_t getMemory() const override
 		{
 			return vram;
 		}

@@ -72,7 +72,12 @@ project 'VitroEngine'
 							'%{prj.name}/**/VulkanWindows.*.*'
 						}
 		includedirs		'C:/VulkanSDK/1.2.176.1/Include'
-		defines			{ 'VT_SYSTEM=Windows', 'VT_GHI=D3D12', 'VT_GHI_LOWER_CASE=d3d12' }
+		defines			{
+							'VT_SYSTEM_MODULE=Windows',
+							'VT_SYSTEM_NAME=windows',
+							'VT_GHI_MODULE=D3D12',
+							'VT_GHI_NAME=d3d12'
+						}
 
 project 'VitroMain'
 	location			'%{prj.name}'

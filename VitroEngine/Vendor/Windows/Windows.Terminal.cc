@@ -6,7 +6,7 @@ export module Vitro.Windows.Terminal;
 
 import Vitro.Trace.LogLevel;
 
-namespace Windows
+namespace vt::windows
 {
 	export class Terminal
 	{

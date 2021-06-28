@@ -5,16 +5,19 @@ export module Vitro.App.Event;
 
 import Vitro.Core.Reflect;
 
-export class Event
+namespace vt
 {
-public:
-	virtual ~Event() = default;
-
-	virtual std::string toString() const
+	export class Event
 	{
-		return nameOf(*this);
-	}
+	public:
+		virtual ~Event() = default;
 
-protected:
-	Event() = default;
-};
+		virtual std::string toString() const
+		{
+			return nameOf(*this);
+		}
+
+	protected:
+		Event() = default;
+	};
+}

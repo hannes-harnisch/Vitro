@@ -2,9 +2,17 @@
 
 #include "Core/Intrinsics.hh"
 
+#include <cstdio>
 #include <string_view>
 
-void crash(std::string_view const crashMessage);
+namespace vt
+{
+	inline void crash(std::string_view const crashMessage)
+	{
+		std::printf("Critical failure: %s", crashMessage.data());
+		std::exit(EXIT_FAILURE);
+	}
+}
 
 #if VT_DEBUG
 

@@ -1,4 +1,4 @@
-﻿export module Vitro.Graphics.Driver;
+export module Vitro.Graphics.Driver;
 
 import Vitro.Graphics.DriverBase;
 import Vitro.Graphics.InterfaceObject;
@@ -8,12 +8,18 @@ import Vitro.Graphics.InterfaceObject;
 import Vitro.D3D12.Driver;
 import Vitro.Vulkan.Driver;
 
-export using Driver = InterfaceObject<DriverBase, D3D12::Driver, Vulkan::Driver>;
+namespace vt
+{
+	export using Driver = InterfaceObject<DriverBase, D3D12::Driver, Vulkan::Driver>;
+}
 
 #else
 
-import Vitro.VT_GHI.Driver;
+import Vitro.VT_GHI_MODULE.Driver;
 
-export using Driver = InterfaceObject<DriverBase, VT_GHI::Driver>;
+namespace vt
+{
+	export using Driver = InterfaceObject<DriverBase, VT_GHI_NAME::Driver>;
+}
 
 #endif
