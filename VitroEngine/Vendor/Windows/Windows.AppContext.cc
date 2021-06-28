@@ -24,22 +24,6 @@ namespace Windows
 			return static_cast<AppContext&>(AppContextBase::get());
 		}
 
-		void pollEvents() const final override
-		{
-			MSG message;
-			while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
-			{
-				::TranslateMessage(&message);
-				::DispatchMessage(&message);
-			}
-		}
-
-		void* handle() final override
-		{
-			return instanceHandle;
-		}
-
-	protected:
 		AppContext() : instanceHandle(::GetModuleHandle(nullptr))
 		{
 			WNDCLASS windowClass {};
@@ -54,6 +38,21 @@ namespace Windows
 			rawInputDevice.usUsage	   = 0x02; // Usage constant for a generic mouse
 			vtEnsure(::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE)),
 					 "Failed to register raw input device.");
+		}
+
+		void pollEvents() const override
+		{
+			MSG message;
+			while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
+			{
+				::TranslateMessage(&message);
+				::DispatchMessage(&message);
+			}
+		}
+
+		void* handle() override
+		{
+			return instanceHandle;
 		}
 
 	private:

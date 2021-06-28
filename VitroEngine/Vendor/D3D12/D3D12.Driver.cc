@@ -7,9 +7,9 @@ module;
 export module Vitro.D3D12.Driver;
 
 import Vitro.App.SharedLibrary;
+import Vitro.D3D12.Unique;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DriverBase;
-import Vitro.D3D12.Unique;
 import Vitro.Windows.StringUtils;
 
 namespace D3D12
@@ -29,34 +29,52 @@ namespace D3D12
 			factory(makeFactory())
 		{}
 
-		std::vector<Adapter> enumerateAdapters() const override
+		std::vector<::Adapter> enumerateAdapters() const override
 		{
-			IDXGIAdapter1* adapter;
-			std::vector<Adapter> adapters;
-			for(UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i)
+			std::vector<::Adapter> adapters;
+			UINT index {};
+			HRESULT result {};
+			while(result != DXGI_ERROR_NOT_FOUND)
 			{
-				DXGI_ADAPTER_DESC1 desc;
-				adapter->GetDesc1(&desc);
-
-				adapters.emplace_back(adapter, Windows::narrowString(desc.Description), desc.DedicatedVideoMemory);
+				Unique<IDXGIAdapter> adapter;
+				result = factory->EnumAdapters(index++, &adapter);
+				adapters.emplace_back(std::move(adapter));
 			}
 			return adapters;
+		}
+
+		PFN_D3D12_CREATE_DEVICE getDeviceCreationFunction() const
+		{
+			return d3d12CreateDevice;
+		}
+
+		IDXGIFactory5* getFactory() const
+		{
+			return factory;
+		}
+
+		bool isSwapChainTearingAvailable() const
+		{
+			bool isAvailable;
+			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &isAvailable, sizeof isAvailable);
+			vtEnsureResult(result, "Failed to check for swap chain tearing support.");
+			return isAvailable;
 		}
 
 	private:
 		SharedLibrary d3d12;
 		SharedLibrary dxgi;
-		decltype(::D3D12GetDebugInterface)* d3d12GetDebugInterface;
+		PFN_D3D12_GET_DEBUG_INTERFACE d3d12GetDebugInterface;
 		decltype(::CreateDXGIFactory2)* createDXGIFactory2;
-		decltype(::D3D12CreateDevice)* d3d12CreateDevice;
+		PFN_D3D12_CREATE_DEVICE d3d12CreateDevice;
 #if VT_DEBUG
 		Unique<ID3D12Debug> debug;
 #endif
 		Unique<IDXGIFactory5> factory;
 
-		ID3D12Debug* makeDebugInterface()
+		Unique<ID3D12Debug> makeDebugInterface()
 		{
-			ID3D12Debug* debugInterface;
+			Unique<ID3D12Debug> debugInterface;
 			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 			vtEnsureResult(result, "Failed to get D3D12 debug interface.");
 
@@ -64,7 +82,7 @@ namespace D3D12
 			return debugInterface;
 		}
 
-		IDXGIFactory5* makeFactory()
+		Unique<IDXGIFactory5> makeFactory()
 		{
 			UINT flags = 0;
 #if VT_DEBUG
@@ -75,8 +93,9 @@ namespace D3D12
 			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&proxyFactory));
 			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
 
-			IDXGIFactory5* mainFactory;
-			vtEnsureResult(proxyFactory.queryFor(&mainFactory), "Failed to get main DXGI factory.");
+			Unique<IDXGIFactory5> mainFactory;
+			result = proxyFactory.queryFor(&mainFactory);
+			vtEnsureResult(result, "Failed to get main DXGI factory.");
 			return mainFactory;
 		}
 	};

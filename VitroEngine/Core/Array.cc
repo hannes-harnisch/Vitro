@@ -376,13 +376,13 @@ private:
 
 		constexpr void incrementPosition(DifferenceType const offset) noexcept
 		{
-			vtAssert(pos < end, "Cannot increment iterator past end.");
+			vtAssertPure(pos < end, "Cannot increment iterator past end.");
 			pos += offset;
 		}
 
 		constexpr void decrementPosition(DifferenceType const offset) noexcept
 		{
-			vtAssert(begin < pos, "Cannot decrement iterator before begin.");
+			vtAssertPure(begin < pos, "Cannot decrement iterator before begin.");
 			pos -= offset;
 		}
 	};

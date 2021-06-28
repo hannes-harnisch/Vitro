@@ -18,6 +18,4 @@ public:
 	{
 		return static_cast<TSymbol*>(loadSymbolAddress(symbol));
 	}
-
-private:
 };

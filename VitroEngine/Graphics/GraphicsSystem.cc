@@ -1,16 +1,16 @@
+module;
+#include <unordered_map>
 export module Vitro.Graphics.GraphicsSystem;
 
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.DynamicGraphicsAPI;
-import Vitro.Trace.Log;
+import Vitro.Graphics.SwapChain;
 
 export class GraphicsSystem
 {
-	friend class Engine;
-
+public:
 private:
 	DynamicGraphicsAPI dynamicApi;
 	Driver driver;
-
-	GraphicsSystem() = default;
+	std::unordered_map<Window*, SwapChain> swapChains;
 };

@@ -92,12 +92,12 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return to<S, D2>();
 	}
 
-	constexpr T& operator[](size_t index)
+	constexpr T& operator[](size_t const index)
 	{
 		return this->data[index];
 	}
 
-	constexpr T operator[](size_t index) const
+	constexpr T operator[](size_t const index) const
 	{
 		return this->data[index];
 	}
@@ -128,7 +128,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return sum;
 	}
 
-	template<Scalar S> constexpr auto operator+(S scalar) const
+	template<Scalar S> constexpr auto operator+(S const scalar) const
 	{
 		Vector<decltype(this->data[0] + scalar), D> sum;
 		for(int i {}; i < D; ++i)
@@ -136,7 +136,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return sum;
 	}
 
-	template<Scalar S> friend constexpr auto operator+(S scalar, Vector const& vec)
+	template<Scalar S> friend constexpr auto operator+(S const scalar, Vector const& vec)
 	{
 		return vec + scalar;
 	}
@@ -148,7 +148,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	template<Scalar S> constexpr Vector& operator+=(S scalar)
+	template<Scalar S> constexpr Vector& operator+=(S const scalar)
 	{
 		for(T& component : this->data)
 			component += scalar;
@@ -171,7 +171,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return difference;
 	}
 
-	template<Scalar S> constexpr auto operator-(S scalar) const
+	template<Scalar S> constexpr auto operator-(S const scalar) const
 	{
 		Vector<decltype(this->data[0] - scalar), D> difference;
 		for(int i {}; i < D; ++i)
@@ -179,7 +179,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return difference;
 	}
 
-	template<Scalar S> friend constexpr auto operator-(S scalar, Vector const& vec)
+	template<Scalar S> friend constexpr auto operator-(S const scalar, Vector const& vec)
 	{
 		Vector<decltype(scalar - vec[0]), D> difference;
 		for(int i {}; i < D; ++i)
@@ -194,7 +194,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	template<Scalar S> constexpr Vector& operator-=(S scalar)
+	template<Scalar S> constexpr Vector& operator-=(S const scalar)
 	{
 		for(T& component : this->data)
 			component -= scalar;
@@ -209,7 +209,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return product;
 	}
 
-	template<Scalar S> constexpr auto operator*(S scalar) const
+	template<Scalar S> constexpr auto operator*(S const scalar) const
 	{
 		Vector<decltype(this->data[0] * scalar), D> product;
 		for(int i {}; i < D; ++i)
@@ -217,7 +217,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return product;
 	}
 
-	template<Scalar S> friend constexpr auto operator*(S scalar, Vector const& vec)
+	template<Scalar S> friend constexpr auto operator*(S const scalar, Vector const& vec)
 	{
 		return vec * scalar;
 	}
@@ -229,7 +229,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	template<Scalar S> constexpr Vector& operator*=(S scalar)
+	template<Scalar S> constexpr Vector& operator*=(S const scalar)
 	{
 		for(T& component : this->data)
 			component *= scalar;
@@ -244,7 +244,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return quotient;
 	}
 
-	template<Scalar S> constexpr auto operator/(S scalar) const
+	template<Scalar S> constexpr auto operator/(S const scalar) const
 	{
 		Vector<decltype(this->data[0] / scalar), D> quotient;
 		for(int i {}; i < D; ++i)
@@ -252,7 +252,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return quotient;
 	}
 
-	template<Scalar S> friend constexpr auto operator/(S scalar, Vector const& vec)
+	template<Scalar S> friend constexpr auto operator/(S const scalar, Vector const& vec)
 	{
 		Vector<decltype(scalar / vec[0]), D> quotient;
 		for(int i {}; i < D; ++i)
@@ -267,7 +267,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return *this;
 	}
 
-	template<Scalar S> constexpr Vector& operator/=(S scalar)
+	template<Scalar S> constexpr Vector& operator/=(S const scalar)
 	{
 		for(T& component : this->data)
 			component /= scalar;
@@ -300,14 +300,6 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 		return result;
 	}
 
-	template<auto F> friend constexpr auto apply(Vector const& vec)
-	{
-		Vector<decltype(F(vec[0])), D> result;
-		for(int i {}; i < D; ++i)
-			result.data[i] = F(vec.data[i]);
-		return result;
-	}
-
 	template<Scalar S> friend constexpr auto dot(Vector const& left, Vector<S, D> const& right)
 	{
 		auto const hadamard {left * right};
@@ -334,7 +326,7 @@ export template<typename T, int D> struct Vector : VectorData<T, D>
 
 	friend constexpr auto sqrt(Vector const& vec)
 	{
-		return apply<std::sqrt>(vec);
+		return apply(vec, [](auto component) { return std::sqrt(component); });
 	}
 
 	friend constexpr auto invSqrt(Vector const& vec)
@@ -365,9 +357,3 @@ export using Int4	= Vector<int, 4>;
 export using Float2 = Vector<float, 2>;
 export using Float3 = Vector<float, 3>;
 export using Float4 = Vector<float, 4>;
-
-export auto x()
-{
-	Float4 f;
-	return sin(f);
-}

@@ -23,6 +23,11 @@ namespace D3D12
 			commands->SetPipelineState(pipeline.d3d12.handle);
 		}
 
+		void endRenderPass() override
+		{
+			commands->EndRenderPass();
+		}
+
 		void end() override
 		{
 			auto result = commands->Close();

@@ -13,97 +13,127 @@ public:
 	template<typename... Ts> InterfaceObject(Ts&&... ts)
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			new(&d3d12) TD3D12(std::forward<Ts>(ts)...);
+			new(&d3d12Object) TD3D12(std::forward<Ts>(ts)...);
 		else
-			new(&vulkan) TVulkan(std::forward<Ts>(ts)...);
+			new(&vulkanObject) TVulkan(std::forward<Ts>(ts)...);
 	}
 
 	InterfaceObject(InterfaceObject const& other)
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			new(&d3d12) TD3D12(other.d3d12);
+			new(&d3d12Object) TD3D12(other.d3d12Object);
 		else
-			new(&vulkan) TVulkan(other.vulkan);
+			new(&vulkanObject) TVulkan(other.vulkanObject);
 	}
 
 	InterfaceObject(InterfaceObject&& other) noexcept
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			new(&d3d12) TD3D12(std::move(other.d3d12));
+			new(&d3d12Object) TD3D12(std::move(other.d3d12Object));
 		else
-			new(&vulkan) TVulkan(std::move(other.vulkan));
+			new(&vulkanObject) TVulkan(std::move(other.vulkanObject));
 	}
 
 	~InterfaceObject()
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			d3d12.~TD3D12();
+			d3d12Object.~TD3D12();
 		else
-			vulkan.~TVulkan();
+			vulkanObject.~TVulkan();
 	}
 
 	InterfaceObject& operator=(InterfaceObject const& other)
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			d3d12 = other.d3d12;
+			d3d12Object = other.d3d12Object;
 		else
-			vulkan = other.vulkan;
+			vulkanObject = other.vulkanObject;
 		return *this;
 	}
 
 	InterfaceObject& operator=(InterfaceObject&& other) noexcept
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			d3d12 = std::move(other.d3d12);
+			d3d12Object = std::move(other.d3d12Object);
 		else
-			vulkan = std::move(other.vulkan);
+			vulkanObject = std::move(other.vulkanObject);
 		return *this;
 	}
 
 	TInterface* operator->() noexcept
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			return &d3d12;
+			return &d3d12Object;
 		else
-			return &vulkan;
+			return &vulkanObject;
 	}
 
 	TInterface const* operator->() const noexcept
 	{
 		if(DynamicGraphicsAPI::isD3D12())
-			return &d3d12;
+			return &d3d12Object;
 		else
-			return &vulkan;
+			return &vulkanObject;
+	}
+
+	TD3D12& d3d12() noexcept
+	{
+		return d3d12Object;
+	}
+
+	TD3D12 const& d3d12() const noexcept
+	{
+		return d3d12Object;
+	}
+
+	TVulkan& vulkan() noexcept
+	{
+		return vulkanObject;
+	}
+
+	TVulkan const& vulkan() const noexcept
+	{
+		return vulkanObject;
 	}
 
 private:
 	union
 	{
-		TD3D12 d3d12;
-		TVulkan vulkan;
+		TD3D12 d3d12Object;
+		TVulkan vulkanObject;
 	};
 };
 
 #else
 
-export template<typename T> class InterfaceObject
+export template<typename TInterface, typename TPlatform> class InterfaceObject
 {
 public:
 	template<typename... Ts> InterfaceObject(Ts&&... ts) : object(std::forward<Ts>(ts)...)
 	{}
 
-	T* operator->() noexcept
+	TInterface* operator->() noexcept
 	{
 		return &object;
 	}
 
-	T const* operator->() const noexcept
+	TInterface const* operator->() const noexcept
 	{
 		return &object;
+	}
+
+	TPlatform& VT_GHI_LOWER_CASE() noexcept
+	{
+		return object;
+	}
+
+	TPlatform const& VT_GHI_LOWER_CASE() const noexcept
+	{
+		return object;
 	}
 
 private:
-	T object;
+	TPlatform object;
 };
 
 #endif

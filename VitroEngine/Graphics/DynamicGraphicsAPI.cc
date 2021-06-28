@@ -6,8 +6,6 @@ export enum class GraphicsAPI : bool { D3D12, Vulkan };
 
 export class DynamicGraphicsAPI : public Singleton<DynamicGraphicsAPI>
 {
-	friend class GraphicsSystem;
-
 public:
 	static GraphicsAPI current()
 	{
@@ -26,6 +24,4 @@ public:
 
 private:
 	GraphicsAPI api;
-
-	DynamicGraphicsAPI() = default;
 };

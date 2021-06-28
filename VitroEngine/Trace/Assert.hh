@@ -14,9 +14,10 @@ void crash(std::string_view const crashMessage);
 				vtDebugBreak();                                                                                                \
 		}
 
+	#define vtAssertPure(condition, message)   vtEnsure(condition, message)
 	#define vtAssert(condition, message)	   vtEnsure(condition, message)
-	#define vtEnsureResult(condition, message) vtEnsure(int(condition) >= 0, message)
-	#define vtAssertResult(condition, message) vtEnsure(int(condition) >= 0, message)
+	#define vtEnsureResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
+	#define vtAssertResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
 
 #else
 
@@ -26,8 +27,9 @@ void crash(std::string_view const crashMessage);
 				crash("Assertion failed: " #condition);                                                                        \
 		}
 
-	#define vtAssert(condition, message)	   void(condition)
-	#define vtEnsureResult(condition, message) vtEnsure(int(condition) >= 0, message)
-	#define vtAssertResult(condition, message) void(condition)
+	#define vtAssertPure(condition, message)
+	#define vtAssert(condition, message)	   static_cast<void>(condition)
+	#define vtEnsureResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
+	#define vtAssertResult(condition, message) static_cast<void>(condition)
 
 #endif
