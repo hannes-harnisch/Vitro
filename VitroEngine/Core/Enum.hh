@@ -5,7 +5,7 @@
 
 #define MAGIC_ENUM_RANGE_MIN (INT16_MIN + 1)
 #define MAGIC_ENUM_RANGE_MAX (INT16_MAX - 1)
-#include <magic_enum/magic_enum.hpp>
+#include <magic_enum/include/magic_enum.hpp>
 
 using magic_enum::enum_cast;
 using magic_enum::enum_count;
