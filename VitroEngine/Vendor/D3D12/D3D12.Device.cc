@@ -36,6 +36,11 @@ namespace vt::d3d12
 			texture.d3d12.handle->Release();
 		}
 
+		ID3D12Device* getDevice() const
+		{
+			return device;
+		}
+
 		ID3D12CommandQueue* getGraphicsQueue() const
 		{
 			return graphicsQueue;

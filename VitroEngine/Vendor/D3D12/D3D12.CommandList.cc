@@ -5,21 +5,45 @@ export module Vitro.D3D12.CommandList;
 
 import Vitro.D3D12.Unique;
 import Vitro.Graphics.CommandListBase;
+import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
 import Vitro.Math.Rectangle;
 
 namespace vt::d3d12
 {
-	export class CommandList final : public CommandListBase
+	template<QueuePurpose Purpose> class CommandListData
+	{};
+
+	template<> class CommandListData<QueuePurpose::Graphics>
+	{};
+
+	consteval D3D12_COMMAND_LIST_TYPE mapQueuePurposeToCommandListType(QueuePurpose purpose)
+	{
+		switch(purpose)
+		{
+			case QueuePurpose::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
+			case QueuePurpose::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+			case QueuePurpose::Graphics: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+		}
+	}
+
+	export template<QueuePurpose Purpose>
+	class CommandList final : public GraphicsCommandListBase, public CommandListData<Purpose>
 	{
 	public:
-		CommandList()
+		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), commands(makeCommandList(device))
 		{}
 
 		void begin() override
 		{
 			auto result = allocator->Reset();
 			vtAssertResult(result, "Failed to reset D3D12 command allocator.");
+		}
+
+		void end() override
+		{
+			auto result = commands->Close();
+			vtAssertResult(result, "Failed to end D3D12 command list.");
 		}
 
 		void bindPipeline(PipelineHandle const pipeline) override
@@ -30,8 +54,8 @@ namespace vt::d3d12
 		void bindViewport(Rectangle const viewport) override
 		{
 			D3D12_VIEWPORT const rect {
-				.Width	  = static_cast<float>(viewport.width),
-				.Height	  = static_cast<float>(viewport.height),
+				.Width	  = static_cast<FLOAT>(viewport.width),
+				.Height	  = static_cast<FLOAT>(viewport.height),
 				.MaxDepth = D3D12_MAX_DEPTH,
 			};
 			commands->RSSetViewports(1, &rect);
@@ -40,8 +64,8 @@ namespace vt::d3d12
 		void bindScissor(Rectangle const scissor) override
 		{
 			D3D12_RECT const rect {
-				.right	= static_cast<long>(scissor.width),
-				.bottom = static_cast<long>(scissor.height),
+				.right	= static_cast<LONG>(scissor.width),
+				.bottom = static_cast<LONG>(scissor.height),
 			};
 			commands->RSSetScissorRects(1, &rect);
 		}
@@ -51,14 +75,26 @@ namespace vt::d3d12
 			commands->EndRenderPass();
 		}
 
-		void end() override
-		{
-			auto result = commands->Close();
-			vtAssertResult(result, "Failed to end D3D12 command list.");
-		}
-
 	private:
+		constexpr static auto Type = mapQueuePurposeToCommandListType(Purpose);
+
 		Unique<ID3D12CommandAllocator> allocator;
 		Unique<ID3D12GraphicsCommandList4> commands;
+
+		static Unique<ID3D12CommandAllocator> makeAllocator(vt::Device const& device)
+		{
+			Unique<ID3D12CommandAllocator> allocator;
+			auto result = device.d3d12().getDevice()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
+			vtAssertResult(result, "Failed to create D3D12 command allocator.");
+			return allocator;
+		}
+
+		Unique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device const& device)
+		{
+			Unique<ID3D12GraphicsCommandList4> list;
+			auto result = device.d3d12().getDevice()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));
+			vtAssertResult(result, "Failed to create D3D12 command list.");
+			return list;
+		}
 	};
 }

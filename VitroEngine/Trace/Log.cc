@@ -171,7 +171,7 @@ namespace vt
 			queue.emplace(level, channel, now, std::move(message));
 		}
 
-		void runQueueProcessing()
+		void dispatchLogProcessing()
 		{
 			while(isAcceptingLogs)
 				processQueue();

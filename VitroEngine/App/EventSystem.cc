@@ -56,7 +56,7 @@ namespace vt
 		std::condition_variable condition;
 		std::atomic_bool isAcceptingEvents = true;
 
-		void runEventProcessing()
+		void dispatchEventProcessing()
 		{
 			while(isAcceptingEvents)
 				processQueue();
@@ -80,7 +80,7 @@ namespace vt
 		{
 			std::type_index eventType(typeid(*event));
 
-			for(auto&& handler : handlers | std::views::reverse)
+			for(auto&& handler : std::views::reverse(handlers))
 			{
 				if(handler.eventType == eventType)
 				{

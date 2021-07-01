@@ -56,7 +56,7 @@ namespace vt
 				AllocTraits::construct(alloc, &*element++, std::move(init));
 
 			if constexpr(std::is_default_constructible_v<ValueType>)
-				for(auto&& rest : *this | std::views::drop(initializers.size()))
+				for(auto& rest : std::views::drop(*this, initializers.size()))
 					AllocTraits::construct(alloc, &rest);
 		}
 
@@ -64,7 +64,7 @@ namespace vt
 		constexpr Array(SizeType count, std::initializer_list<U> initializers, auto&& fallback) : Array(count, initializers)
 		{
 			Allocator alloc;
-			for(auto&& element : *this | std::views::drop(initializers.size()))
+			for(auto& element : std::views::drop(*this, initializers.size()))
 				AllocTraits::construct(alloc, &element, fallback);
 		}
 
