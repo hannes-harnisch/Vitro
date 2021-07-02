@@ -24,7 +24,7 @@ extern "C"
 
 namespace vt
 {
-	export void setCommonSignalHandlers()
+	export void setSignalHandlers()
 	{
 		std::signal(SIGFPE, handleArithmeticException);
 		std::signal(SIGSEGV, handleAccessViolation);

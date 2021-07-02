@@ -13,7 +13,6 @@ module;
 export module Vitro.Trace.Log;
 
 import Vitro.Core.Singleton;
-import Vitro.Trace.Terminal;
 import Vitro.Trace.LogLevel;
 
 namespace vt
@@ -88,7 +87,6 @@ namespace vt
 			std::string message;
 		};
 
-		Terminal terminal;
 		std::queue<Entry> queue;
 		std::mutex mutex;
 		std::condition_variable condition;
@@ -210,9 +208,9 @@ namespace vt
 			auto const timestamp	= makeTimestamp(entry.time);
 			int64_t const millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
 
-			terminal.setTextColor(entry.level);
-			std::printf("[ %s.%03lli | %s | %s ] %s\n", timestamp.data(), millisecs, level.data(), channel.data(),
-						entry.message.data());
+			auto const escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
+			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ] %s\n", escCodeParams, timestamp.data(), millisecs, level.data(),
+						channel.data(), entry.message.data());
 		}
 
 		void quit()

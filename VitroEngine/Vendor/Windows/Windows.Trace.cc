@@ -1,8 +1,8 @@
-﻿module;
+module;
 #include "Windows.API.hh"
 
 #include <csignal>
-export module Vitro.Windows.SignalHandler;
+export module Vitro.Windows.Trace;
 
 import Vitro.Trace.SignalHandler;
 
@@ -19,8 +19,11 @@ namespace vt::windows
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
-	export void setPlatformSignalHandlers()
+	export void setSystemTracingState()
 	{
 		::AddVectoredExceptionHandler(true, forwardToStandardSignalHandlers);
+
+		auto const stdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+		::SetConsoleMode(stdOut, ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_VIRTUAL_TERMINAL_INPUT);
 	}
 }
