@@ -1,4 +1,5 @@
 module;
+#include <thread>
 #include <unordered_map>
 export module Vitro.App.AppContextBase;
 
@@ -12,7 +13,12 @@ namespace vt
 		virtual void pollEvents() const = 0;
 		virtual void* handle()			= 0;
 
-		void notifyWindowConstruction(void* const nativeHandle, class Window& window)
+		std::thread::id mainThreadId() const
+		{
+			return mainThread;
+		}
+
+		void notifyWindowMapping(void* const nativeHandle, class Window& window)
 		{
 			nativeWindowToEngineWindow[nativeHandle] = &window;
 		}
@@ -34,5 +40,6 @@ namespace vt
 
 	private:
 		std::unordered_map<void*, Window*> nativeWindowToEngineWindow;
+		std::thread::id mainThread = std::this_thread::get_id();
 	};
 }

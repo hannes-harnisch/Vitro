@@ -47,7 +47,7 @@ namespace vt::d3d12
 		}
 
 	private:
-		constexpr static auto TargetFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+		constexpr static D3D_FEATURE_LEVEL TargetFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
 		Unique<ID3D12Device> device;
 		Unique<ID3D12CommandQueue> graphicsQueue;

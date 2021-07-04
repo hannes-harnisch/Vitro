@@ -1,5 +1,6 @@
 module;
-#include <stdexcept>
+#include "Trace/Assert.hh"
+
 #include <string_view>
 export module Vitro.App.SharedLibrary;
 
@@ -12,8 +13,7 @@ namespace vt
 	public:
 		SharedLibrary(std::string_view const name) : VT_SYSTEM_NAME::SharedLibrary(name)
 		{
-			if(!handle())
-				throw std::runtime_error("Shared library file not found.");
+			vtEnsure(handle(), "Shared library file not found.");
 		}
 
 		template<typename TSymbol> TSymbol* loadSymbol(std::string_view const symbol) const

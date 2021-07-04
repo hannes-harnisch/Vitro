@@ -1,5 +1,8 @@
 module;
+#include "Trace/Assert.hh"
+
 #include <string_view>
+#include <thread>
 export module Vitro.App.Window;
 
 import Vitro.App.AppContextBase;
@@ -21,39 +24,49 @@ namespace vt
 			   int const y			= Platform::DefaultY) :
 			Platform(title, size, {x, y})
 		{
-			AppContextBase::get().notifyWindowConstruction(handle(), *this);
-			GraphicsSystem::get().notifyWindowConstruction(handle(), *this);
+			ensureCallIsOnMainThread();
+			AppContextBase::get().notifyWindowMapping(handle(), *this);
+			GraphicsSystem::get().notifyWindowConstruction(*this, handle());
 		}
 
 		Window(Window&& other) noexcept : Platform(std::move(other))
 		{
-			notifyReplacement(other);
+			ensureCallIsOnMainThread();
+			notifyMove(other);
 		}
 
 		~Window()
 		{
+			ensureCallIsOnMainThread();
 			notifyDestruction();
 		}
 
 		Window& operator=(Window&& other) noexcept
 		{
-			Platform::operator=(std::move(other));
+			ensureCallIsOnMainThread();
 			notifyDestruction();
-			notifyReplacement(other);
+			Platform::operator=(std::move(other));
+			notifyMove(other);
 			return *this;
 		}
 
 	private:
-		void notifyReplacement(Window& oldWindow)
+		void ensureCallIsOnMainThread()
 		{
-			AppContextBase::get().notifyWindowConstruction(oldWindow.handle(), *this);
-			GraphicsSystem::get().notifyWindowReplacement(oldWindow, *this);
+			bool const isOnMainThread = AppContextBase::get().mainThreadId() == std::this_thread::get_id();
+			vtEnsure(isOnMainThread, "Window operations must happen on the main thread.");
 		}
 
 		void notifyDestruction()
 		{
 			AppContextBase::get().notifyWindowDestruction(handle());
 			GraphicsSystem::get().notifyWindowDestruction(*this);
+		}
+
+		void notifyMove(Window& oldWindow)
+		{
+			AppContextBase::get().notifyWindowMapping(handle(), *this);
+			GraphicsSystem::get().notifyWindowReplacement(oldWindow, *this);
 		}
 	};
 }

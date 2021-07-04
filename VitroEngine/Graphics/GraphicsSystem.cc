@@ -18,7 +18,7 @@ namespace vt
 		GraphicsSystem() : device(driver, selectAdapter())
 		{}
 
-		void notifyWindowConstruction(void* const nativeWindowHandle, class Window const& window)
+		void notifyWindowConstruction(class Window const& window, void* const nativeWindowHandle)
 		{
 			swapChains.try_emplace(&window, driver, device, nativeWindowHandle, 2);
 		}

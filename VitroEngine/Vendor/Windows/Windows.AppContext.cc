@@ -32,14 +32,15 @@ namespace vt::windows
 				.hInstance	   = instanceHandle,
 				.lpszClassName = Window::WindowClassName,
 			};
-			vtEnsure(::RegisterClass(&windowClass), "Failed to register window class.");
+			ATOM const registered = ::RegisterClass(&windowClass);
+			vtEnsure(registered, "Failed to register window class.");
 
 			RAWINPUTDEVICE const rawInputDevice {
 				.usUsagePage = 0x01, // Usage page constant for generic desktop controls
 				.usUsage	 = 0x02, // Usage constant for a generic mouse
 			};
-			vtEnsure(::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE)),
-					 "Failed to register raw input device.");
+			BOOL const succeeded = ::RegisterRawInputDevices(&rawInputDevice, 1, sizeof(RAWINPUTDEVICE));
+			vtEnsure(succeeded, "Failed to register raw input device.");
 		}
 
 		void pollEvents() const override
@@ -108,28 +109,32 @@ namespace vt::windows
 
 		void onWindowMove(HWND const hwnd, LPARAM const lp)
 		{
-			auto& window = *findWindow(hwnd);
-			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
 
-			EventSystem::get().notify<WindowMoveEvent>(window, position);
+			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+			EventSystem::get().notify<WindowMoveEvent>(*window, position);
 		}
 
 		void onWindowSize(HWND const hwnd, LPARAM const lp)
 		{
-			auto& window = *findWindow(hwnd);
-			Rectangle const size(LOWORD(lp), HIWORD(lp));
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
 
-			EventSystem::get().notify<WindowSizeEvent>(window, size);
+			Rectangle const size(LOWORD(lp), HIWORD(lp));
+			EventSystem::get().notify<WindowSizeEvent>(*window, size);
 		}
 
 		void restoreWindowCursorState(HWND const hwnd, WPARAM const wp)
 		{
-			auto& window = *findWindow(hwnd);
-			if(window.cursorEnabled())
+			auto const window = findWindow(hwnd);
+			if(!window || window->cursorEnabled())
 				return;
 
 			if(wp & WA_ACTIVE || wp & WA_CLICKACTIVE)
-				window.disableCursor();
+				window->disableCursor();
 		}
 
 		template<typename E> void onWindowEvent(HWND const hwnd)
@@ -141,7 +146,9 @@ namespace vt::windows
 
 		void onWindowClose(HWND const hwnd)
 		{
-			findWindow(hwnd)->close();
+			auto const window = findWindow(hwnd);
+			if(window)
+				window->close();
 		}
 
 		void onWindowShow(HWND const hwnd, WPARAM const wp)
@@ -154,6 +161,10 @@ namespace vt::windows
 
 		void onRawInput(HWND const hwnd, LPARAM const lp)
 		{
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
+
 			UINT size;
 			auto const inputHandle = reinterpret_cast<HRAWINPUT>(lp);
 
@@ -162,9 +173,8 @@ namespace vt::windows
 			::GetRawInputData(inputHandle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
 			auto const input = new(bytes.data()) RAWINPUT;
 
-			auto& window = *findWindow(hwnd);
 			Int2 const direction {input->data.mouse.lLastX, input->data.mouse.lLastY};
-			EventSystem::get().notify<MouseMoveEvent>(window, lastMousePosition, direction);
+			EventSystem::get().notify<MouseMoveEvent>(*window, lastMousePosition, direction);
 		}
 
 		void onKeyDown(HWND const hwnd, WPARAM const wp)
@@ -177,8 +187,11 @@ namespace vt::windows
 				keyRepeats = 0;
 			lastKeyCode = key;
 
-			auto& window = *findWindow(hwnd);
-			EventSystem::get().notify<KeyDownEvent>(window, key, keyRepeats);
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
+
+			EventSystem::get().notify<KeyDownEvent>(*window, key, keyRepeats);
 		}
 
 		void onKeyUp(HWND const hwnd, WPARAM const wp)
@@ -186,17 +199,22 @@ namespace vt::windows
 			lastKeyCode = KeyCode::None;
 			keyRepeats	= 0;
 
-			auto& window   = *findWindow(hwnd);
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
+
 			auto const key = static_cast<KeyCode>(wp);
-			EventSystem::get().notify<KeyUpEvent>(window, key);
+			EventSystem::get().notify<KeyUpEvent>(*window, key);
 		}
 
 		void onKeyText(HWND const hwnd, WPARAM const wp)
 		{
-			auto& window = *findWindow(hwnd);
-			wchar_t const chars[] {static_cast<wchar_t>(wp), L'\0'};
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
 
-			EventSystem::get().notify<KeyTextEvent>(window, lastKeyCode, narrowString(chars));
+			wchar_t const chars[] {static_cast<wchar_t>(wp), L'\0'};
+			EventSystem::get().notify<KeyTextEvent>(*window, lastKeyCode, narrowString(chars));
 		}
 
 		void storeLastMousePosition(LPARAM const lp)
@@ -207,24 +225,31 @@ namespace vt::windows
 
 		template<typename E> void onMouseEvent(HWND const hwnd, MouseCode const button)
 		{
-			auto& window = *findWindow(hwnd);
-			EventSystem::get().notify<E>(window, button);
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
+
+			EventSystem::get().notify<E>(*window, button);
 		}
 
 		void onVerticalScroll(HWND const hwnd, WPARAM const wp)
 		{
-			auto& window = *findWindow(hwnd);
-			Float2 const offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
 
-			EventSystem::get().notify<MouseScrollEvent>(window, offset);
+			Float2 const offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
+			EventSystem::get().notify<MouseScrollEvent>(*window, offset);
 		}
 
 		void onHorizontalScroll(HWND const hwnd, WPARAM const wp)
 		{
-			auto& window = *findWindow(hwnd);
-			Float2 const offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
+			auto const window = findWindow(hwnd);
+			if(!window)
+				return;
 
-			EventSystem::get().notify<MouseScrollEvent>(window, offset);
+			Float2 const offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
+			EventSystem::get().notify<MouseScrollEvent>(*window, offset);
 		}
 	};
 }

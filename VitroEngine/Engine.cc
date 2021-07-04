@@ -1,7 +1,6 @@
 module;
 #include <atomic>
 #include <condition_variable>
-#include <cstdlib>
 #include <string_view>
 #include <vector>
 export module Vitro.Engine;
@@ -22,7 +21,7 @@ namespace vt
 			commandLineArgs(std::move(commandLineArgs)), appSystem(isRunning)
 		{}
 
-		int run()
+		void run()
 		{
 			uint64_t previousTime = Tick::measureTime();
 			while(isRunning)
@@ -31,7 +30,6 @@ namespace vt
 
 				update();
 			}
-			return EXIT_SUCCESS;
 		}
 
 	private:
@@ -49,9 +47,9 @@ namespace vt
 		}
 	};
 
-	export int engineMain(int argc, char* argv[])
+	export void launchEngine(int argc, char* argv[])
 	{
 		static Engine engine({argv, argv + argc});
-		return engine.run();
+		engine.run();
 	}
 }

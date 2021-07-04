@@ -1,6 +1,5 @@
 module;
-#include <cstdio>
-#include <stdexcept>
+#include "Core/Intrinsics.hh"
 export module Vitro.Trace.LogLevel;
 
 namespace vt
@@ -34,6 +33,6 @@ namespace vt
 			case LogLevel::Error: return TXT_WHITE BGR_MAROON;
 			case LogLevel::Fatal: return TXT_WHITE BGR_RED;
 		}
-		throw std::runtime_error("Non-existent log level.");
+		vtUnreachable();
 	}
 }

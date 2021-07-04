@@ -20,7 +20,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}: Window({})", Event::toString(), reinterpret_cast<uint64_t>(window.handle()));
+			return std::format("{}: Window({})", Event::toString(), window.handle());
 		}
 
 	protected:

@@ -13,14 +13,16 @@
 	#define VT_DLLEXPORT __declspec(dllexport)
 	#define VT_INLINE	 __attribute__((always_inline))
 
-	#define vtDebugBreak() __builtin_debugtrap()
+	#define vtDebugBreak()	__builtin_debugtrap()
+	#define vtUnreachable() __builtin_unreachable()
 
 #elif VT_COMPILER_MSVC
 
 	#define VT_DLLEXPORT __declspec(dllexport)
 	#define VT_INLINE	 __forceinline
 
-	#define vtDebugBreak() __debugbreak()
+	#define vtDebugBreak()	__debugbreak()
+	#define vtUnreachable() __assume(0)
 
 #elif VT_COMPILER_GCC
 
@@ -28,6 +30,7 @@
 	#define VT_INLINE	 __attribute__((always_inline)) inline
 
 	#include <csignal>
-	#define vtDebugBreak() std::raise(SIGTRAP)
+	#define vtDebugBreak()	std::raise(SIGTRAP)
+	#define vtUnreachable() __builtin_unreachable()
 
 #endif

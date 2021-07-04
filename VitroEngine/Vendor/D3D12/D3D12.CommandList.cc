@@ -15,7 +15,9 @@ namespace vt::d3d12
 	{};
 
 	template<> class CommandListData<QueuePurpose::Graphics>
-	{};
+	{
+	protected:
+	};
 
 	consteval D3D12_COMMAND_LIST_TYPE mapQueuePurposeToCommandListType(QueuePurpose purpose)
 	{
@@ -76,7 +78,7 @@ namespace vt::d3d12
 		}
 
 	private:
-		constexpr static auto Type = mapQueuePurposeToCommandListType(Purpose);
+		constexpr static D3D12_COMMAND_LIST_TYPE Type = mapQueuePurposeToCommandListType(Purpose);
 
 		Unique<ID3D12CommandAllocator> allocator;
 		Unique<ID3D12GraphicsCommandList4> commands;

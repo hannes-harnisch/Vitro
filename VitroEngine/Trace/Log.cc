@@ -39,9 +39,15 @@ namespace vt
 	};
 
 	template<typename T>
-	concept OverloadsStreamOperator = !std::same_as<bool, T> && !std::is_enum_v<T> && requires(T t, std::ostream& stream)
+	concept HasStdToStringOverload =
+		!std::same_as<bool, T> && !std::is_enum_v<T> && !IndirectlyConvertibleToString<T> && requires(T t)
 	{
-		stream << t;
+		std::to_string(t);
+	};
+
+	template<typename T> concept IsStringLike = requires(T t)
+	{
+		std::string(t);
 	};
 
 	export class Logger : public Singleton<Logger>
@@ -94,19 +100,24 @@ namespace vt
 		std::bitset<sizeFromEnumMax<LogLevel>()> disabledLevels;
 		std::atomic_bool isAcceptingLogs = true;
 
-		static char const* prepareArgument(bool const arg)
+		static std::string_view prepareArgument(bool const arg)
 		{
 			return arg ? "true" : "false";
 		}
 
-		static auto prepareArgument(OverloadsStreamOperator auto&& arg)
+		static std::string prepareArgument(HasStdToStringOverload auto arg)
 		{
-			return arg;
+			return std::to_string(arg);
 		}
 
-		template<typename T> static std::string_view prepareArgument(T const arg) requires std::is_enum_v<T>
+		template<typename E> static std::string_view prepareArgument(E const arg) requires std::is_enum_v<E>
 		{
 			return enum_name(arg);
+		}
+
+		static std::string prepareArgument(IsStringLike auto&& arg)
+		{
+			return std::string(arg);
 		}
 
 		static std::string prepareArgument(IndirectlyConvertibleToString auto&& arg)
@@ -121,9 +132,9 @@ namespace vt
 
 		template<typename... Ts> static std::string makeMessage(Ts&&... ts)
 		{
-			std::stringstream stream;
-			((stream << prepareArgument(std::forward<Ts>(ts)) << ' '), ...);
-			return stream.str();
+			std::string str;
+			((str += prepareArgument(std::forward<Ts>(ts)) + ' '), ...);
+			return str;
 		}
 
 		static std::string makeTimestamp(std::chrono::system_clock::duration const now)

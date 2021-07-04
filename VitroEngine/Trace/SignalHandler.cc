@@ -1,8 +1,17 @@
 module;
-#include "Trace/Assert.hh"
-
 #include <csignal>
+#include <cstdio>
+#include <string_view>
 export module Vitro.Trace.SignalHandler;
+
+namespace vt
+{
+	void crash(std::string_view const crashMessage)
+	{
+		std::printf("Critical failure: %s", crashMessage.data());
+		std::exit(EXIT_FAILURE);
+	}
+}
 
 extern "C"
 {

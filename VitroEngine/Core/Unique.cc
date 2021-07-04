@@ -55,15 +55,24 @@ namespace vt
 
 		Unique& operator=(Unique&& that) noexcept
 		{
-			swap(that);
+			reset(that.release());
 			return *this;
 		}
 
 		template<typename TOther, auto DeleteOther> Unique& operator=(Unique<TOther, DeleteOther>&& that) noexcept
 		{
-			deleteHandle();
-			handle = std::exchange(that.handle, nullptr);
+			reset(that.release());
 			return *this;
+		}
+
+		THandle* operator&() noexcept
+		{
+			return &this->handle;
+		}
+
+		THandle const* operator&() const noexcept
+		{
+			return &this->handle;
 		}
 
 		auto& operator*() const noexcept
@@ -81,16 +90,6 @@ namespace vt
 			return [this, memberPointer](auto&&... args) {
 				return (this->handle->*memberPointer)(std::forward<decltype(args)>(args)...);
 			};
-		}
-
-		THandle* operator&() noexcept
-		{
-			return &this->handle;
-		}
-
-		THandle const* operator&() const noexcept
-		{
-			return &this->handle;
 		}
 
 		auto operator<=>(auto that) const noexcept
@@ -139,6 +138,9 @@ namespace vt
 
 		void deleteHandle()
 		{
+			if(!handle)
+				return;
+
 			if constexpr(std::is_member_function_pointer_v<decltype(Delete)>)
 				(handle.*Delete)();
 			else

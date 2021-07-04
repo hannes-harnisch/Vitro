@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.Unique;
 
@@ -19,7 +19,7 @@ namespace vt::d3d12
 
 		template<typename TOtherInterface> HRESULT queryFor(TOtherInterface** const targetInterface)
 		{
-			return this->handle->QueryInterface(targetInterface);
+			return this->get()->QueryInterface(targetInterface);
 		}
 	};
 }

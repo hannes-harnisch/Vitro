@@ -2,17 +2,7 @@
 
 #include "Core/Intrinsics.hh"
 
-#include <cstdio>
-#include <string_view>
-
-namespace vt
-{
-	inline void crash(std::string_view const crashMessage)
-	{
-		std::printf("Critical failure: %s", crashMessage.data());
-		std::exit(EXIT_FAILURE);
-	}
-}
+#include <stdexcept>
 
 #if VT_DEBUG
 
@@ -32,7 +22,7 @@ namespace vt
 	#define vtEnsure(condition, message)                                                                                       \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
-				crash("Assertion failed: " #condition);                                                                        \
+				throw std::runtime_error("Assertion failed: " #condition);                                                     \
 		}
 
 	#define vtAssertPure(condition, message)

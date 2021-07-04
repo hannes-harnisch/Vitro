@@ -23,7 +23,7 @@ namespace vt::windows
 		static inline Int2 const DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
 
 		Window(std::string_view const title, Rectangle const size, Int2 const position) :
-			windowHandle(createWindowHandle(title, size, position))
+			windowHandle(makeWindowHandle(title, size, position))
 		{}
 
 		void open() final override
@@ -71,7 +71,47 @@ namespace vt::windows
 		{
 			RECT rect;
 			::GetClientRect(windowHandle, &rect);
-			return {uint32_t(rect.right), uint32_t(rect.bottom)};
+			return {static_cast<uint32_t>(rect.right), static_cast<uint32_t>(rect.bottom)};
+		}
+
+		Rectangle getSize() const final override
+		{
+			RECT rect;
+			::GetWindowRect(windowHandle, &rect);
+			LONG width	= rect.right - rect.left;
+			LONG height = rect.bottom - rect.top;
+			return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+		}
+
+		void setSize(Rectangle const size) final override
+		{
+			::SetWindowPos(windowHandle, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
+		}
+
+		Int2 getPosition() const final override
+		{
+			RECT rect;
+			::GetWindowRect(windowHandle, &rect);
+			return {rect.left, rect.top};
+		}
+
+		void setPosition(Int2 const position) final override
+		{
+			::SetWindowPos(windowHandle, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+		}
+
+		std::string getTitle() const final override
+		{
+			int length = ::GetWindowTextLength(windowHandle);
+			std::wstring title(length, L'\0');
+			::GetWindowText(windowHandle, title.data(), length + 1);
+			return narrowString(title);
+		}
+
+		void setTitle(std::string_view const title) final override
+		{
+			auto const widenedTitle = widenString(title);
+			::SetWindowText(windowHandle, widenedTitle.data());
 		}
 
 		void* handle() final override
@@ -82,7 +122,7 @@ namespace vt::windows
 	private:
 		Unique<HWND, ::DestroyWindow> windowHandle;
 
-		static HWND createWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
+		static decltype(windowHandle) makeWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
 		{
 			auto const widenedTitle	  = widenString(title);
 			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
