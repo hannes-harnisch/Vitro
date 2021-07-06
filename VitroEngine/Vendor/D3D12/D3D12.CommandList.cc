@@ -11,14 +11,6 @@ import Vitro.Math.Rectangle;
 
 namespace vt::d3d12
 {
-	template<QueuePurpose Purpose> class CommandListData
-	{};
-
-	template<> class CommandListData<QueuePurpose::Graphics>
-	{
-	protected:
-	};
-
 	consteval D3D12_COMMAND_LIST_TYPE mapQueuePurposeToCommandListType(QueuePurpose purpose)
 	{
 		switch(purpose)
@@ -29,8 +21,7 @@ namespace vt::d3d12
 		}
 	}
 
-	export template<QueuePurpose Purpose>
-	class CommandList final : public GraphicsCommandListBase, public CommandListData<Purpose>
+	export template<QueuePurpose Purpose> class CommandList final : public GraphicsCommandListBase
 	{
 	public:
 		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), commands(makeCommandList(device))

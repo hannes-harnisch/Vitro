@@ -1,7 +1,11 @@
 module;
+#include "Trace/Assert.hh"
+
 #include <string>
+#include <thread>
 export module Vitro.App.WindowBase;
 
+import Vitro.App.AppContextBase;
 import Vitro.Math.Rectangle;
 import Vitro.Math.Vector;
 
@@ -23,7 +27,7 @@ namespace vt
 		virtual void setPosition(Int2 position)		  = 0;
 		virtual std::string getTitle() const		  = 0;
 		virtual void setTitle(std::string_view title) = 0;
-		virtual void* handle()						  = 0;
+		virtual void* getHandle()					  = 0;
 
 		bool cursorEnabled() const
 		{
@@ -32,5 +36,11 @@ namespace vt
 
 	protected:
 		bool isCursorEnabled = true;
+
+		static void ensureCallIsOnMainThread()
+		{
+			bool const isOnMainThread = AppContextBase::get().getMainThreadId() == std::this_thread::get_id();
+			vtEnsure(isOnMainThread, "Window operations must happen on the main thread.");
+		}
 	};
 }

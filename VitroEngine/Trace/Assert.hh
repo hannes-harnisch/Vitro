@@ -3,6 +3,7 @@
 #include "Core/Intrinsics.hh"
 
 #include <stdexcept>
+#include <string>
 
 #if VT_DEBUG
 
@@ -22,7 +23,7 @@
 	#define vtEnsure(condition, message)                                                                                       \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
-				throw std::runtime_error("Assertion failed: " #condition);                                                     \
+				throw std::runtime_error(std::string("Assertion failed: ") + message + "\n\n" #condition);                     \
 		}
 
 	#define vtAssertPure(condition, message)

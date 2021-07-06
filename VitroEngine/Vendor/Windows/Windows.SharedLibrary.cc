@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -19,7 +19,7 @@ namespace vt::windows
 			return libraryHandle != nullptr;
 		}
 
-		void* handle() final override
+		void* getHandle() final override
 		{
 			return libraryHandle;
 		}

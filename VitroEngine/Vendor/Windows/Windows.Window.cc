@@ -17,7 +17,7 @@ namespace vt::windows
 	{
 	public:
 		constexpr static auto WindowClassName = TEXT(VT_ENGINE_NAME);
-		constexpr static Rectangle DefaultSize {uint32_t(CW_USEDEFAULT), uint32_t(CW_USEDEFAULT)};
+		constexpr static Rectangle DefaultSize {unsigned(CW_USEDEFAULT), unsigned(CW_USEDEFAULT)};
 		constexpr static int DefaultX = CW_USEDEFAULT;
 		constexpr static int DefaultY = CW_USEDEFAULT;
 		static inline Int2 const DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
@@ -28,35 +28,42 @@ namespace vt::windows
 
 		void open() final override
 		{
+			ensureCallIsOnMainThread();
 			::ShowWindow(windowHandle, SW_RESTORE);
 		}
 
 		void close() final override
 		{
+			ensureCallIsOnMainThread();
 			::ShowWindow(windowHandle, SW_HIDE);
 		}
 
 		void maximize() final override
 		{
+			ensureCallIsOnMainThread();
 			::ShowWindow(windowHandle, SW_MAXIMIZE);
 		}
 
 		void minimize() final override
 		{
+			ensureCallIsOnMainThread();
 			::ShowWindow(windowHandle, SW_MINIMIZE);
 		}
 
 		void enableCursor() final override
 		{
+			ensureCallIsOnMainThread();
+
 			isCursorEnabled = true;
 			while(::ShowCursor(true) < 0)
 			{}
-
 			::ClipCursor(nullptr);
 		}
 
 		void disableCursor() final override
 		{
+			ensureCallIsOnMainThread();
+
 			isCursorEnabled = false;
 			while(::ShowCursor(false) >= 0)
 			{}
@@ -69,27 +76,35 @@ namespace vt::windows
 
 		Rectangle getViewport() const final override
 		{
+			ensureCallIsOnMainThread();
+
 			RECT rect;
 			::GetClientRect(windowHandle, &rect);
-			return {static_cast<uint32_t>(rect.right), static_cast<uint32_t>(rect.bottom)};
+			return {static_cast<unsigned>(rect.right), static_cast<unsigned>(rect.bottom)};
 		}
 
 		Rectangle getSize() const final override
 		{
+			ensureCallIsOnMainThread();
+
 			RECT rect;
 			::GetWindowRect(windowHandle, &rect);
+
 			LONG width	= rect.right - rect.left;
 			LONG height = rect.bottom - rect.top;
-			return {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+			return {static_cast<unsigned>(width), static_cast<unsigned>(height)};
 		}
 
 		void setSize(Rectangle const size) final override
 		{
+			ensureCallIsOnMainThread();
 			::SetWindowPos(windowHandle, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
 		}
 
 		Int2 getPosition() const final override
 		{
+			ensureCallIsOnMainThread();
+
 			RECT rect;
 			::GetWindowRect(windowHandle, &rect);
 			return {rect.left, rect.top};
@@ -97,11 +112,14 @@ namespace vt::windows
 
 		void setPosition(Int2 const position) final override
 		{
+			ensureCallIsOnMainThread();
 			::SetWindowPos(windowHandle, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 		}
 
 		std::string getTitle() const final override
 		{
+			ensureCallIsOnMainThread();
+
 			int length = ::GetWindowTextLength(windowHandle);
 			std::wstring title(length, L'\0');
 			::GetWindowText(windowHandle, title.data(), length + 1);
@@ -110,11 +128,13 @@ namespace vt::windows
 
 		void setTitle(std::string_view const title) final override
 		{
+			ensureCallIsOnMainThread();
+
 			auto const widenedTitle = widenString(title);
 			::SetWindowText(windowHandle, widenedTitle.data());
 		}
 
-		void* handle() final override
+		void* getHandle() final override
 		{
 			return windowHandle;
 		}
@@ -125,7 +145,7 @@ namespace vt::windows
 		static decltype(windowHandle) makeWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
 		{
 			auto const widenedTitle	  = widenString(title);
-			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
+			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().getHandle());
 			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, position.x, position.y, size.width,
 								  size.height, nullptr, nullptr, instanceHandle, nullptr);
 		}

@@ -1,15 +1,15 @@
 module;
-#include <cstdint>
 #include <format>
+#include <string>
 export module Vitro.Core.Version;
 
 namespace vt
 {
 	export struct Version
 	{
-		uint16_t major = 0;
-		uint16_t minor = 0;
-		uint16_t patch = 0;
+		unsigned major = 0;
+		unsigned minor = 0;
+		unsigned patch = 0;
 
 		std::string toString() const
 		{

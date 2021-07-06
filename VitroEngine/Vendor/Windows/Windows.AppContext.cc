@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Trace/Assert.hh"
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
@@ -53,7 +53,7 @@ namespace vt::windows
 			}
 		}
 
-		void* handle() override
+		void* getHandle() override
 		{
 			return instanceHandle;
 		}
@@ -61,7 +61,7 @@ namespace vt::windows
 	private:
 		HINSTANCE const instanceHandle;
 		KeyCode lastKeyCode = KeyCode::None;
-		uint32_t keyRepeats = 0;
+		unsigned keyRepeats = 0;
 		Int2 lastMousePosition {};
 
 		static LRESULT CALLBACK forwardMessages(HWND const hwnd, UINT const message, WPARAM const wParam, LPARAM const lParam)

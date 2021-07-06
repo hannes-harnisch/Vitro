@@ -8,8 +8,7 @@ namespace vt::d3d12
 {
 	void deleteInterface(IUnknown* const comObject)
 	{
-		if(comObject)
-			comObject->Release();
+		comObject->Release();
 	}
 
 	export template<typename TInterface> class Unique : public vt::Unique<TInterface, deleteInterface>

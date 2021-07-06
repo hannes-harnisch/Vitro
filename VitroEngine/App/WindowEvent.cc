@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Enum.hh"
 
 #include <format>
@@ -20,7 +20,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}: Window({})", Event::toString(), window.handle());
+			return std::format("{}: Window({})", Event::toString(), window.getHandle());
 		}
 
 	protected:
@@ -102,9 +102,9 @@ namespace vt
 	export class KeyDownEvent final : public KeyEvent
 	{
 	public:
-		uint32_t const repeats;
+		unsigned const repeats;
 
-		KeyDownEvent(Window& window, KeyCode key, uint32_t repeats) : KeyEvent(window, key), repeats(repeats)
+		KeyDownEvent(Window& window, KeyCode key, unsigned repeats) : KeyEvent(window, key), repeats(repeats)
 		{}
 
 		std::string toString() const override

@@ -20,7 +20,7 @@ namespace vt
 
 		void notifyWindowConstruction(class Window const& window, void* const nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, driver, device, nativeWindowHandle, 2);
+			swapChains.try_emplace(&window, driver, device, nativeWindowHandle, FramesBuffered);
 		}
 
 		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
@@ -36,6 +36,8 @@ namespace vt
 		}
 
 	private:
+		constexpr static unsigned FramesBuffered = 2;
+
 		DynamicGHI dynamicGHI;
 		Driver driver;
 		Device device;

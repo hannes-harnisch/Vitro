@@ -13,7 +13,7 @@ namespace vt
 	public:
 		SharedLibrary(std::string_view const name) : VT_SYSTEM_NAME::SharedLibrary(name)
 		{
-			vtEnsure(handle(), "Shared library file not found.");
+			vtEnsure(getHandle(), "Shared library file '" + name + "' not found.");
 		}
 
 		template<typename TSymbol> TSymbol* loadSymbol(std::string_view const symbol) const

@@ -11,9 +11,9 @@ namespace vt
 	{
 	public:
 		virtual void pollEvents() const = 0;
-		virtual void* handle()			= 0;
+		virtual void* getHandle()		= 0;
 
-		std::thread::id mainThreadId() const
+		std::thread::id getMainThreadId() const
 		{
 			return mainThread;
 		}

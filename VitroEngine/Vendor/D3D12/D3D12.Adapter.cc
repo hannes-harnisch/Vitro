@@ -34,7 +34,7 @@ namespace vt::d3d12
 			return vram;
 		}
 
-		IDXGIAdapter* handle() const
+		IDXGIAdapter* getHandle() const
 		{
 			return adapter;
 		}
