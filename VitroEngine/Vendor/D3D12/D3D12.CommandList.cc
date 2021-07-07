@@ -3,7 +3,7 @@ module;
 #include "Trace/Assert.hh"
 export module Vitro.D3D12.CommandList;
 
-import Vitro.D3D12.Unique;
+import Vitro.D3D12.ComUnique;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
@@ -71,21 +71,21 @@ namespace vt::d3d12
 	private:
 		constexpr static D3D12_COMMAND_LIST_TYPE Type = mapQueuePurposeToCommandListType(Purpose);
 
-		Unique<ID3D12CommandAllocator> allocator;
-		Unique<ID3D12GraphicsCommandList4> commands;
+		ComUnique<ID3D12CommandAllocator> allocator;
+		ComUnique<ID3D12GraphicsCommandList4> commands;
 
-		static Unique<ID3D12CommandAllocator> makeAllocator(vt::Device const& device)
+		static ComUnique<ID3D12CommandAllocator> makeAllocator(vt::Device const& device)
 		{
-			Unique<ID3D12CommandAllocator> allocator;
-			auto result = device.d3d12().getDevice()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
+			ComUnique<ID3D12CommandAllocator> allocator;
+			auto result = device.d3d12.getDevice()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 			return allocator;
 		}
 
-		Unique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device const& device)
+		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device const& device)
 		{
-			Unique<ID3D12GraphicsCommandList4> list;
-			auto result = device.d3d12().getDevice()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));
+			ComUnique<ID3D12GraphicsCommandList4> list;
+			auto result = device.d3d12.getDevice()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 			return list;
 		}

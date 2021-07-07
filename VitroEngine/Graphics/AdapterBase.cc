@@ -8,7 +8,20 @@ namespace vt
 	export class AdapterBase
 	{
 	public:
-		virtual std::string_view getName() const = 0;
-		virtual size_t getMemory() const		 = 0;
+		std::string_view getName() const
+		{
+			return name;
+		}
+
+		size_t getVRAM() const
+		{
+			return vram;
+		}
+
+	protected:
+		std::string name;
+		size_t vram;
+
+		AdapterBase() = default;
 	};
 }

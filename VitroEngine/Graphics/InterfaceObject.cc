@@ -3,107 +3,59 @@ module;
 #include <utility>
 export module Vitro.Graphics.InterfaceObject;
 
-#if VT_DYNAMIC_GHI
+#if VT_DYNAMIC_GRAPHICS_API
 
 import Vitro.Graphics.DynamicGraphicsAPI;
 
 namespace vt
 {
-	export template<typename TInterface, typename TD3D12Object, typename TVulkanObject> class InterfaceObject
+	export template<typename TInterface, typename TD3D12, typename TVulkan> union InterfaceObject
 	{
-	public:
+		TD3D12 d3d12;
+		TVulkan vulkan;
+
 		template<typename... Ts> InterfaceObject(Ts&&... ts)
 		{
 			if(DynamicGraphicsAPI::isD3D12())
-				new(&d3d12Object) TD3D12Object(std::forward<Ts>(ts)...);
+				new(&d3d12) TD3D12(std::forward<Ts>(ts)...);
 			else
-				new(&vulkanObject) TVulkanObject(std::forward<Ts>(ts)...);
-		}
-
-		InterfaceObject(InterfaceObject const& other)
-		{
-			if(DynamicGraphicsAPI::isD3D12())
-				new(&d3d12Object) TD3D12Object(other.d3d12Object);
-			else
-				new(&vulkanObject) TVulkanObject(other.vulkanObject);
+				new(&vulkan) TVulkan(std::forward<Ts>(ts)...);
 		}
 
 		InterfaceObject(InterfaceObject&& other) noexcept
 		{
 			if(DynamicGraphicsAPI::isD3D12())
-				new(&d3d12Object) TD3D12Object(std::move(other.d3d12Object));
+				new(&d3d12) TD3D12(std::move(other.d3d12));
 			else
-				new(&vulkanObject) TVulkanObject(std::move(other.vulkanObject));
+				new(&vulkan) TVulkan(std::move(other.vulkan));
 		}
 
 		~InterfaceObject()
 		{
 			if(DynamicGraphicsAPI::isD3D12())
-				d3d12Object.~TD3D12();
+				d3d12.~TD3D12();
 			else
-				vulkanObject.~TVulkan();
-		}
-
-		InterfaceObject& operator=(InterfaceObject const& other)
-		{
-			if(DynamicGraphicsAPI::isD3D12())
-				d3d12Object = other.d3d12Object;
-			else
-				vulkanObject = other.vulkanObject;
-			return *this;
+				vulkan.~TVulkan();
 		}
 
 		InterfaceObject& operator=(InterfaceObject&& other) noexcept
 		{
 			if(DynamicGraphicsAPI::isD3D12())
-				d3d12Object = std::move(other.d3d12Object);
+				d3d12 = std::move(other.d3d12);
 			else
-				vulkanObject = std::move(other.vulkanObject);
+				vulkan = std::move(other.vulkan);
 			return *this;
 		}
 
 		TInterface* operator->() noexcept
 		{
-			if(DynamicGraphicsAPI::isD3D12())
-				return &d3d12Object;
-			else
-				return &vulkanObject;
+			return std::launder(static_cast<TInterface*>(&d3d12));
 		}
 
 		TInterface const* operator->() const noexcept
 		{
-			if(DynamicGraphicsAPI::isD3D12())
-				return &d3d12Object;
-			else
-				return &vulkanObject;
+			return std::launder(static_cast<TInterface const*>(&d3d12));
 		}
-
-		TD3D12Object& d3d12() noexcept
-		{
-			return d3d12Object;
-		}
-
-		TD3D12Object const& d3d12() const noexcept
-		{
-			return d3d12Object;
-		}
-
-		TVulkanObject& vulkan() noexcept
-		{
-			return vulkanObject;
-		}
-
-		TVulkanObject const& vulkan() const noexcept
-		{
-			return vulkanObject;
-		}
-
-	private:
-		union
-		{
-			TD3D12Object d3d12Object;
-			TVulkanObject vulkanObject;
-		};
 	};
 }
 
@@ -111,34 +63,22 @@ namespace vt
 
 namespace vt
 {
-	export template<typename TInterface, typename TGHIObject> class InterfaceObject
+	export template<typename TInterface, typename TGraphicsAPI> struct InterfaceObject
 	{
-	public:
-		template<typename... Ts> InterfaceObject(Ts&&... ts) : ghi(std::forward<Ts>(ts)...)
+		TGraphicsAPI VT_GRAPHICS_API_NAME;
+
+		template<typename... Ts> InterfaceObject(Ts&&... ts) : VT_GRAPHICS_API_NAME(std::forward<Ts>(ts)...)
 		{}
 
 		TInterface* operator->() noexcept
 		{
-			return &ghi;
+			return &VT_GRAPHICS_API_NAME;
 		}
 
 		TInterface const* operator->() const noexcept
 		{
-			return &ghi;
+			return &VT_GRAPHICS_API_NAME;
 		}
-
-		TGHIObject& VT_GHI_NAME() noexcept
-		{
-			return ghi;
-		}
-
-		TGHIObject const& VT_GHI_NAME() const noexcept
-		{
-			return ghi;
-		}
-
-	private:
-		TGHIObject ghi;
 	};
 }
 

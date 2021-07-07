@@ -142,7 +142,8 @@ namespace vt::windows
 	private:
 		Unique<HWND, ::DestroyWindow> windowHandle;
 
-		static decltype(windowHandle) makeWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
+		static Unique<HWND, ::DestroyWindow>
+		makeWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
 		{
 			auto const widenedTitle	  = widenString(title);
 			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().getHandle());

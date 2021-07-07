@@ -3,7 +3,7 @@ export module Vitro.Graphics.Adapter;
 import Vitro.Graphics.AdapterBase;
 import Vitro.Graphics.InterfaceObject;
 
-#if VT_DYNAMIC_GHI
+#if VT_DYNAMIC_GRAPHICS_API
 
 import Vitro.D3D12.Adapter;
 import Vitro.Vulkan.Adapter;
@@ -15,11 +15,11 @@ namespace vt
 
 #else
 
-import Vitro.VT_GHI_MODULE.Adapter;
+import Vitro.VT_GRAPHICS_API_MODULE.Adapter;
 
 namespace vt
 {
-	export using Adapter = InterfaceObject<AdapterBase, VT_GHI_NAME::Adapter>;
+	export using Adapter = InterfaceObject<AdapterBase, VT_GRAPHICS_API_NAME::Adapter>;
 }
 
 #endif

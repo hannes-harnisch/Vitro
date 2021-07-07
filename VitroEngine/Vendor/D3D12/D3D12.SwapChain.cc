@@ -4,7 +4,7 @@ module;
 export module Vitro.D3D12.SwapChain;
 
 import Vitro.Core.Array;
-import Vitro.D3D12.Unique;
+import Vitro.D3D12.ComUnique;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.SwapChainBase;
@@ -15,21 +15,16 @@ namespace vt::d3d12
 	{
 	public:
 		SwapChain(vt::Driver const& driver, vt::Device const& device, void* const nativeWindow, unsigned const bufferCount) :
-			swapChain(makeSwapChain(driver, device.d3d12().getGraphicsQueue(), nativeWindow, bufferCount)),
-			renderTargetHeap(makeRenderTargetHeap(device.d3d12().getDevice(), bufferCount))
+			bufferCount(bufferCount),
+			swapChain(makeSwapChain(driver, device.d3d12.getGraphicsQueue(), nativeWindow)),
+			renderTargetHeap(makeRenderTargetHeap(device.d3d12.getDevice()))
 		{
-			auto const dev	= device.d3d12().getDevice();
-			UINT const size = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			auto handle		= renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
-			for(unsigned i = 0; i < bufferCount; ++i)
-			{
-				Unique<ID3D12Resource> backBuffer;
-				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
-				vtEnsureResult(result, "Failed to get D3D12 swap chain buffer.");
-				dev->CreateRenderTargetView(backBuffer, nullptr, handle);
-				renderTargets[i] = std::move(backBuffer);
-				handle.ptr += size;
-			}
+			initializeRenderTargets(device.d3d12.getDevice());
+		}
+
+		unsigned getNextRenderTargetIndex() const override
+		{
+			return swapChain->GetCurrentBackBufferIndex();
 		}
 
 		void present() override
@@ -47,17 +42,16 @@ namespace vt::d3d12
 	private:
 		constexpr static unsigned MaxBufferCount = 3;
 
-		Unique<IDXGISwapChain1> swapChain;
-		Unique<ID3D12DescriptorHeap> renderTargetHeap;
-		Unique<ID3D12Resource> renderTargets[MaxBufferCount];
+		unsigned bufferCount;
+		ComUnique<IDXGISwapChain3> swapChain;
+		ComUnique<ID3D12DescriptorHeap> renderTargetHeap;
+		ComUnique<ID3D12Resource> renderTargets[MaxBufferCount];
 
-		static Unique<IDXGISwapChain1> makeSwapChain(vt::Driver const& driver,
-													 ID3D12CommandQueue* const queue,
-													 void* const nativeWindow,
-													 unsigned const bufferCount)
+		ComUnique<IDXGISwapChain3>
+		makeSwapChain(vt::Driver const& driver, ID3D12CommandQueue* const queue, void* const nativeWindow)
 		{
 			UINT flags = 0;
-			if(driver.d3d12().isSwapChainTearingAvailable())
+			if(driver.d3d12.isSwapChainTearingAvailable())
 				flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 			DXGI_SWAP_CHAIN_DESC1 const desc {
@@ -68,28 +62,47 @@ namespace vt::d3d12
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 				.Flags		 = flags,
 			};
-			auto const factory = driver.d3d12().getFactory();
+			auto const factory = driver.d3d12.getFactory();
 			HWND const hwnd	   = static_cast<HWND>(nativeWindow);
-			Unique<IDXGISwapChain1> swapChain;
-			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &swapChain);
-			vtEnsureResult(result, "Failed to create D3D12 swap chain.");
+			ComUnique<IDXGISwapChain1> proxySwapChain;
+			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &proxySwapChain);
+			vtEnsureResult(result, "Failed to create D3D12 proxy swap chain.");
+
+			ComUnique<IDXGISwapChain3> mainSwapChain;
+			result = proxySwapChain.queryFor(&mainSwapChain);
+			vtEnsureResult(result, "Failed to query for D3D12 main swap chain.");
 
 			result = factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 			vtEnsureResult(result, "Failed to disable DXGI auto-fullscreen.");
 
-			return swapChain;
+			return mainSwapChain;
 		}
 
-		Unique<ID3D12DescriptorHeap> makeRenderTargetHeap(ID3D12Device* const device, unsigned const bufferCount)
+		ComUnique<ID3D12DescriptorHeap> makeRenderTargetHeap(ID3D12Device* const device)
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
 				.NumDescriptors = bufferCount,
 			};
-			Unique<ID3D12DescriptorHeap> heap;
+			ComUnique<ID3D12DescriptorHeap> heap;
 			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&heap));
 			vtEnsureResult(result, "Failed to create D3D12 render target descriptor heap.");
 			return heap;
+		}
+
+		void initializeRenderTargets(ID3D12Device* const device)
+		{
+			UINT const size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			auto handle		= renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
+			for(unsigned i = 0; i < bufferCount; ++i)
+			{
+				ComUnique<ID3D12Resource> backBuffer;
+				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
+				vtEnsureResult(result, "Failed to get D3D12 swap chain buffer.");
+				device->CreateRenderTargetView(backBuffer, nullptr, handle);
+				renderTargets[i] = std::move(backBuffer);
+				handle.ptr += size;
+			}
 		}
 	};
 }

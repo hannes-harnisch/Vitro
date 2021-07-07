@@ -1,9 +1,9 @@
-export module Vitro.Graphics.CommandList;
+﻿export module Vitro.Graphics.CommandList;
 
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.InterfaceObject;
 
-#if VT_DYNAMIC_GHI
+#if VT_DYNAMIC_GRAPHICS_API
 
 import Vitro.D3D12.CommandList;
 import Vitro.Vulkan.CommandList;
@@ -24,16 +24,17 @@ namespace vt
 
 #else
 
-import Vitro.VT_GHI_MODULE.CommandList;
+import Vitro.VT_GRAPHICS_API_MODULE.CommandList;
 
 namespace vt
 {
-	export using CopyCommandList = InterfaceObject<CopyCommandListBase, VT_GHI_NAME::CommandList<QueuePurpose::Copy>>;
+	export using CopyCommandList = InterfaceObject<CopyCommandListBase, VT_GRAPHICS_API_NAME::CommandList<QueuePurpose::Copy>>;
 
-	export using ComputeCommandList = InterfaceObject<ComputeCommandListBase, VT_GHI_NAME::CommandList<QueuePurpose::Compute>>;
+	export using ComputeCommandList =
+		InterfaceObject<ComputeCommandListBase, VT_GRAPHICS_API_NAME::CommandList<QueuePurpose::Compute>>;
 
 	export using GraphicsCommandList =
-		InterfaceObject<GraphicsCommandListBase, VT_GHI_NAME::CommandList<QueuePurpose::Graphics>>;
+		InterfaceObject<GraphicsCommandListBase, VT_GRAPHICS_API_NAME::CommandList<QueuePurpose::Graphics>>;
 }
 
 #endif

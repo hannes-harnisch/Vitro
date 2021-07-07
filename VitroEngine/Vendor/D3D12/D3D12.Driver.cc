@@ -7,7 +7,7 @@ module;
 export module Vitro.D3D12.Driver;
 
 import Vitro.App.SharedLibrary;
-import Vitro.D3D12.Unique;
+import Vitro.D3D12.ComUnique;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DriverBase;
 import Vitro.Windows.StringUtils;
@@ -34,7 +34,7 @@ namespace vt::d3d12
 			std::vector<vt::Adapter> adapters;
 			for(UINT index = 0;; ++index)
 			{
-				Unique<IDXGIAdapter> adapter;
+				ComUnique<IDXGIAdapter> adapter;
 				auto result = factory->EnumAdapters(index, &adapter);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
@@ -69,13 +69,13 @@ namespace vt::d3d12
 		decltype(::CreateDXGIFactory2)* createDXGIFactory2;
 		PFN_D3D12_CREATE_DEVICE d3d12CreateDevice;
 #if VT_DEBUG
-		Unique<ID3D12Debug> debug;
+		ComUnique<ID3D12Debug> debug;
 #endif
-		Unique<IDXGIFactory5> factory;
+		ComUnique<IDXGIFactory5> factory;
 
-		Unique<ID3D12Debug> makeDebugInterface()
+		ComUnique<ID3D12Debug> makeDebugInterface()
 		{
-			Unique<ID3D12Debug> debugInterface;
+			ComUnique<ID3D12Debug> debugInterface;
 			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 			vtEnsureResult(result, "Failed to get D3D12 debug interface.");
 
@@ -83,18 +83,18 @@ namespace vt::d3d12
 			return debugInterface;
 		}
 
-		Unique<IDXGIFactory5> makeFactory()
+		ComUnique<IDXGIFactory5> makeFactory()
 		{
 			UINT flags = 0;
 #if VT_DEBUG
 			flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-			Unique<IDXGIFactory2> proxyFactory;
+			ComUnique<IDXGIFactory2> proxyFactory;
 			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&proxyFactory));
 			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
 
-			Unique<IDXGIFactory5> mainFactory;
+			ComUnique<IDXGIFactory5> mainFactory;
 			result = proxyFactory.queryFor(&mainFactory);
 			vtEnsureResult(result, "Failed to get main DXGI factory.");
 			return mainFactory;

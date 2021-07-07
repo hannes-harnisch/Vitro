@@ -5,7 +5,8 @@ namespace vt
 	export class SwapChainBase
 	{
 	public:
-		virtual void present() = 0;
-		virtual void resize()  = 0;
+		virtual unsigned getNextRenderTargetIndex() const = 0;
+		virtual void present()							  = 0;
+		virtual void resize()							  = 0;
 	};
 }

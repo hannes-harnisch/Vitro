@@ -7,7 +7,7 @@ import Vitro.Core.Singleton;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Driver;
-import Vitro.Graphics.DynamicGHI;
+import Vitro.Graphics.DynamicGraphicsAPI;
 import Vitro.Graphics.SwapChain;
 
 namespace vt
@@ -38,7 +38,7 @@ namespace vt
 	private:
 		constexpr static unsigned FramesBuffered = 2;
 
-		DynamicGHI dynamicGHI;
+		DynamicGraphicsAPI dynamicGraphicsAPI;
 		Driver driver;
 		Device device;
 		std::unordered_map<Window const*, SwapChain> swapChains;
@@ -47,7 +47,7 @@ namespace vt
 		{
 			auto adapters = driver->enumerateAdapters();
 			auto selected = std::max_element(adapters.begin(), adapters.end(), [](Adapter const& a1, Adapter const& a2) {
-				return a1->getMemory() < a2->getMemory();
+				return a1->getVRAM() < a2->getVRAM();
 			});
 			auto adapter  = std::move(*selected);
 			adapters.erase(selected);

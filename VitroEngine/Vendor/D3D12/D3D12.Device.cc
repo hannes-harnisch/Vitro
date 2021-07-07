@@ -3,7 +3,8 @@ module;
 #include "Trace/Assert.hh"
 export module Vitro.D3D12.Device;
 
-import Vitro.D3D12.Unique;
+import Vitro.Core.Unique;
+import Vitro.D3D12.ComUnique;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DeviceBase;
 import Vitro.Graphics.Driver;
@@ -21,7 +22,10 @@ namespace vt::d3d12
 			copyQueue(makeQueue(D3D12_COMMAND_LIST_TYPE_COPY)),
 			graphicsFence(makeFence()),
 			computeFence(makeFence()),
-			copyFence(makeFence())
+			copyFence(makeFence()),
+			graphicsFenceEvent(makeFenceEvent()),
+			computeFenceEvent(makeFenceEvent()),
+			copyFenceEvent(makeFenceEvent())
 		{}
 
 		void destroyBuffer(BufferHandle const buffer) const override
@@ -52,40 +56,50 @@ namespace vt::d3d12
 	private:
 		constexpr static D3D_FEATURE_LEVEL TargetFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
-		Unique<ID3D12Device> device;
-		Unique<ID3D12CommandQueue> graphicsQueue;
-		Unique<ID3D12CommandQueue> computeQueue;
-		Unique<ID3D12CommandQueue> copyQueue;
-		Unique<ID3D12Fence> graphicsFence;
-		Unique<ID3D12Fence> computeFence;
-		Unique<ID3D12Fence> copyFence;
+		ComUnique<ID3D12Device> device;
+		ComUnique<ID3D12CommandQueue> graphicsQueue;
+		ComUnique<ID3D12CommandQueue> computeQueue;
+		ComUnique<ID3D12CommandQueue> copyQueue;
+		ComUnique<ID3D12Fence> graphicsFence;
+		ComUnique<ID3D12Fence> computeFence;
+		ComUnique<ID3D12Fence> copyFence;
+		Unique<HANDLE, ::CloseHandle> graphicsFenceEvent;
+		Unique<HANDLE, ::CloseHandle> computeFenceEvent;
+		Unique<HANDLE, ::CloseHandle> copyFenceEvent;
 
-		static Unique<ID3D12Device> makeDevice(vt::Driver const& driver, vt::Adapter const& adapter)
+		static ComUnique<ID3D12Device> makeDevice(vt::Driver const& driver, vt::Adapter const& adapter)
 		{
-			auto const d3d12CreateDevice = driver.d3d12().getDeviceCreationFunction();
-			Unique<ID3D12Device> device;
-			auto result = d3d12CreateDevice(adapter.d3d12().getHandle(), TargetFeatureLevel, IID_PPV_ARGS(&device));
+			auto const d3d12CreateDevice = driver.d3d12.getDeviceCreationFunction();
+			ComUnique<ID3D12Device> device;
+			auto result = d3d12CreateDevice(adapter.d3d12.getHandle(), TargetFeatureLevel, IID_PPV_ARGS(&device));
 			vtEnsureResult(result, "Failed to create D3D12 device.");
 			return device;
 		}
 
-		Unique<ID3D12CommandQueue> makeQueue(D3D12_COMMAND_LIST_TYPE const queueType)
+		ComUnique<ID3D12CommandQueue> makeQueue(D3D12_COMMAND_LIST_TYPE const queueType)
 		{
 			D3D12_COMMAND_QUEUE_DESC const desc {
 				.Type = queueType,
 			};
-			Unique<ID3D12CommandQueue> queue;
+			ComUnique<ID3D12CommandQueue> queue;
 			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue));
 			vtEnsureResult(result, "Failed to create D3D12 command queue.");
 			return queue;
 		}
 
-		Unique<ID3D12Fence> makeFence()
+		ComUnique<ID3D12Fence> makeFence()
 		{
-			Unique<ID3D12Fence> fence;
+			ComUnique<ID3D12Fence> fence;
 			auto result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
 			vtEnsureResult(result, "Failed to create D3D12 fence.");
 			return fence;
+		}
+
+		static Unique<HANDLE, ::CloseHandle> makeFenceEvent()
+		{
+			Unique<HANDLE, ::CloseHandle> event(::CreateEvent(nullptr, false, false, nullptr));
+			vtEnsure(event, "Failed to create Windows event.");
+			return event;
 		}
 	};
 }

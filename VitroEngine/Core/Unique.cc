@@ -1,4 +1,7 @@
 module;
+#include "Vendor/D3D12/D3D12.API.hh"
+
+#include <type_traits>
 #include <utility>
 export module Vitro.Core.Unique;
 
@@ -10,12 +13,10 @@ namespace vt
 	}
 
 	template<typename> struct DeleterTraits;
-
 	template<typename TReturn, typename TParam> struct DeleterTraits<TReturn (*)(TParam)>
 	{
 		using TargetType = TParam;
 	};
-
 	template<typename TReturn, typename TClass> struct DeleterTraits<TReturn (TClass::*)()>
 	{
 		using TargetType = TClass;
@@ -26,7 +27,7 @@ namespace vt
 		template<typename, auto> friend class Unique;
 
 		using TDeleterTarget = typename DeleterTraits<decltype(Delete)>::TargetType;
-		using THandle		 = std::conditional_t<std::convertible_to<T*, TDeleterTarget>, T*, TDeleterTarget>;
+		using THandle = std::conditional_t<std::is_base_of_v<std::remove_pointer_t<TDeleterTarget>, T>, T*, TDeleterTarget>;
 
 	public:
 		template<typename... Ts> static Unique from(Ts&&... ts)

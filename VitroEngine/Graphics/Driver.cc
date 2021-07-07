@@ -1,9 +1,9 @@
-export module Vitro.Graphics.Driver;
+﻿export module Vitro.Graphics.Driver;
 
 import Vitro.Graphics.DriverBase;
 import Vitro.Graphics.InterfaceObject;
 
-#if VT_DYNAMIC_GHI
+#if VT_DYNAMIC_GRAPHICS_API
 
 import Vitro.D3D12.Driver;
 import Vitro.Vulkan.Driver;
@@ -15,11 +15,11 @@ namespace vt
 
 #else
 
-import Vitro.VT_GHI_MODULE.Driver;
+import Vitro.VT_GRAPHICS_API_MODULE.Driver;
 
 namespace vt
 {
-	export using Driver = InterfaceObject<DriverBase, VT_GHI_NAME::Driver>;
+	export using Driver = InterfaceObject<DriverBase, VT_GRAPHICS_API_NAME::Driver>;
 }
 
 #endif

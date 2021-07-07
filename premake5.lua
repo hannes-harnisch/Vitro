@@ -75,8 +75,8 @@ project 'VitroEngine'
 		defines			{
 							'VT_SYSTEM_MODULE=Windows',
 							'VT_SYSTEM_NAME=windows',
-							'VT_GHI_MODULE=D3D12',
-							'VT_GHI_NAME=d3d12'
+							'VT_GRAPHICS_API_MODULE=D3D12',
+							'VT_GRAPHICS_API_NAME=d3d12'
 						}
 
 project 'VitroMain'

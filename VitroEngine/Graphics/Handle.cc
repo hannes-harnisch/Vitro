@@ -1,6 +1,6 @@
 export module Vitro.Graphics.Handle;
 
-#if VT_DYNAMIC_GHI
+#if VT_DYNAMIC_GRAPHICS_API
 
 import Vitro.D3D12.Resource;
 import Vitro.Vulkan.Resource;
@@ -20,18 +20,18 @@ namespace vt
 
 #else
 
-import Vitro.VT_GHI_MODULE.Resource;
+import Vitro.VT_GRAPHICS_API_MODULE.Resource;
 
 namespace vt
 {
 	template<typename T> struct Handle
 	{
-		T VT_GHI_NAME;
+		T VT_GRAPHICS_API_NAME;
 	};
 
-	export using BufferHandle	= Handle<VT_GHI_NAME::Buffer>;
-	export using PipelineHandle = Handle<VT_GHI_NAME::Pipeline>;
-	export using TextureHandle	= Handle<VT_GHI_NAME::Texture>;
+	export using BufferHandle	= Handle<VT_GRAPHICS_API_NAME::Buffer>;
+	export using PipelineHandle = Handle<VT_GRAPHICS_API_NAME::Pipeline>;
+	export using TextureHandle	= Handle<VT_GRAPHICS_API_NAME::Texture>;
 }
 
 #endif
