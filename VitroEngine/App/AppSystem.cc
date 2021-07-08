@@ -21,7 +21,7 @@ namespace vt
 	public:
 		AppSystem(std::atomic_bool& engineRunningStatus) :
 			engineRunningStatus(engineRunningStatus),
-			eventWorker(&EventSystem::dispatchEventProcessing, &eventSystem),
+			eventWorker(&EventSystem::runEventProcessing, &eventSystem),
 			eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose, &AppSystem::onEscapeHeld)
 		{}
 
@@ -30,7 +30,7 @@ namespace vt
 			eventSystem.quit();
 		}
 
-		void pollEvents()
+		void update()
 		{
 			appContext.pollEvents();
 		}

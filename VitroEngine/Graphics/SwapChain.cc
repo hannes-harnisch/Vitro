@@ -1,6 +1,6 @@
 ﻿export module Vitro.Graphics.SwapChain;
 
-import Vitro.Graphics.InterfaceObject;
+import Vitro.Graphics.InterfaceVariant;
 import Vitro.Graphics.SwapChainBase;
 
 #if VT_DYNAMIC_GRAPHICS_API
@@ -10,7 +10,7 @@ import Vitro.Vulkan.SwapChain;
 
 namespace vt
 {
-	export using SwapChain = InterfaceObject<SwapChainBase, D3D12::SwapChain, Vulkan::SwapChain>;
+	export using SwapChain = InterfaceVariant<SwapChainBase, D3D12::SwapChain, Vulkan::SwapChain>;
 }
 
 #else
@@ -19,7 +19,7 @@ import Vitro.VT_GRAPHICS_API_MODULE.SwapChain;
 
 namespace vt
 {
-	export using SwapChain = InterfaceObject<SwapChainBase, VT_GRAPHICS_API_NAME::SwapChain>;
+	export using SwapChain = InterfaceVariant<SwapChainBase, VT_GRAPHICS_API_NAME::SwapChain>;
 }
 
 #endif

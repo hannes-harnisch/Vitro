@@ -1,13 +1,14 @@
 module;
 #include <algorithm>
-#include <unordered_map>
 export module Vitro.Graphics.GraphicsSystem;
 
+import Vitro.Core.HashMap;
 import Vitro.Core.Singleton;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.DynamicGraphicsAPI;
+import Vitro.Graphics.ForwardRenderer;
 import Vitro.Graphics.SwapChain;
 
 namespace vt
@@ -16,6 +17,9 @@ namespace vt
 	{
 	public:
 		GraphicsSystem() : device(driver, selectAdapter())
+		{}
+
+		void update()
 		{}
 
 		void notifyWindowConstruction(class Window const& window, void* const nativeWindowHandle)
@@ -41,7 +45,8 @@ namespace vt
 		DynamicGraphicsAPI dynamicGraphicsAPI;
 		Driver driver;
 		Device device;
-		std::unordered_map<Window const*, SwapChain> swapChains;
+		HashMap<Window const*, SwapChain> swapChains;
+		ForwardRenderer renderer;
 
 		Adapter selectAdapter()
 		{

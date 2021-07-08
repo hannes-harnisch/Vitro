@@ -14,7 +14,7 @@ namespace vt::d3d12
 	export class SwapChain final : public SwapChainBase
 	{
 	public:
-		SwapChain(vt::Driver const& driver, vt::Device const& device, void* const nativeWindow, unsigned const bufferCount) :
+		SwapChain(vt::Driver const& driver, vt::Device& device, void* const nativeWindow, unsigned const bufferCount) :
 			bufferCount(bufferCount),
 			swapChain(makeSwapChain(driver, device.d3d12.getGraphicsQueue(), nativeWindow)),
 			renderTargetHeap(makeRenderTargetHeap(device.d3d12.getDevice()))
@@ -22,7 +22,7 @@ namespace vt::d3d12
 			initializeRenderTargets(device.d3d12.getDevice());
 		}
 
-		unsigned getNextRenderTargetIndex() const override
+		unsigned getNextRenderTargetIndex() override
 		{
 			return swapChain->GetCurrentBackBufferIndex();
 		}
@@ -99,8 +99,10 @@ namespace vt::d3d12
 				ComUnique<ID3D12Resource> backBuffer;
 				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBuffer));
 				vtEnsureResult(result, "Failed to get D3D12 swap chain buffer.");
+
 				device->CreateRenderTargetView(backBuffer, nullptr, handle);
 				renderTargets[i] = std::move(backBuffer);
+
 				handle.ptr += size;
 			}
 		}

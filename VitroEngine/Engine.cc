@@ -43,7 +43,8 @@ namespace vt
 
 		void update()
 		{
-			appSystem.pollEvents();
+			appSystem.update();
+			graphicsSystem.update();
 		}
 	};
 

@@ -1,8 +1,8 @@
 module;
 #include <thread>
-#include <unordered_map>
 export module Vitro.App.AppContextBase;
 
+import Vitro.Core.HashMap;
 import Vitro.Core.Singleton;
 
 namespace vt
@@ -39,7 +39,7 @@ namespace vt
 		}
 
 	private:
-		std::unordered_map<void*, Window*> nativeWindowToEngineWindow;
+		HashMap<void*, Window*> nativeWindowToEngineWindow;
 		std::thread::id mainThread = std::this_thread::get_id();
 	};
 }

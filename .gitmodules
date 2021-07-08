@@ -1,3 +1,6 @@
 [submodule "Dependencies/magic_enum"]
 	path = Dependencies/magic_enum
 	url = https://github.com/Neargye/magic_enum
+[submodule "Dependencies/readerwriterqueue"]
+	path = Dependencies/readerwriterqueue
+	url = https://github.com/cameron314/readerwriterqueue

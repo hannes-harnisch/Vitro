@@ -29,6 +29,7 @@ namespace vt
 	public:
 		virtual void bindViewport(Rectangle viewport) = 0;
 		virtual void bindScissor(Rectangle scissor)	  = 0;
+		virtual void transitionToNextSubpass()		  = 0;
 		virtual void endRenderPass()				  = 0;
 	};
 }

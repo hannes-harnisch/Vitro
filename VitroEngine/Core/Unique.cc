@@ -68,12 +68,12 @@ namespace vt
 
 		THandle* operator&() noexcept
 		{
-			return &this->handle;
+			return &handle;
 		}
 
 		THandle const* operator&() const noexcept
 		{
-			return &this->handle;
+			return &handle;
 		}
 
 		auto& operator*() const noexcept
@@ -89,7 +89,7 @@ namespace vt
 		auto operator->*(auto memberPointer) const noexcept
 		{
 			return [this, memberPointer](auto&&... args) {
-				return (this->handle->*memberPointer)(std::forward<decltype(args)>(args)...);
+				return (handle->*memberPointer)(std::forward<decltype(args)>(args)...);
 			};
 		}
 
@@ -134,17 +134,12 @@ namespace vt
 			left.swap(right);
 		}
 
-	protected:
+	private:
 		THandle handle {};
 
 		void deleteHandle()
 		{
-			if(!handle)
-				return;
-
-			if constexpr(std::is_member_function_pointer_v<decltype(Delete)>)
-				(handle.*Delete)();
-			else
+			if(handle)
 				Delete(handle);
 		}
 	};

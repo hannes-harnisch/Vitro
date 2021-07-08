@@ -21,7 +21,16 @@ namespace vt::d3d12
 		}
 	}
 
-	export template<QueuePurpose Purpose> class CommandList final : public GraphicsCommandListBase
+	template<QueuePurpose Purpose> class CommandListData
+	{};
+
+	template<> class CommandListData<QueuePurpose::Graphics>
+	{
+	protected:
+	};
+
+	export template<QueuePurpose Purpose>
+	class CommandList final : public GraphicsCommandListBase, public CommandListData<Purpose>
 	{
 	public:
 		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), commands(makeCommandList(device))
@@ -39,7 +48,7 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to end D3D12 command list.");
 		}
 
-		void bindPipeline(PipelineHandle const pipeline) override
+		void bindPipeline(vt::PipelineHandle const pipeline) override
 		{
 			commands->SetPipelineState(pipeline.d3d12.handle);
 		}
@@ -62,6 +71,12 @@ namespace vt::d3d12
 			};
 			commands->RSSetScissorRects(1, &rect);
 		}
+
+		void beginRenderPass()
+		{}
+
+		void transitionToNextSubpass() override
+		{}
 
 		void endRenderPass() override
 		{

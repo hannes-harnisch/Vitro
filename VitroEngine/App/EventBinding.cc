@@ -18,6 +18,9 @@ namespace vt
 			EventSystem::get().removeHandlersByTarget(target);
 		}
 
+		EventBinding(EventBinding const&) = delete;
+		EventBinding& operator=(EventBinding const&) = delete;
+
 	private:
 		void* target;
 

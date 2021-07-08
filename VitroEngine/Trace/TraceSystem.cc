@@ -11,7 +11,7 @@ namespace vt
 	export class TraceSystem
 	{
 	public:
-		TraceSystem() : logWorker(&Logger::dispatchLogProcessing, &logger)
+		TraceSystem() : logWorker(&Logger::runLogProcessing, &logger)
 		{
 			setSignalHandlers();
 			VT_SYSTEM_NAME::setSystemTracingState();

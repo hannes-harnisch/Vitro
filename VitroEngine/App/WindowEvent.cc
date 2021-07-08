@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Enum.hh"
 
 #include <format>
@@ -91,7 +91,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}, Key({})", WindowEvent::toString(), enum_name(key));
+			return std::format("{}, Key({})", WindowEvent::toString(), getEnumName(key));
 		}
 
 	protected:
@@ -141,7 +141,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}, Button({})", WindowEvent::toString(), enum_name(button));
+			return std::format("{}, Button({})", WindowEvent::toString(), getEnumName(button));
 		}
 
 	protected:

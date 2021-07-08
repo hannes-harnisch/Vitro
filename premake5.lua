@@ -84,6 +84,10 @@ project 'VitroMain'
 	kind				'ConsoleApp'
 	links				'VitroEngine'
 
+	filter 'configurations:Release'
+		kind			'WindowedApp'
+		entrypoint		'mainCRTStartup'
+
 project 'VitroTests'
 	location			'%{prj.name}'
 	kind				'SharedLib'

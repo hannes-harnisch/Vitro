@@ -59,28 +59,28 @@ namespace vt
 		void disableChannel(LogChannel const channel)
 		{
 			std::lock_guard const lock(mutex);
-			size_t const channelIndex = *enum_index(channel);
+			size_t const channelIndex = *getEnumIndex(channel);
 			disabledChannels.set(channelIndex, true);
 		}
 
 		void enableChannel(LogChannel const channel)
 		{
 			std::lock_guard const lock(mutex);
-			size_t const channelIndex = *enum_index(channel);
+			size_t const channelIndex = *getEnumIndex(channel);
 			disabledChannels.set(channelIndex, false);
 		}
 
 		void disableLevel(LogLevel const level)
 		{
 			std::lock_guard const lock(mutex);
-			size_t const levelIndex = *enum_index(level);
+			size_t const levelIndex = *getEnumIndex(level);
 			disabledChannels.set(levelIndex, true);
 		}
 
 		void enableLevel(LogLevel const level)
 		{
 			std::lock_guard const lock(mutex);
-			size_t const levelIndex = *enum_index(level);
+			size_t const levelIndex = *getEnumIndex(level);
 			disabledChannels.set(levelIndex, false);
 		}
 
@@ -162,13 +162,13 @@ namespace vt
 
 		bool isChannelDisabled(LogChannel const channel) const
 		{
-			size_t const channelIndex = *enum_index(channel);
+			size_t const channelIndex = *getEnumIndex(channel);
 			return disabledChannels.test(channelIndex);
 		}
 
 		bool isLevelDisabled(LogLevel const level) const
 		{
-			size_t const levelIndex = *enum_index(level);
+			size_t const levelIndex = *getEnumIndex(level);
 			return disabledLevels.test(levelIndex);
 		}
 
@@ -180,7 +180,7 @@ namespace vt
 			queue.emplace(level, channel, now, std::move(message));
 		}
 
-		void dispatchLogProcessing()
+		void runLogProcessing()
 		{
 			while(isAcceptingLogs)
 				processQueue();
@@ -212,8 +212,8 @@ namespace vt
 
 		void writeLog(Entry const& entry)
 		{
-			auto const level   = enum_name(entry.level);
-			auto const channel = enum_name(entry.channel);
+			auto const level   = getEnumName(entry.level);
+			auto const channel = getEnumName(entry.channel);
 
 			using namespace std::chrono;
 			auto const timestamp	= makeTimestamp(entry.time);
@@ -237,12 +237,12 @@ namespace vt
 		auto const pathAfterDir = path.substr(dirBegin);
 		size_t const dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
 		auto const dir			= pathAfterDir.substr(0, dirEnd);
-		auto const channel		= enum_cast<LogChannel>(dir);
+		auto const channel		= toEnum<LogChannel>(dir);
 
 		auto const restPath		 = pathAfterDir.substr(dirEnd + 1);
 		size_t const vendorEnd	 = restPath.find(std::filesystem::path::preferred_separator);
 		auto const vendorDir	 = restPath.substr(0, vendorEnd);
-		auto const vendorChannel = enum_cast<LogChannel>(vendorDir);
+		auto const vendorChannel = toEnum<LogChannel>(vendorDir);
 
 		return channel.value_or(vendorChannel.value_or(LogChannel::Client));
 	}

@@ -56,7 +56,7 @@ namespace vt
 		std::condition_variable condition;
 		std::atomic_bool isAcceptingEvents = true;
 
-		void dispatchEventProcessing()
+		void runEventProcessing()
 		{
 			while(isAcceptingEvents)
 				processQueue();
