@@ -44,17 +44,17 @@ namespace vt::d3d12
 			return adapters;
 		}
 
-		PFN_D3D12_CREATE_DEVICE getDeviceCreationFunction() const
+		PFN_D3D12_CREATE_DEVICE deviceCreationFunction() const
 		{
 			return d3d12CreateDevice;
 		}
 
-		IDXGIFactory5* getFactory() const
+		IDXGIFactory5* handle() const
 		{
 			return factory;
 		}
 
-		bool isSwapChainTearingAvailable() const
+		bool swapChainTearingAvailable() const
 		{
 			BOOL available;
 			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &available, sizeof available);

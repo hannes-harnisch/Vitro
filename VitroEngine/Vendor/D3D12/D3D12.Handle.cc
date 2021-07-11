@@ -21,6 +21,11 @@ namespace vt::d3d12
 		RenderPass* handle = nullptr;
 	};
 
+	export struct RenderTargetHandle
+	{
+		ID3D12Resource* handle = nullptr;
+	};
+
 	export struct TextureHandle
 	{
 		ID3D12Resource* handle = nullptr;

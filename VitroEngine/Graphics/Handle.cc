@@ -2,6 +2,9 @@ export module Vitro.Graphics.Handle;
 
 #if VT_DYNAMIC_GRAPHICS_API
 
+	#define EXPORT_RESOURCE_HANDLE(Resource)                                                                                   \
+		export using Resource##Handle = Handle<d3d12::Resource##Handle, vulkan::Resource##Handle>;
+
 import Vitro.D3D12.Handle;
 import Vitro.Vulkan.Handle;
 
@@ -12,13 +15,11 @@ namespace vt
 		TD3D12 d3d12;
 		TVulkan vulkan;
 	};
-
-	export using BufferHandle	= Handle<D3D12::BufferHandle, Vulkan::BufferHandle>;
-	export using PipelineHandle = Handle<D3D12::PipelineHandle, Vulkan::PipelineHandle>;
-	export using TextureHandle	= Handle<D3D12::TextureHandle, Vulkan::TextureHandle>;
 }
 
 #else
+
+	#define EXPORT_RESOURCE_HANDLE(Resource) export using Resource##Handle = Handle<VT_GRAPHICS_API_NAME::Resource##Handle>;
 
 import Vitro.VT_GRAPHICS_API_MODULE.Handle;
 
@@ -28,10 +29,15 @@ namespace vt
 	{
 		T VT_GRAPHICS_API_NAME;
 	};
-
-	export using BufferHandle	= Handle<VT_GRAPHICS_API_NAME::BufferHandle>;
-	export using PipelineHandle = Handle<VT_GRAPHICS_API_NAME::PipelineHandle>;
-	export using TextureHandle	= Handle<VT_GRAPHICS_API_NAME::TextureHandle>;
 }
 
 #endif
+
+namespace vt
+{
+	EXPORT_RESOURCE_HANDLE(Buffer)
+	EXPORT_RESOURCE_HANDLE(Pipeline)
+	EXPORT_RESOURCE_HANDLE(RenderPass)
+	EXPORT_RESOURCE_HANDLE(RenderTarget)
+	EXPORT_RESOURCE_HANDLE(Texture)
+}

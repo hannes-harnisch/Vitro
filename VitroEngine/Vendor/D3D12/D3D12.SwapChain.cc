@@ -14,22 +14,23 @@ namespace vt::d3d12
 	export class SwapChain final : public SwapChainBase
 	{
 	public:
-		SwapChain(vt::Driver const& driver, vt::Device& device, void* const nativeWindow, unsigned const bufferCount) :
+		SwapChain(vt::Device& device, void* const nativeWindow, unsigned const bufferCount) :
 			bufferCount(bufferCount),
-			swapChain(makeSwapChain(driver, device.d3d12.getGraphicsQueue(), nativeWindow)),
-			renderTargetHeap(makeRenderTargetHeap(device.d3d12.getDevice()))
+			presentFlags(vt::Driver::get().d3d12.swapChainTearingAvailable() ? DXGI_PRESENT_ALLOW_TEARING : 0),
+			swapChain(makeSwapChain(device.d3d12.renderQueue(), nativeWindow)),
+			renderTargetHeap(makeRenderTargetHeap(device.d3d12.handle()))
 		{
-			initializeRenderTargets(device.d3d12.getDevice());
+			initializeRenderTargets(device.d3d12.handle());
 		}
 
-		unsigned getNextRenderTargetIndex() override
+		unsigned queryRenderTargetIndex() override
 		{
 			return swapChain->GetCurrentBackBufferIndex();
 		}
 
 		void present() override
 		{
-			auto result = swapChain->Present(0, 0);
+			auto result = swapChain->Present(isVSyncEnabled, presentFlags);
 			vtAssertResult(result, "Failed to present with D3D12 swap chain.");
 		}
 
@@ -39,19 +40,32 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to resize D3D12 swap chain.");
 		}
 
+		void enableVSync() override
+		{
+			isVSyncEnabled = true;
+			presentFlags   = 0;
+		}
+
+		void disableVSync() override
+		{
+			isVSyncEnabled = false;
+			if(vt::Driver::get().d3d12.swapChainTearingAvailable())
+				presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+		}
+
 	private:
 		constexpr static unsigned MaxBufferCount = 3;
 
 		unsigned bufferCount;
+		UINT presentFlags;
 		ComUnique<IDXGISwapChain3> swapChain;
 		ComUnique<ID3D12DescriptorHeap> renderTargetHeap;
 		ComUnique<ID3D12Resource> renderTargets[MaxBufferCount];
 
-		ComUnique<IDXGISwapChain3>
-		makeSwapChain(vt::Driver const& driver, ID3D12CommandQueue* const queue, void* const nativeWindow)
+		ComUnique<IDXGISwapChain3> makeSwapChain(ID3D12CommandQueue* const queue, void* const nativeWindow)
 		{
 			UINT flags = 0;
-			if(driver.d3d12.isSwapChainTearingAvailable())
+			if(vt::Driver::get().d3d12.swapChainTearingAvailable())
 				flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
 
 			DXGI_SWAP_CHAIN_DESC1 const desc {
@@ -62,7 +76,7 @@ namespace vt::d3d12
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 				.Flags		 = flags,
 			};
-			auto const factory = driver.d3d12.getFactory();
+			auto const factory = vt::Driver::get().d3d12.handle();
 			HWND const hwnd	   = static_cast<HWND>(nativeWindow);
 			ComUnique<IDXGISwapChain1> proxySwapChain;
 			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &proxySwapChain);

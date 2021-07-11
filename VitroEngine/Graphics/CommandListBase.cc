@@ -8,7 +8,7 @@ namespace vt
 	export enum class QueuePurpose {
 		Copy,
 		Compute,
-		Graphics,
+		Render,
 	};
 
 	export class CopyCommandListBase
@@ -21,15 +21,16 @@ namespace vt
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
-		virtual void bindPipeline(PipelineHandle pipeline) = 0;
+		virtual void bindPipeline(PipelineHandle) = 0;
 	};
 
-	export class GraphicsCommandListBase : public ComputeCommandListBase
+	export class RenderCommandListBase : public ComputeCommandListBase
 	{
 	public:
-		virtual void bindViewport(Rectangle viewport) = 0;
-		virtual void bindScissor(Rectangle scissor)	  = 0;
-		virtual void transitionToNextSubpass()		  = 0;
-		virtual void endRenderPass()				  = 0;
+		virtual void bindViewport(Rectangle)							   = 0;
+		virtual void bindScissor(Rectangle)								   = 0;
+		virtual void beginRenderPass(RenderPassHandle, RenderTargetHandle) = 0;
+		virtual void transitionToNextSubpass()							   = 0;
+		virtual void endRenderPass()									   = 0;
 	};
 }

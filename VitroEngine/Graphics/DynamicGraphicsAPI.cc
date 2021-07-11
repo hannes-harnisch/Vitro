@@ -4,10 +4,7 @@ import Vitro.Core.Singleton;
 
 namespace vt
 {
-	export enum class GraphicsAPI : unsigned char {
-		D3D12,
-		Vulkan,
-	};
+	export enum class GraphicsAPI { VT_DYNAMIC_GRAPHICS_API_MODULE, VT_DYNAMIC_GRAPHICS_API_MODULE_PRIMARY };
 
 	export class DynamicGraphicsAPI : public Singleton<DynamicGraphicsAPI>
 	{
@@ -15,16 +12,6 @@ namespace vt
 		static GraphicsAPI current()
 		{
 			return get().api;
-		}
-
-		static bool isD3D12()
-		{
-			return current() == GraphicsAPI::D3D12;
-		}
-
-		static bool isVulkan()
-		{
-			return current() == GraphicsAPI::Vulkan;
 		}
 
 	private:

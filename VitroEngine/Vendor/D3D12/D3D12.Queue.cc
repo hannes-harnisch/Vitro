@@ -40,7 +40,7 @@ namespace vt::d3d12
 			awaitFenceValue(signal(fenceValue));
 		}
 
-		ID3D12CommandQueue* getHandle()
+		ID3D12CommandQueue* handle()
 		{
 			return queue;
 		}

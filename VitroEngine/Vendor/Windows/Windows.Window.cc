@@ -74,15 +74,6 @@ namespace vt::windows
 			::ClipCursor(&rect);
 		}
 
-		Rectangle getViewport() const final override
-		{
-			ensureCallIsOnMainThread();
-
-			RECT rect;
-			::GetClientRect(windowHandle, &rect);
-			return {static_cast<unsigned>(rect.right), static_cast<unsigned>(rect.bottom)};
-		}
-
 		Rectangle getSize() const final override
 		{
 			ensureCallIsOnMainThread();
@@ -134,7 +125,16 @@ namespace vt::windows
 			::SetWindowText(windowHandle, widenedTitle.data());
 		}
 
-		void* getHandle() final override
+		Rectangle viewport() const final override
+		{
+			ensureCallIsOnMainThread();
+
+			RECT rect;
+			::GetClientRect(windowHandle, &rect);
+			return {static_cast<unsigned>(rect.right), static_cast<unsigned>(rect.bottom)};
+		}
+
+		void* handle() final override
 		{
 			return windowHandle;
 		}
@@ -146,7 +146,7 @@ namespace vt::windows
 		makeWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
 		{
 			auto const widenedTitle	  = widenString(title);
-			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().getHandle());
+			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
 			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, position.x, position.y, size.width,
 								  size.height, nullptr, nullptr, instanceHandle, nullptr);
 		}

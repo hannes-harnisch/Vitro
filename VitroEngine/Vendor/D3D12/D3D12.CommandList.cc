@@ -17,20 +17,21 @@ namespace vt::d3d12
 		{
 			case QueuePurpose::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
 			case QueuePurpose::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-			case QueuePurpose::Graphics: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+			case QueuePurpose::Render: return D3D12_COMMAND_LIST_TYPE_DIRECT;
 		}
 	}
 
 	template<QueuePurpose Purpose> class CommandListData
 	{};
 
-	template<> class CommandListData<QueuePurpose::Graphics>
+	template<> class CommandListData<QueuePurpose::Render>
 	{
 	protected:
+		RenderPassHandle currentRenderPass;
 	};
 
 	export template<QueuePurpose Purpose>
-	class CommandList final : public GraphicsCommandListBase, public CommandListData<Purpose>
+	class CommandList final : public RenderCommandListBase, public CommandListData<Purpose>
 	{
 	public:
 		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), commands(makeCommandList(device))
@@ -72,7 +73,7 @@ namespace vt::d3d12
 			commands->RSSetScissorRects(1, &rect);
 		}
 
-		void beginRenderPass()
+		void beginRenderPass(vt::RenderPassHandle renderPass, vt::RenderTargetHandle renderTarget) override
 		{}
 
 		void transitionToNextSubpass() override
@@ -92,7 +93,7 @@ namespace vt::d3d12
 		static ComUnique<ID3D12CommandAllocator> makeAllocator(vt::Device const& device)
 		{
 			ComUnique<ID3D12CommandAllocator> allocator;
-			auto result = device.d3d12.getDevice()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
+			auto result = device.d3d12.handle()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 			return allocator;
 		}
@@ -100,7 +101,7 @@ namespace vt::d3d12
 		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device const& device)
 		{
 			ComUnique<ID3D12GraphicsCommandList4> list;
-			auto result = device.d3d12.getDevice()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));
+			auto result = device.d3d12.handle()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 			return list;
 		}

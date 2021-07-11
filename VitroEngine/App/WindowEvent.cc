@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Enum.hh"
 
 #include <format>
@@ -20,7 +20,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}: Window({})", Event::toString(), window.getHandle());
+			return std::format("{}: Window({})", Event::toString(), window.handle());
 		}
 
 	protected:

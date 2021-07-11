@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Trace/Assert.hh"
 
 #include <string_view>
@@ -13,7 +13,7 @@ namespace vt
 	public:
 		SharedLibrary(std::string_view const name) : VT_SYSTEM_NAME::SharedLibrary(name)
 		{
-			vtEnsure(getHandle(), "Shared library file '" + name + "' not found.");
+			vtEnsure(handle(), "Shared library file '" + name + "' not found.");
 		}
 
 		template<typename TSymbol> TSymbol* loadSymbol(std::string_view const symbol) const

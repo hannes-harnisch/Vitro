@@ -19,44 +19,44 @@ namespace vt::d3d12
 	public:
 		Device(vt::Driver const& driver, vt::Adapter const& adapter) :
 			device(makeDevice(driver, adapter)),
-			graphicsQueue(device, D3D12_COMMAND_LIST_TYPE_DIRECT),
-			computeQueue(device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
-			copyQueue(device, D3D12_COMMAND_LIST_TYPE_COPY)
+			renderQ(device, D3D12_COMMAND_LIST_TYPE_DIRECT),
+			computeQ(device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
+			copyQ(device, D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
 
-		ID3D12Device* getDevice()
+		ID3D12Device* handle()
 		{
 			return device;
 		}
 
-		ID3D12CommandQueue* getGraphicsQueue()
+		ID3D12CommandQueue* renderQueue()
 		{
-			return graphicsQueue.getHandle();
+			return renderQ.handle();
 		}
 
-		ID3D12CommandQueue* getComputeQueue()
+		ID3D12CommandQueue* computeQueue()
 		{
-			return computeQueue.getHandle();
+			return computeQ.handle();
 		}
 
-		ID3D12CommandQueue* getCopyQueue()
+		ID3D12CommandQueue* copyQueue()
 		{
-			return copyQueue.getHandle();
+			return copyQ.handle();
 		}
 
 	private:
 		constexpr static D3D_FEATURE_LEVEL TargetFeatureLevel = D3D_FEATURE_LEVEL_11_0;
 
 		ComUnique<ID3D12Device> device;
-		Queue graphicsQueue;
-		Queue computeQueue;
-		Queue copyQueue;
+		Queue renderQ;
+		Queue computeQ;
+		Queue copyQ;
 
 		static ComUnique<ID3D12Device> makeDevice(vt::Driver const& driver, vt::Adapter const& adapter)
 		{
-			auto const d3d12CreateDevice = driver.d3d12.getDeviceCreationFunction();
+			auto const d3d12CreateDevice = driver.d3d12.deviceCreationFunction();
 			ComUnique<ID3D12Device> device;
-			auto result = d3d12CreateDevice(adapter.d3d12.getHandle(), TargetFeatureLevel, IID_PPV_ARGS(&device));
+			auto result = d3d12CreateDevice(adapter.d3d12.handle(), TargetFeatureLevel, IID_PPV_ARGS(&device));
 			vtEnsureResult(result, "Failed to create D3D12 device.");
 			return device;
 		}

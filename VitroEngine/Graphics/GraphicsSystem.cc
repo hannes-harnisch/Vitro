@@ -24,7 +24,7 @@ namespace vt
 
 		void notifyWindowConstruction(class Window const& window, void* const nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, driver, device, nativeWindowHandle, FramesBuffered);
+			swapChains.try_emplace(&window, device, nativeWindowHandle, FramesBuffered);
 		}
 
 		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)

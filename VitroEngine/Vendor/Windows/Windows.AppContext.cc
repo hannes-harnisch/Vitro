@@ -53,7 +53,7 @@ namespace vt::windows
 			}
 		}
 
-		void* getHandle() override
+		void* handle() override
 		{
 			return instanceHandle;
 		}

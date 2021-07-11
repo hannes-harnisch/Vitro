@@ -1,4 +1,4 @@
-export module Vitro.Graphics.DeletionQueue;
+﻿export module Vitro.Graphics.DeletionQueue;
 
 import Vitro.Graphics.DeletionQueueBase;
 import Vitro.Graphics.InterfaceVariant;
@@ -10,7 +10,7 @@ import Vitro.Vulkan.DeletionQueue;
 
 namespace vt
 {
-	export using DeletionQueue = InterfaceVariant<DeletionQueueBase, D3D12::DeletionQueue, Vulkan::DeletionQueue>;
+	export using DeletionQueue = InterfaceVariant<DeletionQueueBase, d3d12::DeletionQueue, vulkan::DeletionQueue>;
 }
 
 #else

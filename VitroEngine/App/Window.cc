@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <string_view>
 export module Vitro.App.Window;
 
@@ -23,8 +23,8 @@ namespace vt
 		{
 			ensureCallIsOnMainThread();
 
-			AppContextBase::get().notifyWindowMapping(getHandle(), *this);
-			GraphicsSystem::get().notifyWindowConstruction(*this, getHandle());
+			AppContextBase::get().notifyWindowMapping(handle(), *this);
+			GraphicsSystem::get().notifyWindowConstruction(*this, handle());
 		}
 
 		Window(Window&& other) noexcept : Platform(std::move(other))
@@ -52,13 +52,13 @@ namespace vt
 	private:
 		void notifyDestruction()
 		{
-			AppContextBase::get().notifyWindowDestruction(getHandle());
+			AppContextBase::get().notifyWindowDestruction(handle());
 			GraphicsSystem::get().notifyWindowDestruction(*this);
 		}
 
 		void notifyMove(Window& oldWindow)
 		{
-			AppContextBase::get().notifyWindowMapping(getHandle(), *this);
+			AppContextBase::get().notifyWindowMapping(handle(), *this);
 			GraphicsSystem::get().notifyWindowReplacement(oldWindow, *this);
 		}
 	};
