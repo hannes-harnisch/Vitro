@@ -26,6 +26,11 @@ namespace vt::d3d12
 		ID3D12Resource* handle = nullptr;
 	};
 
+	export struct RootSignatureHandle
+	{
+		ID3D12RootSignature* handle = nullptr;
+	};
+
 	export struct TextureHandle
 	{
 		ID3D12Resource* handle = nullptr;

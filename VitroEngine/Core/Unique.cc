@@ -1,6 +1,4 @@
 module;
-#include "Vendor/D3D12/D3D12.API.hh"
-
 #include <type_traits>
 #include <utility>
 export module Vitro.Core.Unique;

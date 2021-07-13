@@ -21,7 +21,8 @@ namespace vt
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
-		virtual void bindPipeline(PipelineHandle) = 0;
+		virtual void bindPipeline(PipelineHandle)			= 0;
+		virtual void bindRootSignature(RootSignatureHandle) = 0;
 	};
 
 	export class RenderCommandListBase : public ComputeCommandListBase

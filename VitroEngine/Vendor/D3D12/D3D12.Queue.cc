@@ -15,7 +15,7 @@ namespace vt::d3d12
 			queue(makeQueue(device, queueType)), fence(makeFence(device)), fenceEvent(makeEvent())
 		{}
 
-		uint64_t signal(uint64_t& fenceValue)
+		uint64_t signal(uint64_t fenceValue)
 		{
 			uint64_t valueToAwait = ++fenceValue;
 
@@ -35,7 +35,7 @@ namespace vt::d3d12
 			}
 		}
 
-		void flush(uint64_t& fenceValue)
+		void flush(uint64_t fenceValue)
 		{
 			awaitFenceValue(signal(fenceValue));
 		}

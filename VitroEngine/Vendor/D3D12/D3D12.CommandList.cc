@@ -24,7 +24,10 @@ namespace vt::d3d12
 	template<QueuePurpose Purpose> class CommandListData
 	{};
 
-	template<> class CommandListData<QueuePurpose::Render>
+	template<> class CommandListData<QueuePurpose::Compute> : public CommandListData<QueuePurpose::Copy>
+	{};
+
+	template<> class CommandListData<QueuePurpose::Render> : public CommandListData<QueuePurpose::Compute>
 	{
 	protected:
 		RenderPassHandle currentRenderPass;
@@ -34,7 +37,7 @@ namespace vt::d3d12
 	class CommandList final : public RenderCommandListBase, public CommandListData<Purpose>
 	{
 	public:
-		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), commands(makeCommandList(device))
+		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), cmd(makeCommandList(device))
 		{}
 
 		void begin() override
@@ -45,13 +48,21 @@ namespace vt::d3d12
 
 		void end() override
 		{
-			auto result = commands->Close();
+			auto result = cmd->Close();
 			vtAssertResult(result, "Failed to end D3D12 command list.");
 		}
 
 		void bindPipeline(vt::PipelineHandle const pipeline) override
 		{
-			commands->SetPipelineState(pipeline.d3d12.handle);
+			cmd->SetPipelineState(pipeline.d3d12.handle);
+		}
+
+		void bindRootSignature(vt::RootSignatureHandle const rootSignature) override
+		{
+			if constexpr(Purpose == QueuePurpose::Compute)
+				cmd->SetComputeRootSignature(rootSignature.d3d12.handle);
+			else
+				cmd->SetGraphicsRootSignature(rootSignature.d3d12.handle);
 		}
 
 		void bindViewport(Rectangle const viewport) override
@@ -61,7 +72,7 @@ namespace vt::d3d12
 				.Height	  = static_cast<FLOAT>(viewport.height),
 				.MaxDepth = D3D12_MAX_DEPTH,
 			};
-			commands->RSSetViewports(1, &rect);
+			cmd->RSSetViewports(1, &rect);
 		}
 
 		void bindScissor(Rectangle const scissor) override
@@ -70,25 +81,38 @@ namespace vt::d3d12
 				.right	= static_cast<LONG>(scissor.width),
 				.bottom = static_cast<LONG>(scissor.height),
 			};
-			commands->RSSetScissorRects(1, &rect);
+			cmd->RSSetScissorRects(1, &rect);
 		}
 
 		void beginRenderPass(vt::RenderPassHandle renderPass, vt::RenderTargetHandle renderTarget) override
-		{}
+		{
+			D3D12_RESOURCE_BARRIER const barrier {
+				.Transition =
+					{
+						.pResource	 = renderTarget.d3d12.handle,
+						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+						.StateBefore = D3D12_RESOURCE_STATE_COMMON,
+						.StateAfter	 = D3D12_RESOURCE_STATE_RENDER_TARGET,
+					},
+			};
+			cmd->ResourceBarrier(1, &barrier);
+			cmd->OMSetRenderTargets(1, , true, );
+			cmd->BeginRenderPass();
+		}
 
 		void transitionToNextSubpass() override
 		{}
 
 		void endRenderPass() override
 		{
-			commands->EndRenderPass();
+			cmd->EndRenderPass();
 		}
 
 	private:
 		constexpr static D3D12_COMMAND_LIST_TYPE Type = mapQueuePurposeToCommandListType(Purpose);
 
 		ComUnique<ID3D12CommandAllocator> allocator;
-		ComUnique<ID3D12GraphicsCommandList4> commands;
+		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
 		static ComUnique<ID3D12CommandAllocator> makeAllocator(vt::Device const& device)
 		{

@@ -2,8 +2,8 @@
 
 #include "Core/Intrinsics.hh"
 
+#include <format>
 #include <stdexcept>
-#include <string>
 
 #if VT_DEBUG
 
@@ -20,10 +20,10 @@
 
 #else
 
-	#define vtEnsure(condition, message)                                                                                       \
+	#define vtEnsure(condition, message, ...)                                                                                  \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
-				throw std::runtime_error(std::string("Assertion failed: ") + message + "\n\n" #condition);                     \
+				throw std::runtime_error(std::format("Assertion failed: " message, __VA_ARGS__));                              \
 		}
 
 	#define vtAssertPure(condition, message)

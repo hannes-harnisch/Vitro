@@ -22,7 +22,7 @@ namespace vt
 		AppSystem(std::atomic_bool& engineRunningStatus) :
 			engineRunningStatus(engineRunningStatus),
 			eventWorker(&EventSystem::runEventProcessing, &eventSystem),
-			eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose, &AppSystem::onEscapeHeld)
+			eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose)
 		{}
 
 		~AppSystem()

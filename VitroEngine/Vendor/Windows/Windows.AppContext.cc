@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Trace/Assert.hh"
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
@@ -188,10 +188,8 @@ namespace vt::windows
 			lastKeyCode = key;
 
 			auto const window = findWindow(hwnd);
-			if(!window)
-				return;
-
-			EventSystem::get().notify<KeyDownEvent>(*window, key, keyRepeats);
+			if(window)
+				EventSystem::get().notify<KeyDownEvent>(*window, key, keyRepeats);
 		}
 
 		void onKeyUp(HWND const hwnd, WPARAM const wp)

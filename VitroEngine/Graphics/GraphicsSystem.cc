@@ -16,7 +16,7 @@ namespace vt
 	export class GraphicsSystem : public Singleton<GraphicsSystem>
 	{
 	public:
-		GraphicsSystem() : device(driver, selectAdapter())
+		GraphicsSystem() : device(driver, selectAdapter()), renderer(device)
 		{}
 
 		void update()

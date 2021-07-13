@@ -1,6 +1,5 @@
 export module Vitro.Graphics.Pipeline;
 
-import Vitro.Core.Unique;
 import Vitro.Graphics.Handle;
 
 namespace vt
@@ -9,6 +8,5 @@ namespace vt
 	{
 	public:
 	private:
-		Unique<PipelineHandle> handle;
 	};
 }
