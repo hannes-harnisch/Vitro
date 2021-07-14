@@ -6,19 +6,10 @@ import Vitro.Core.Unique;
 
 namespace vt::d3d12
 {
-	void deleteInterface(IUnknown* const comInterface)
+	void deleteInterface(IUnknown* const ptr)
 	{
-		comInterface->Release();
+		ptr->Release();
 	}
 
-	export template<typename TInterface> class ComUnique : public Unique<TInterface, deleteInterface>
-	{
-	public:
-		using Unique<TInterface, deleteInterface>::Unique;
-
-		template<typename TOtherInterface> HRESULT queryFor(TOtherInterface** const targetInterface)
-		{
-			return this->get()->QueryInterface(targetInterface);
-		}
-	};
+	export template<typename TInterface> using ComUnique = Unique<TInterface, deleteInterface>;
 }

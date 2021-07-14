@@ -2,7 +2,7 @@ module;
 #include "Trace/Assert.hh"
 
 #include <new>
-export module Vitro.Graphics.DeletionQueueBase;
+export module Vitro.Graphics.DeferredDeleterBase;
 
 import Vitro.Core.ReaderWriterQueue;
 import Vitro.Core.Singleton;
@@ -10,7 +10,7 @@ import Vitro.Graphics.Handle;
 
 namespace vt
 {
-	export class DeletionQueueBase : public Singleton<DeletionQueueBase>
+	export class DeferredDeleterBase : public Singleton<DeferredDeleterBase>
 	{
 	public:
 		virtual void deleteResources() = 0;

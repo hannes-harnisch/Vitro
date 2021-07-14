@@ -7,7 +7,7 @@
 
 #if VT_DEBUG
 
-	#define vtEnsure(condition, message)                                                                                       \
+	#define vtEnsure(condition, message,...)                                                                                       \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 				vtDebugBreak();                                                                                                \

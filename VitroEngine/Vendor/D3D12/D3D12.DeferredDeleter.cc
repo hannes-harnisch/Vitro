@@ -1,13 +1,13 @@
 module;
 #include "D3D12.API.hh"
-export module Vitro.D3D12.DeletionQueue;
+export module Vitro.D3D12.DeferredDeleter;
 
 import Vitro.Core.ReaderWriterQueue;
-import Vitro.Graphics.DeletionQueueBase;
+import Vitro.Graphics.DeferredDeleterBase;
 
 namespace vt::d3d12
 {
-	export class DeletionQueue : public DeletionQueueBase
+	export class DeferredDeleter : public DeferredDeleterBase
 	{
 	public:
 		void deleteResources() override

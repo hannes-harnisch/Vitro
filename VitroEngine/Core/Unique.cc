@@ -20,36 +20,48 @@ namespace vt
 		using TargetType = TClass;
 	};
 
-	export template<typename T, auto Delete = defaultDelete<T>> class Unique
+	export template<typename T, auto Delete = defaultDelete<T>> class [[nodiscard]] Unique
 	{
 		template<typename, auto> friend class Unique;
 
 		using TDeleterTarget = typename DeleterTraits<decltype(Delete)>::TargetType;
-		using THandle = std::conditional_t<std::is_base_of_v<std::remove_pointer_t<TDeleterTarget>, T>, T*, TDeleterTarget>;
+		using TPointer = std::conditional_t<std::is_base_of_v<std::remove_pointer_t<TDeleterTarget>, T>, T*, TDeleterTarget>;
 
 	public:
-		template<typename... Ts> static Unique from(Ts&&... ts)
+		template<typename... Ts> static [[nodiscard]] Unique from(Ts&&... ts)
 		{
 			return Unique(new T(std::forward<Ts>(ts)...));
 		}
 
-		Unique() noexcept = default;
+		Unique() = default;
 
-		Unique(THandle handle) noexcept : handle(handle)
+		Unique(std::nullptr_t) noexcept
 		{}
 
-		Unique(Unique&& that) noexcept
-		{
-			swap(that);
-		}
+		Unique(TPointer ptr) noexcept : ptr(ptr)
+		{}
 
-		template<typename TOther, auto DeleteOther>
-		Unique(Unique<TOther, DeleteOther>&& that) noexcept : handle(std::exchange(that.handle, nullptr))
+		Unique(Unique&& that) noexcept : ptr(that.release())
+		{}
+
+		template<typename TOther, auto DeleteOther> Unique(Unique<TOther, DeleteOther>&& that) noexcept : ptr(that.release())
 		{}
 
 		~Unique()
 		{
-			deleteHandle();
+			destroy();
+		}
+
+		Unique& operator=(std::nullptr_t) noexcept
+		{
+			reset();
+			return *this;
+		}
+
+		Unique& operator=(TPointer const that) noexcept
+		{
+			reset(that);
+			return *this;
 		}
 
 		Unique& operator=(Unique&& that) noexcept
@@ -64,67 +76,74 @@ namespace vt
 			return *this;
 		}
 
-		THandle* operator&() noexcept
+		[[nodiscard]] std::strong_ordering operator<=>(TPointer const that) const noexcept
 		{
-			return &handle;
+			return ptr <=> that;
 		}
 
-		THandle const* operator&() const noexcept
+		[[nodiscard]] TPointer* operator&() noexcept
 		{
-			return &handle;
+			return &ptr;
 		}
 
-		auto& operator*() const noexcept
+		[[nodiscard]] TPointer const* operator&() const noexcept
 		{
-			return *handle;
+			return &ptr;
 		}
 
-		THandle operator->() const noexcept
+		[[nodiscard]] decltype(auto) operator*() const noexcept
 		{
-			return handle;
+			return *ptr;
 		}
 
-		auto operator->*(auto memberPointer) const noexcept
+		[[nodiscard]] TPointer operator->() const noexcept
 		{
-			return [this, memberPointer](auto&&... args) {
-				return (handle->*memberPointer)(std::forward<decltype(args)>(args)...);
+			return ptr;
+		}
+
+		[[nodiscard]] decltype(auto) operator->*(auto const memberObjectPtr) const noexcept
+			requires(std::is_member_object_pointer_v<decltype(memberObjectPtr)>)
+		{
+			return ptr->*memberObjectPtr;
+		}
+
+		[[nodiscard]] auto operator->*(auto const memberFunctionPtr) const noexcept
+			requires(std::is_member_function_pointer_v<decltype(memberFunctionPtr)>)
+		{
+			return [this, memberFunctionPtr](auto&&... args) {
+				return (ptr->*memberFunctionPtr)(std::forward<decltype(args)>(args)...);
 			};
 		}
 
-		auto operator<=>(auto that) const noexcept
+		[[nodiscard]] operator TPointer() const noexcept
 		{
-			return handle <=> that;
+			return ptr;
 		}
 
-		operator THandle() const noexcept
+		[[nodiscard]] operator bool() const noexcept
 		{
-			return handle;
+			return ptr;
 		}
 
-		operator bool() const noexcept
+		[[nodiscard]] TPointer get() const noexcept
 		{
-			return handle;
+			return ptr;
 		}
 
-		THandle get() const noexcept
+		[[nodiscard]] TPointer release() noexcept
 		{
-			return handle;
+			return std::exchange(ptr, nullptr);
 		}
 
-		[[nodiscard]] THandle release() noexcept
+		void reset(TPointer const resetValue = nullptr) noexcept
 		{
-			return std::exchange(handle, nullptr);
-		}
-
-		void reset(THandle resetValue = THandle()) noexcept
-		{
-			deleteHandle();
-			handle = resetValue;
+			destroy();
+			ptr = resetValue;
 		}
 
 		void swap(Unique& that) noexcept
 		{
-			std::swap(handle, that.handle);
+			std::swap(ptr, that.ptr);
 		}
 
 		friend void swap(Unique& left, Unique& right) noexcept
@@ -133,12 +152,12 @@ namespace vt
 		}
 
 	private:
-		THandle handle {};
+		TPointer ptr = nullptr;
 
-		void deleteHandle()
+		void destroy() noexcept
 		{
-			if(handle)
-				Delete(handle);
+			if(ptr)
+				Delete(ptr);
 		}
 	};
 }

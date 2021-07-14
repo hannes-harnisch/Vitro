@@ -1,8 +1,10 @@
+module;
+#include <new>
 export module Vitro.Graphics.ForwardRenderer;
 
 import Vitro.Graphics.CommandList;
 import Vitro.Graphics.Device;
-import Vitro.Graphics.DeletionQueue;
+import Vitro.Graphics.DeferredDeleter;
 
 namespace vt
 {
@@ -13,7 +15,7 @@ namespace vt
 		{}
 
 	private:
-		DeletionQueue deletionQueue;
+		DeferredDeleter deletionQueue;
 		RenderCommandList commandList;
 	};
 }

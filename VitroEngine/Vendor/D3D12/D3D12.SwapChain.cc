@@ -83,7 +83,7 @@ namespace vt::d3d12
 			vtEnsureResult(result, "Failed to create D3D12 proxy swap chain.");
 
 			ComUnique<IDXGISwapChain3> mainSwapChain;
-			result = proxySwapChain.queryFor(&mainSwapChain);
+			result = proxySwapChain->QueryInterface(&mainSwapChain);
 			vtEnsureResult(result, "Failed to query for D3D12 main swap chain.");
 
 			result = factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);

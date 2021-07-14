@@ -95,7 +95,7 @@ namespace vt::d3d12
 			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
 
 			ComUnique<IDXGIFactory5> mainFactory;
-			result = proxyFactory.queryFor(&mainFactory);
+			result = proxyFactory->QueryInterface(&mainFactory);
 			vtEnsureResult(result, "Failed to get main DXGI factory.");
 			return mainFactory;
 		}

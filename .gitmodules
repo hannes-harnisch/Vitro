@@ -4,3 +4,6 @@
 [submodule "Dependencies/readerwriterqueue"]
 	path = Dependencies/readerwriterqueue
 	url = https://github.com/cameron314/readerwriterqueue
+[submodule "Dependencies/Array"]
+	path = Dependencies/Array
+	url = https://github.com/hannes-harnisch/Array

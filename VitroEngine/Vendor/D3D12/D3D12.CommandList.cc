@@ -37,7 +37,7 @@ namespace vt::d3d12
 	class CommandList final : public RenderCommandListBase, public CommandListData<Purpose>
 	{
 	public:
-		CommandList(vt::Device const& device) : allocator(makeAllocator(device)), cmd(makeCommandList(device))
+		CommandList(vt::Device& device) : allocator(makeAllocator(device)), cmd(makeCommandList(device))
 		{}
 
 		void begin() override
@@ -84,7 +84,7 @@ namespace vt::d3d12
 			cmd->RSSetScissorRects(1, &rect);
 		}
 
-		void beginRenderPass(vt::RenderPassHandle renderPass, vt::RenderTargetHandle renderTarget) override
+		void beginRenderPass(vt::RenderPassHandle, vt::RenderTargetHandle renderTarget) override
 		{
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition =
@@ -96,8 +96,8 @@ namespace vt::d3d12
 					},
 			};
 			cmd->ResourceBarrier(1, &barrier);
-			cmd->OMSetRenderTargets(1, , true, );
-			cmd->BeginRenderPass();
+			// cmd->OMSetRenderTargets(1, , true, );
+			// cmd->BeginRenderPass();
 		}
 
 		void transitionToNextSubpass() override
@@ -114,7 +114,7 @@ namespace vt::d3d12
 		ComUnique<ID3D12CommandAllocator> allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		static ComUnique<ID3D12CommandAllocator> makeAllocator(vt::Device const& device)
+		static ComUnique<ID3D12CommandAllocator> makeAllocator(vt::Device& device)
 		{
 			ComUnique<ID3D12CommandAllocator> allocator;
 			auto result = device.d3d12.handle()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
@@ -122,7 +122,7 @@ namespace vt::d3d12
 			return allocator;
 		}
 
-		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device const& device)
+		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device& device)
 		{
 			ComUnique<ID3D12GraphicsCommandList4> list;
 			auto result = device.d3d12.handle()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));

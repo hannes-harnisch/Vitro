@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -15,29 +15,29 @@ namespace vt::windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			libraryHandle.reset(makeLibraryHandle());
-			return libraryHandle != nullptr;
+			library.reset(makeLibrary());
+			return library != nullptr;
 		}
 
 		void* handle() final override
 		{
-			return libraryHandle;
+			return library;
 		}
 
 	protected:
-		SharedLibrary(std::string_view const name) : name(widenString(name)), libraryHandle(makeLibraryHandle())
+		SharedLibrary(std::string_view const name) : name(widenString(name)), library(makeLibrary())
 		{}
 
 		void* loadSymbolAddress(std::string_view const symbol) const final override
 		{
-			return ::GetProcAddress(libraryHandle, symbol.data());
+			return ::GetProcAddress(library, symbol.data());
 		}
 
 	private:
 		std::wstring name;
-		Unique<HMODULE, ::FreeLibrary> libraryHandle;
+		Unique<HMODULE, ::FreeLibrary> library;
 
-		HMODULE makeLibraryHandle() const
+		Unique<HMODULE, ::FreeLibrary> makeLibrary() const
 		{
 			return ::LoadLibrary(name.data());
 		}

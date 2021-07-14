@@ -23,31 +23,31 @@ namespace vt::windows
 		static inline Int2 const DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
 
 		Window(std::string_view const title, Rectangle const size, Int2 const position) :
-			windowHandle(makeWindowHandle(title, size, position))
+			window(makeWindow(title, size, position))
 		{}
 
 		void open() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(windowHandle, SW_RESTORE);
+			::ShowWindow(window, SW_RESTORE);
 		}
 
 		void close() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(windowHandle, SW_HIDE);
+			::ShowWindow(window, SW_HIDE);
 		}
 
 		void maximize() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(windowHandle, SW_MAXIMIZE);
+			::ShowWindow(window, SW_MAXIMIZE);
 		}
 
 		void minimize() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(windowHandle, SW_MINIMIZE);
+			::ShowWindow(window, SW_MINIMIZE);
 		}
 
 		void enableCursor() final override
@@ -57,6 +57,7 @@ namespace vt::windows
 			isCursorEnabled = true;
 			while(::ShowCursor(true) < 0)
 			{}
+
 			::ClipCursor(nullptr);
 		}
 
@@ -69,8 +70,8 @@ namespace vt::windows
 			{}
 
 			RECT rect;
-			::GetClientRect(windowHandle, &rect);
-			::MapWindowPoints(windowHandle, nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
+			::GetClientRect(window, &rect);
+			::MapWindowPoints(window, nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
 			::ClipCursor(&rect);
 		}
 
@@ -79,7 +80,7 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			RECT rect;
-			::GetWindowRect(windowHandle, &rect);
+			::GetWindowRect(window, &rect);
 
 			LONG width	= rect.right - rect.left;
 			LONG height = rect.bottom - rect.top;
@@ -89,7 +90,7 @@ namespace vt::windows
 		void setSize(Rectangle const size) final override
 		{
 			ensureCallIsOnMainThread();
-			::SetWindowPos(windowHandle, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
+			::SetWindowPos(window, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
 		}
 
 		Int2 getPosition() const final override
@@ -97,23 +98,23 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			RECT rect;
-			::GetWindowRect(windowHandle, &rect);
+			::GetWindowRect(window, &rect);
 			return {rect.left, rect.top};
 		}
 
 		void setPosition(Int2 const position) final override
 		{
 			ensureCallIsOnMainThread();
-			::SetWindowPos(windowHandle, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+			::SetWindowPos(window, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 		}
 
 		std::string getTitle() const final override
 		{
 			ensureCallIsOnMainThread();
 
-			int length = ::GetWindowTextLength(windowHandle);
+			int length = ::GetWindowTextLength(window);
 			std::wstring title(length, L'\0');
-			::GetWindowText(windowHandle, title.data(), length + 1);
+			::GetWindowText(window, title.data(), length + 1);
 			return narrowString(title);
 		}
 
@@ -122,7 +123,7 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			auto const widenedTitle = widenString(title);
-			::SetWindowText(windowHandle, widenedTitle.data());
+			::SetWindowText(window, widenedTitle.data());
 		}
 
 		Rectangle viewport() const final override
@@ -130,20 +131,19 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			RECT rect;
-			::GetClientRect(windowHandle, &rect);
+			::GetClientRect(window, &rect);
 			return {static_cast<unsigned>(rect.right), static_cast<unsigned>(rect.bottom)};
 		}
 
 		void* handle() final override
 		{
-			return windowHandle;
+			return window;
 		}
 
 	private:
-		Unique<HWND, ::DestroyWindow> windowHandle;
+		Unique<HWND, ::DestroyWindow> window;
 
-		static Unique<HWND, ::DestroyWindow>
-		makeWindowHandle(std::string_view const title, Rectangle const size, Int2 const position)
+		static Unique<HWND, ::DestroyWindow> makeWindow(std::string_view const title, Rectangle const size, Int2 const position)
 		{
 			auto const widenedTitle	  = widenString(title);
 			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
