@@ -9,6 +9,6 @@ namespace vt
 	export class DriverBase
 	{
 	public:
-		virtual std::vector<Adapter> enumerateAdapters() const = 0;
+		virtual std::vector<Adapter> enumerateAdapters() = 0;
 	};
 }

@@ -15,10 +15,6 @@ namespace vt
 	{
 		using TargetType = TParam;
 	};
-	template<typename TReturn, typename TClass> struct DeleterTraits<TReturn (TClass::*)()>
-	{
-		using TargetType = TClass;
-	};
 
 	export template<typename T, auto Delete = defaultDelete<T>> class [[nodiscard]] Unique
 	{
@@ -30,7 +26,7 @@ namespace vt
 	public:
 		template<typename... Ts> static [[nodiscard]] Unique from(Ts&&... ts)
 		{
-			return Unique(new T(std::forward<Ts>(ts)...));
+			return new T(std::forward<Ts>(ts)...);
 		}
 
 		Unique() = default;

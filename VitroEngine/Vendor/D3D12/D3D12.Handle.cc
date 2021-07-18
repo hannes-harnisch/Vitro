@@ -23,9 +23,9 @@ namespace vt::d3d12
 
 	export struct RenderTargetHandle
 	{
-		ID3D12Resource* handle					 = nullptr;
-		D3D12_CPU_DESCRIPTOR_HANDLE renderTarget = {};
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencil = {};
+		ID3D12Resource* resource		= nullptr;
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
+		D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
 	};
 
 	export struct RootSignatureHandle

@@ -17,7 +17,7 @@ namespace vt::d3d12
 	export class Device final : public DeviceBase
 	{
 	public:
-		Device(vt::Driver const& driver, vt::Adapter const& adapter) :
+		Device(vt::Driver& driver, vt::Adapter adapter) :
 			device(makeDevice(driver, adapter)),
 			renderQ(device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 			computeQ(device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
@@ -52,7 +52,7 @@ namespace vt::d3d12
 		Queue computeQ;
 		Queue copyQ;
 
-		static ComUnique<ID3D12Device> makeDevice(vt::Driver const& driver, vt::Adapter const& adapter)
+		static ComUnique<ID3D12Device> makeDevice(vt::Driver& driver, vt::Adapter& adapter)
 		{
 			auto const d3d12CreateDevice = driver.d3d12.deviceCreationFunction();
 			ComUnique<ID3D12Device> device;

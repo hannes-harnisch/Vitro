@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "D3D12.API.hh"
 #include "Trace/Assert.hh"
 
@@ -24,7 +24,7 @@ namespace vt::d3d12
 			vram = desc.DedicatedVideoMemory;
 		}
 
-		IDXGIAdapter* handle() const
+		IDXGIAdapter* handle()
 		{
 			return adapter;
 		}

@@ -4,6 +4,7 @@ module;
 export module Vitro.D3D12.CommandList;
 
 import Vitro.D3D12.ComUnique;
+import Vitro.D3D12.RenderPass;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
@@ -30,7 +31,9 @@ namespace vt::d3d12
 	template<> class CommandListData<QueuePurpose::Render> : public CommandListData<QueuePurpose::Compute>
 	{
 	protected:
-		RenderPassHandle currentRenderPass;
+		RenderPass* currentRenderPass		= nullptr;
+		ID3D12Resource* currentRenderTarget = nullptr;
+		unsigned subpassIndex				= 1;
 	};
 
 	export template<QueuePurpose Purpose>
@@ -59,10 +62,87 @@ namespace vt::d3d12
 
 		void bindRootSignature(vt::RootSignatureHandle const rootSignature) override
 		{
-			if constexpr(Purpose == QueuePurpose::Compute)
+			if constexpr(Purpose == QueuePurpose::Render)
+				cmd->SetGraphicsRootSignature(rootSignature.d3d12.handle);
+			else if constexpr(Purpose == QueuePurpose::Compute)
 				cmd->SetComputeRootSignature(rootSignature.d3d12.handle);
 			else
-				cmd->SetGraphicsRootSignature(rootSignature.d3d12.handle);
+				static_assert(false, "This command is not supported on copy command lists.");
+		}
+
+		void dispatch(unsigned const xCount, unsigned const yCount, unsigned const zCount) override
+		{
+			cmd->Dispatch(xCount, yCount, zCount);
+		}
+
+		void beginRenderPass(vt::RenderPassHandle const renderPass, vt::RenderTargetHandle const renderTarget) override
+		{
+			cmd->OMSetRenderTargets(1, &renderTarget.d3d12.rtv, true, &renderTarget.d3d12.dsv);
+			this->currentRenderPass	  = renderPass.d3d12.handle;
+			this->currentRenderTarget = renderTarget.d3d12.resource;
+
+			auto const pass = this->currentRenderPass;
+			D3D12_RENDER_PASS_RENDER_TARGET_DESC const rtDesc {
+				.cpuDescriptor	 = renderTarget.d3d12.rtv,
+				.BeginningAccess = pass->colorBeginAccess,
+				.EndingAccess	 = pass->colorEndAccess,
+			};
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC const dsDesc {
+				.cpuDescriptor			= renderTarget.d3d12.dsv,
+				.DepthBeginningAccess	= pass->depthBeginAccess,
+				.StencilBeginningAccess = pass->stencilBeginAccess,
+				.DepthEndingAccess		= pass->depthEndAccess,
+				.StencilEndingAccess	= pass->stencilEndAccess,
+			};
+			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, pass->flags);
+
+			auto const& transition = pass->transitions.front();
+			D3D12_RESOURCE_BARRIER const barrier {
+				.Transition =
+					{
+						.pResource	 = this->currentRenderTarget,
+						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+						.StateBefore = transition.before,
+						.StateAfter	 = transition.after,
+					},
+			};
+			cmd->ResourceBarrier(1, &barrier);
+		}
+
+		void transitionToNextSubpass() override
+		{
+			vtAssertPure(this->subpassIndex < this->currentRenderPass->transitions.size() - 1,
+						 "All subpasses of this render pass have already been transitioned through.");
+
+			auto const& transition = this->currentRenderPass->transitions[this->subpassIndex++];
+			D3D12_RESOURCE_BARRIER const barrier {
+				.Transition =
+					{
+						.pResource	 = this->currentRenderTarget,
+						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+						.StateBefore = transition.before,
+						.StateAfter	 = transition.after,
+					},
+			};
+			cmd->ResourceBarrier(1, &barrier);
+		}
+
+		void endRenderPass() override
+		{
+			auto const& transition = this->currentRenderPass->transitions.back();
+			D3D12_RESOURCE_BARRIER const barrier {
+				.Transition =
+					{
+						.pResource	 = this->currentRenderTarget,
+						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+						.StateBefore = transition.before,
+						.StateAfter	 = transition.after,
+					},
+			};
+			cmd->ResourceBarrier(1, &barrier);
+
+			cmd->EndRenderPass();
+			this->subpassIndex = 1;
 		}
 
 		void bindViewport(Rectangle const viewport) override
@@ -84,28 +164,21 @@ namespace vt::d3d12
 			cmd->RSSetScissorRects(1, &rect);
 		}
 
-		void beginRenderPass(vt::RenderPassHandle, vt::RenderTargetHandle renderTarget) override
+		void draw(unsigned const vertexCount,
+				  unsigned const instanceCount,
+				  unsigned const firstVertex,
+				  unsigned const firstInstance) override
 		{
-			D3D12_RESOURCE_BARRIER const barrier {
-				.Transition =
-					{
-						.pResource	 = renderTarget.d3d12.handle,
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = D3D12_RESOURCE_STATE_COMMON,
-						.StateAfter	 = D3D12_RESOURCE_STATE_RENDER_TARGET,
-					},
-			};
-			cmd->ResourceBarrier(1, &barrier);
-			// cmd->OMSetRenderTargets(1, , true, );
-			// cmd->BeginRenderPass();
+			cmd->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 		}
 
-		void transitionToNextSubpass() override
-		{}
-
-		void endRenderPass() override
+		void drawIndexed(unsigned const indexCount,
+						 unsigned const instanceCount,
+						 unsigned const firstIndex,
+						 int const vertexOffset,
+						 unsigned const firstInstance) override
 		{
-			cmd->EndRenderPass();
+			cmd->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 		}
 
 	private:

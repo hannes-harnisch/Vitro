@@ -8,13 +8,18 @@ namespace vt::d3d12
 {
 	export struct RenderPass
 	{
-		D3D12_RENDER_PASS_BEGINNING_ACCESS renderTargetBeginAccess;
-		D3D12_RENDER_PASS_BEGINNING_ACCESS depthBeginAccess;
-		D3D12_RENDER_PASS_BEGINNING_ACCESS stencilBeginAccess;
-		D3D12_RENDER_PASS_ENDING_ACCESS renderTargetEndAccess;
-		D3D12_RENDER_PASS_ENDING_ACCESS depthEndAccess;
-		D3D12_RENDER_PASS_ENDING_ACCESS stencilEndAccess;
-		D3D12_RENDER_PASS_FLAGS flags;
-		Array<D3D12_RESOURCE_BARRIER> subpassTransitionBarriers;
+		struct SubpassTransition
+		{
+			D3D12_RESOURCE_STATES before = {}, after = {};
+		};
+
+		D3D12_RENDER_PASS_BEGINNING_ACCESS colorBeginAccess	  = {};
+		D3D12_RENDER_PASS_BEGINNING_ACCESS depthBeginAccess	  = {};
+		D3D12_RENDER_PASS_BEGINNING_ACCESS stencilBeginAccess = {};
+		D3D12_RENDER_PASS_ENDING_ACCESS colorEndAccess		  = {};
+		D3D12_RENDER_PASS_ENDING_ACCESS depthEndAccess		  = {};
+		D3D12_RENDER_PASS_ENDING_ACCESS stencilEndAccess	  = {};
+		D3D12_RENDER_PASS_FLAGS flags						  = {};
+		Array<SubpassTransition> transitions;
 	};
 }
