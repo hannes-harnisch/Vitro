@@ -123,7 +123,7 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			Rectangle const size(LOWORD(lp), HIWORD(lp));
+			Extent const size(LOWORD(lp), HIWORD(lp));
 			EventSystem::get().notify<WindowSizeEvent>(*window, size);
 		}
 

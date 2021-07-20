@@ -357,6 +357,9 @@ namespace vt
 	export using Int2	= Vector<int, 2>;
 	export using Int3	= Vector<int, 3>;
 	export using Int4	= Vector<int, 4>;
+	export using UInt2	= Vector<unsigned, 2>;
+	export using UInt3	= Vector<unsigned, 3>;
+	export using UInt4	= Vector<unsigned, 4>;
 	export using Float2 = Vector<float, 2>;
 	export using Float3 = Vector<float, 3>;
 	export using Float4 = Vector<float, 4>;

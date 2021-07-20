@@ -17,13 +17,14 @@ namespace vt::windows
 	{
 	public:
 		constexpr static auto WindowClassName = TEXT(VT_ENGINE_NAME);
-		constexpr static Rectangle DefaultSize {unsigned(CW_USEDEFAULT), unsigned(CW_USEDEFAULT)};
-		constexpr static int DefaultX = CW_USEDEFAULT;
-		constexpr static int DefaultY = CW_USEDEFAULT;
-		static inline Int2 const DefaultPosition {CW_USEDEFAULT, CW_USEDEFAULT}; // TODO ICE
+		constexpr static Rectangle DefaultRect {
+			.x		= CW_USEDEFAULT,
+			.y		= CW_USEDEFAULT,
+			.width	= static_cast<unsigned>(CW_USEDEFAULT),
+			.height = static_cast<unsigned>(CW_USEDEFAULT),
+		};
 
-		Window(std::string_view const title, Rectangle const size, Int2 const position) :
-			window(makeWindow(title, size, position))
+		Window(std::string_view const title, Rectangle const rect) : window(makeWindow(title, rect))
 		{}
 
 		void open() final override
@@ -75,19 +76,20 @@ namespace vt::windows
 			::ClipCursor(&rect);
 		}
 
-		Rectangle getSize() const final override
+		Extent getSize() const final override
 		{
 			ensureCallIsOnMainThread();
 
 			RECT rect;
 			::GetWindowRect(window, &rect);
 
-			LONG width	= rect.right - rect.left;
-			LONG height = rect.bottom - rect.top;
-			return {static_cast<unsigned>(width), static_cast<unsigned>(height)};
+			return Extent {
+				.width	= static_cast<unsigned>(rect.right - rect.left),
+				.height = static_cast<unsigned>(rect.bottom - rect.top),
+			};
 		}
 
-		void setSize(Rectangle const size) final override
+		void setSize(Extent const size) final override
 		{
 			ensureCallIsOnMainThread();
 			::SetWindowPos(window, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
@@ -126,13 +128,19 @@ namespace vt::windows
 			::SetWindowText(window, widenedTitle.data());
 		}
 
-		Rectangle viewport() const final override
+		Rectangle clientArea() const final override
 		{
 			ensureCallIsOnMainThread();
 
 			RECT rect;
 			::GetClientRect(window, &rect);
-			return {static_cast<unsigned>(rect.right), static_cast<unsigned>(rect.bottom)};
+
+			return Rectangle {
+				.x		= rect.left,
+				.y		= rect.top,
+				.width	= static_cast<unsigned>(rect.right - rect.left),
+				.height = static_cast<unsigned>(rect.bottom - rect.top),
+			};
 		}
 
 		void* handle() final override
@@ -143,12 +151,12 @@ namespace vt::windows
 	private:
 		Unique<HWND, ::DestroyWindow> window;
 
-		static Unique<HWND, ::DestroyWindow> makeWindow(std::string_view const title, Rectangle const size, Int2 const position)
+		static Unique<HWND, ::DestroyWindow> makeWindow(std::string_view const title, Rectangle const rect)
 		{
 			auto const widenedTitle	  = widenString(title);
 			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
-			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, position.x, position.y, size.width,
-								  size.height, nullptr, nullptr, instanceHandle, nullptr);
+			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width,
+								  rect.height, nullptr, nullptr, instanceHandle, nullptr);
 		}
 	};
 }

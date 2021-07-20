@@ -7,5 +7,6 @@ namespace vt
 	export class DeviceBase
 	{
 	public:
+		virtual void submitRenderCommands() = 0;
 	};
 }

@@ -54,9 +54,7 @@ namespace vt
 			auto selected = std::max_element(adapters.begin(), adapters.end(), [](Adapter const& a1, Adapter const& a2) {
 				return a1->getVRAM() < a2->getVRAM();
 			});
-			auto adapter  = std::move(*selected);
-			adapters.erase(selected);
-			return adapter;
+			return std::move(*selected);
 		}
 	};
 }

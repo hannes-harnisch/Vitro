@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Enum.hh"
 
 #include <format>
@@ -59,9 +59,9 @@ namespace vt
 	export class WindowSizeEvent final : public WindowEvent
 	{
 	public:
-		Rectangle const size;
+		Extent const size;
 
-		WindowSizeEvent(Window& window, Rectangle size) : WindowEvent(window), size(size)
+		WindowSizeEvent(Window& window, Extent size) : WindowEvent(window), size(size)
 		{}
 
 		std::string toString() const override

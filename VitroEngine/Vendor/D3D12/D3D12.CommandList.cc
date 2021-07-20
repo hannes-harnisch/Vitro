@@ -111,8 +111,8 @@ namespace vt::d3d12
 
 		void transitionToNextSubpass() override
 		{
-			vtAssertPure(this->subpassIndex < this->currentRenderPass->transitions.size() - 1,
-						 "All subpasses of this render pass have already been transitioned through.");
+			vtAssert(this->subpassIndex < this->currentRenderPass->transitions.size() - 1,
+					 "All subpasses of this render pass have already been transitioned through.");
 
 			auto const& transition = this->currentRenderPass->transitions[this->subpassIndex++];
 			D3D12_RESOURCE_BARRIER const barrier {
@@ -145,21 +145,18 @@ namespace vt::d3d12
 			this->subpassIndex = 1;
 		}
 
-		void bindViewport(Rectangle const viewport) override
+		void bindViewport(Viewport const viewport) override
 		{
-			D3D12_VIEWPORT const rect {
-				.Width	  = static_cast<FLOAT>(viewport.width),
-				.Height	  = static_cast<FLOAT>(viewport.height),
-				.MaxDepth = D3D12_MAX_DEPTH,
-			};
-			cmd->RSSetViewports(1, &rect);
+			cmd->RSSetViewports(1, reinterpret_cast<D3D12_VIEWPORT const*>(&viewport));
 		}
 
 		void bindScissor(Rectangle const scissor) override
 		{
 			D3D12_RECT const rect {
-				.right	= static_cast<LONG>(scissor.width),
-				.bottom = static_cast<LONG>(scissor.height),
+				.left	= scissor.x,
+				.top	= scissor.y,
+				.right	= static_cast<LONG>(scissor.x + scissor.width),
+				.bottom = static_cast<LONG>(scissor.y + scissor.height),
 			};
 			cmd->RSSetScissorRects(1, &rect);
 		}

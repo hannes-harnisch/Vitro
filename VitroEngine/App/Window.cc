@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <string_view>
 export module Vitro.App.Window;
 
@@ -11,15 +11,10 @@ namespace vt
 {
 	export class Window final : public VT_SYSTEM_NAME::Window
 	{
-		using Platform = VT_SYSTEM_NAME::Window;
+		using Base = VT_SYSTEM_NAME::Window;
 
 	public:
-		// TODO ICE
-		Window(std::string_view const title,
-			   Rectangle const size = Platform::DefaultSize,
-			   int const x			= Platform::DefaultX,
-			   int const y			= Platform::DefaultY) :
-			Platform(title, size, {x, y})
+		Window(std::string_view const title, Rectangle const rect = Base::DefaultRect) : Base(title, rect)
 		{
 			ensureCallIsOnMainThread();
 
@@ -27,7 +22,7 @@ namespace vt
 			GraphicsSystem::get().notifyWindowConstruction(*this, handle());
 		}
 
-		Window(Window&& other) noexcept : Platform(std::move(other))
+		Window(Window&& other) noexcept(false) : Base(std::move(other))
 		{
 			ensureCallIsOnMainThread();
 			notifyMove(other);
@@ -39,12 +34,12 @@ namespace vt
 			notifyDestruction();
 		}
 
-		Window& operator=(Window&& other) noexcept
+		Window& operator=(Window&& other) noexcept(false)
 		{
 			ensureCallIsOnMainThread();
 
 			notifyDestruction();
-			Platform::operator=(std::move(other));
+			Base::operator=(std::move(other));
 			notifyMove(other);
 			return *this;
 		}

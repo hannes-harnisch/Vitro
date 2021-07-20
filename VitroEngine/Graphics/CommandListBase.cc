@@ -1,3 +1,5 @@
+module;
+#include <span>
 export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Graphics.Handle;
@@ -32,7 +34,7 @@ namespace vt
 		virtual void beginRenderPass(RenderPassHandle renderPass, RenderTargetHandle renderTarget)					  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
-		virtual void bindViewport(Rectangle viewport)																  = 0;
+		virtual void bindViewport(Viewport viewport)																  = 0;
 		virtual void bindScissor(Rectangle scissor)																	  = 0;
 		virtual void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance) = 0;
 		virtual void drawIndexed(unsigned indexCount,
