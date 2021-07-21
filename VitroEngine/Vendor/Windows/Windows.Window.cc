@@ -24,7 +24,7 @@ namespace vt::windows
 			.height = static_cast<unsigned>(CW_USEDEFAULT),
 		};
 
-		Window(std::string_view const title, Rectangle const rect) : window(makeWindow(title, rect))
+		Window(std::string_view title, Rectangle rect) : window(makeWindow(title, rect))
 		{}
 
 		void open() final override
@@ -89,7 +89,7 @@ namespace vt::windows
 			};
 		}
 
-		void setSize(Extent const size) final override
+		void setSize(Extent size) final override
 		{
 			ensureCallIsOnMainThread();
 			::SetWindowPos(window, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
@@ -104,7 +104,7 @@ namespace vt::windows
 			return {rect.left, rect.top};
 		}
 
-		void setPosition(Int2 const position) final override
+		void setPosition(Int2 position) final override
 		{
 			ensureCallIsOnMainThread();
 			::SetWindowPos(window, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
@@ -124,7 +124,7 @@ namespace vt::windows
 		{
 			ensureCallIsOnMainThread();
 
-			auto const widenedTitle = widenString(title);
+			auto widenedTitle = widenString(title);
 			::SetWindowText(window, widenedTitle.data());
 		}
 
@@ -151,10 +151,10 @@ namespace vt::windows
 	private:
 		Unique<HWND, ::DestroyWindow> window;
 
-		static Unique<HWND, ::DestroyWindow> makeWindow(std::string_view const title, Rectangle const rect)
+		static Unique<HWND, ::DestroyWindow> makeWindow(std::string_view title, Rectangle rect)
 		{
-			auto const widenedTitle	  = widenString(title);
-			auto const instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
+			auto widenedTitle	= widenString(title);
+			auto instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
 			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width,
 								  rect.height, nullptr, nullptr, instanceHandle, nullptr);
 		}

@@ -27,20 +27,20 @@ namespace vt
 		void notify(Unique<Event> event)
 		{
 			{
-				std::lock_guard const lock(mutex);
+				std::lock_guard lock(mutex);
 				events.emplace(std::move(event));
 			}
 			condition.notify_one();
 		}
 
-		template<typename E, typename... Ts> void notify(Ts&&... ts)
+		template<typename TEvent, typename... Ts> void notify(Ts&&... ts)
 		{
-			notify(Unique<E>::from(std::forward<Ts>(ts)...));
+			notify(Unique<TEvent>::from(std::forward<Ts>(ts)...));
 		}
 
 		template<typename... Ts> void submitHandler(Ts&&... ts)
 		{
-			std::lock_guard const lock(mutex);
+			std::lock_guard lock(mutex);
 			handlers.emplace_back(std::forward<Ts>(ts)...);
 		}
 

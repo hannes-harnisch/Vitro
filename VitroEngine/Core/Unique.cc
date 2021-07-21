@@ -13,15 +13,15 @@ namespace vt
 	template<typename> struct DeleterTraits;
 	template<typename TReturn, typename TParam> struct DeleterTraits<TReturn (*)(TParam)>
 	{
-		using TargetType = TParam;
+		using Target = TParam;
 	};
 
 	export template<typename T, auto Delete = defaultDelete<T>> class [[nodiscard]] Unique
 	{
 		template<typename, auto> friend class Unique;
 
-		using TDeleterTarget = typename DeleterTraits<decltype(Delete)>::TargetType;
-		using TPointer = std::conditional_t<std::is_base_of_v<std::remove_pointer_t<TDeleterTarget>, T>, T*, TDeleterTarget>;
+		using DeleteTarget = typename DeleterTraits<decltype(Delete)>::Target;
+		using Pointer	   = std::conditional_t<std::is_base_of_v<std::remove_pointer_t<DeleteTarget>, T>, T*, DeleteTarget>;
 
 	public:
 		template<typename... Ts> static [[nodiscard]] Unique from(Ts&&... ts)
@@ -34,7 +34,7 @@ namespace vt
 		Unique(std::nullptr_t) noexcept
 		{}
 
-		Unique(TPointer ptr) noexcept : ptr(ptr)
+		Unique(Pointer ptr) noexcept : ptr(ptr)
 		{}
 
 		Unique(Unique&& that) noexcept : ptr(that.release())
@@ -54,7 +54,7 @@ namespace vt
 			return *this;
 		}
 
-		Unique& operator=(TPointer const that) noexcept
+		Unique& operator=(Pointer that) noexcept
 		{
 			reset(that);
 			return *this;
@@ -72,17 +72,17 @@ namespace vt
 			return *this;
 		}
 
-		[[nodiscard]] std::strong_ordering operator<=>(TPointer const that) const noexcept
+		[[nodiscard]] std::strong_ordering operator<=>(Pointer that) const noexcept
 		{
 			return ptr <=> that;
 		}
 
-		[[nodiscard]] TPointer* operator&() noexcept
+		[[nodiscard]] Pointer* operator&() noexcept
 		{
 			return &ptr;
 		}
 
-		[[nodiscard]] TPointer const* operator&() const noexcept
+		[[nodiscard]] Pointer const* operator&() const noexcept
 		{
 			return &ptr;
 		}
@@ -92,18 +92,18 @@ namespace vt
 			return *ptr;
 		}
 
-		[[nodiscard]] TPointer operator->() const noexcept
+		[[nodiscard]] Pointer operator->() const noexcept
 		{
 			return ptr;
 		}
 
-		[[nodiscard]] decltype(auto) operator->*(auto const memberObjectPtr) const noexcept
+		[[nodiscard]] decltype(auto) operator->*(auto memberObjectPtr) const noexcept
 			requires(std::is_member_object_pointer_v<decltype(memberObjectPtr)>)
 		{
 			return ptr->*memberObjectPtr;
 		}
 
-		[[nodiscard]] auto operator->*(auto const memberFunctionPtr) const noexcept
+		[[nodiscard]] auto operator->*(auto memberFunctionPtr) const noexcept
 			requires(std::is_member_function_pointer_v<decltype(memberFunctionPtr)>)
 		{
 			return [this, memberFunctionPtr](auto&&... args) {
@@ -111,7 +111,7 @@ namespace vt
 			};
 		}
 
-		[[nodiscard]] operator TPointer() const noexcept
+		[[nodiscard]] operator Pointer() const noexcept
 		{
 			return ptr;
 		}
@@ -121,17 +121,17 @@ namespace vt
 			return ptr;
 		}
 
-		[[nodiscard]] TPointer get() const noexcept
+		[[nodiscard]] Pointer get() const noexcept
 		{
 			return ptr;
 		}
 
-		[[nodiscard]] TPointer release() noexcept
+		[[nodiscard]] Pointer release() noexcept
 		{
 			return std::exchange(ptr, nullptr);
 		}
 
-		void reset(TPointer const resetValue = nullptr) noexcept
+		void reset(Pointer resetValue = nullptr) noexcept
 		{
 			destroy();
 			ptr = resetValue;
@@ -148,7 +148,7 @@ namespace vt
 		}
 
 	private:
-		TPointer ptr = nullptr;
+		Pointer ptr = nullptr;
 
 		void destroy() noexcept
 		{

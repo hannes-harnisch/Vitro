@@ -15,19 +15,19 @@ namespace vt
 	public:
 		virtual void deleteResources() = 0;
 
-		void enqueue(BufferHandle const buffer)
+		void enqueue(BufferHandle buffer)
 		{
 			bool success = buffers.emplace(buffer);
 			vtAssert(success, "Failed to enqueue buffer for deletion.");
 		}
 
-		void enqueue(TextureHandle const texture)
+		void enqueue(TextureHandle texture)
 		{
 			bool success = textures.emplace(texture);
 			vtAssert(success, "Failed to enqueue texture for deletion.");
 		}
 
-		void enqueue(PipelineHandle const pipeline)
+		void enqueue(PipelineHandle pipeline)
 		{
 			bool success = pipelines.emplace(pipeline);
 			vtAssert(success, "Failed to enqueue pipeline for deletion.");

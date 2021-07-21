@@ -12,14 +12,14 @@
 
 namespace vt
 {
-	template<typename E> constexpr std::optional<E> toEnum(std::string_view const name)
+	template<typename TEnum> constexpr std::optional<TEnum> toEnum(std::string_view name)
 	{
-		return magic_enum::enum_cast<E>(name);
+		return magic_enum::enum_cast<TEnum>(name);
 	}
 
-	template<typename E> constexpr size_t getEnumCount()
+	template<typename TEnum> constexpr size_t getEnumCount()
 	{
-		return magic_enum::enum_count<E>();
+		return magic_enum::enum_count<TEnum>();
 	}
 
 	constexpr std::optional<size_t> getEnumIndex(auto enumValue)
@@ -32,10 +32,10 @@ namespace vt
 		return magic_enum::enum_name(enumValue);
 	}
 
-	template<typename E> constexpr size_t sizeFromEnumMax()
+	template<typename TEnum> constexpr size_t sizeFromEnumMax()
 	{
-		auto const values = magic_enum::enum_values<E>();
-		auto const max	  = std::max_element(values.begin(), values.end());
+		auto values = magic_enum::enum_values<TEnum>();
+		auto max	= std::max_element(values.begin(), values.end());
 		return static_cast<size_t>(*max) + 1;
 	}
 }

@@ -1,5 +1,3 @@
-module;
-#include <span>
 export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Graphics.Handle;
@@ -7,17 +5,12 @@ import Vitro.Math.Rectangle;
 
 namespace vt
 {
-	export enum class QueuePurpose {
-		Copy,
-		Compute,
-		Render,
-	};
-
 	export class CopyCommandListBase
 	{
 	public:
-		virtual void begin() = 0;
-		virtual void end()	 = 0;
+		virtual CommandListHandle handle() = 0;
+		virtual void begin()			   = 0;
+		virtual void end()				   = 0;
 	};
 
 	export class ComputeCommandListBase : public CopyCommandListBase

@@ -63,9 +63,9 @@ namespace vt
 
 #else
 
-	export template<typename TInterface, typename TGraphicsAPI> struct InterfaceVariant
+	export template<typename TInterface, typename TImpl> struct InterfaceVariant
 	{
-		TGraphicsAPI VT_GRAPHICS_API_NAME;
+		TImpl VT_GRAPHICS_API_NAME;
 
 		template<typename... Ts> InterfaceVariant(Ts&&... ts) : VT_GRAPHICS_API_NAME(std::forward<Ts>(ts)...)
 		{}

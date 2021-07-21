@@ -31,6 +31,7 @@ namespace vt
 #endif
 
 	EXPORT_RESOURCE_HANDLE(Buffer);
+	EXPORT_RESOURCE_HANDLE(CommandList);
 	EXPORT_RESOURCE_HANDLE(Pipeline);
 	EXPORT_RESOURCE_HANDLE(RenderPass);
 	EXPORT_RESOURCE_HANDLE(RenderTarget);

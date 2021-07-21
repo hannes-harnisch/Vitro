@@ -47,12 +47,12 @@ namespace vt
 			return to<S, R2, C2>();
 		}
 
-		constexpr Row& operator[](size_t const index) noexcept
+		constexpr Row& operator[](size_t index) noexcept
 		{
 			return rows[index];
 		}
 
-		constexpr Row const& operator[](size_t const index) const noexcept
+		constexpr Row const& operator[](size_t index) const noexcept
 		{
 			return rows[index];
 		}
@@ -83,7 +83,7 @@ namespace vt
 			return sum;
 		}
 
-		constexpr auto operator+(Scalar auto const scalar) const noexcept
+		constexpr auto operator+(Scalar auto scalar) const noexcept
 		{
 			Matrix<decltype(rows[0][0] + scalar), R, C> sum;
 			for(int r = 0; r < R; ++r)
@@ -91,7 +91,7 @@ namespace vt
 			return sum;
 		}
 
-		friend constexpr auto operator+(Scalar auto const scalar, Matrix const& mat) noexcept
+		friend constexpr auto operator+(Scalar auto scalar, Matrix const& mat) noexcept
 		{
 			return mat + scalar;
 		}
@@ -103,7 +103,7 @@ namespace vt
 			return *this;
 		}
 
-		constexpr Matrix& operator+=(Scalar auto const scalar) noexcept
+		constexpr Matrix& operator+=(Scalar auto scalar) noexcept
 		{
 			for(Row& row : rows)
 				row += scalar;
@@ -126,7 +126,7 @@ namespace vt
 			return difference;
 		}
 
-		constexpr auto operator-(Scalar auto const scalar) const noexcept
+		constexpr auto operator-(Scalar auto scalar) const noexcept
 		{
 			Matrix<decltype(rows[0][0] - scalar), R, C> difference;
 			for(int r = 0; r < R; ++r)
@@ -134,7 +134,7 @@ namespace vt
 			return difference;
 		}
 
-		friend constexpr auto operator-(Scalar auto const scalar, Matrix const& mat) noexcept
+		friend constexpr auto operator-(Scalar auto scalar, Matrix const& mat) noexcept
 		{
 			Matrix<decltype(scalar - mat[0][0]), R, C> difference;
 			for(int r = 0; r < R; ++r)
@@ -149,7 +149,7 @@ namespace vt
 			return *this;
 		}
 
-		constexpr Matrix& operator-=(Scalar auto const scalar) noexcept
+		constexpr Matrix& operator-=(Scalar auto scalar) noexcept
 		{
 			for(Row& row : rows)
 				row -= scalar;
@@ -166,7 +166,7 @@ namespace vt
 			return product;
 		}
 
-		template<Scalar S> constexpr auto operator*(Vector<S, C> const& vec) const noexcept
+		template<Scalar S> constexpr auto operator*(Vector<S, C> vec) const noexcept
 		{
 			Vector<decltype(rows[0][0] * vec[0]), R> product {};
 			for(int r = 0; r < R; ++r)
@@ -175,7 +175,7 @@ namespace vt
 			return product;
 		}
 
-		template<Scalar S> friend constexpr auto operator*(Vector<S, R> const& vec, Matrix const& mat) noexcept
+		template<Scalar S> friend constexpr auto operator*(Vector<S, R> vec, Matrix const& mat) noexcept
 		{
 			Vector<decltype(vec[0] * rows[0][0]), C> product {};
 			for(int c = 0; c < C; ++c)
@@ -184,7 +184,7 @@ namespace vt
 			return product;
 		}
 
-		constexpr auto operator*(Scalar auto const scalar) const noexcept
+		constexpr auto operator*(Scalar auto scalar) const noexcept
 		{
 			Matrix<decltype(rows[0][0] * scalar), R, C> product;
 			for(int r = 0; r < R; ++r)
@@ -192,7 +192,7 @@ namespace vt
 			return product;
 		}
 
-		friend constexpr auto operator*(Scalar auto const scalar, Matrix const& mat) noexcept
+		friend constexpr auto operator*(Scalar auto scalar, Matrix const& mat) noexcept
 		{
 			return mat * scalar;
 		}
@@ -202,14 +202,14 @@ namespace vt
 			return *this = *this * that;
 		}
 
-		constexpr Matrix& operator*=(Scalar auto const scalar) noexcept
+		constexpr Matrix& operator*=(Scalar auto scalar) noexcept
 		{
 			for(Row& row : rows)
 				row *= scalar;
 			return *this;
 		}
 
-		constexpr auto operator/(Scalar auto const scalar) const noexcept
+		constexpr auto operator/(Scalar auto scalar) const noexcept
 		{
 			Matrix<decltype(rows[0][0] / scalar), R, C> quotient;
 			for(int r = 0; r < R; ++r)
@@ -217,7 +217,7 @@ namespace vt
 			return quotient;
 		}
 
-		friend constexpr auto operator/(Scalar auto const scalar, Matrix const& mat) noexcept
+		friend constexpr auto operator/(Scalar auto scalar, Matrix const& mat) noexcept
 		{
 			Matrix<decltype(scalar / mat[0][0]), R, C> quotient;
 			for(int r = 0; r < R; ++r)
@@ -225,7 +225,7 @@ namespace vt
 			return quotient;
 		}
 
-		constexpr Matrix& operator/=(Scalar auto const scalar) noexcept
+		constexpr Matrix& operator/=(Scalar auto scalar) noexcept
 		{
 			for(Row& row : rows)
 				row /= scalar;

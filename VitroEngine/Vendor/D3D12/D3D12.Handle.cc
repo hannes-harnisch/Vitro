@@ -3,12 +3,21 @@ module;
 export module Vitro.D3D12.Handle;
 
 import Vitro.D3D12.RenderPass;
+import Vitro.Graphics.CommandType;
 
 namespace vt::d3d12
 {
 	export struct BufferHandle
 	{
 		ID3D12Resource* handle = nullptr;
+	};
+
+	export struct CommandListHandle
+	{
+		ID3D12CommandList* handle = nullptr;
+#if VT_DEBUG
+		CommandType commandType;
+#endif
 	};
 
 	export struct PipelineHandle

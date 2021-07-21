@@ -8,7 +8,7 @@ import Vitro.Trace.SignalHandler;
 
 namespace vt::windows
 {
-	LONG NTAPI forwardToStandardSignalHandlers(EXCEPTION_POINTERS* const exceptionInfo)
+	LONG NTAPI forwardToStandardSignalHandlers(EXCEPTION_POINTERS* exceptionInfo)
 	{
 		switch(exceptionInfo->ExceptionRecord->ExceptionCode)
 		{
@@ -23,7 +23,7 @@ namespace vt::windows
 	{
 		::AddVectoredExceptionHandler(true, forwardToStandardSignalHandlers);
 
-		auto const stdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+		auto stdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
 		::SetConsoleMode(stdOut, ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_VIRTUAL_TERMINAL_INPUT);
 	}
 }

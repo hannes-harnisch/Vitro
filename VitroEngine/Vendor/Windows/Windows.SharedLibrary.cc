@@ -16,7 +16,7 @@ namespace vt::windows
 		[[nodiscard]] bool reload() final override
 		{
 			library.reset(makeLibrary());
-			return library != nullptr;
+			return library;
 		}
 
 		void* handle() final override
@@ -25,10 +25,10 @@ namespace vt::windows
 		}
 
 	protected:
-		SharedLibrary(std::string_view const name) : name(widenString(name)), library(makeLibrary())
+		SharedLibrary(std::string_view name) : name(widenString(name)), library(makeLibrary())
 		{}
 
-		void* loadSymbolAddress(std::string_view const symbol) const final override
+		void* loadSymbolAddress(std::string_view symbol) const final override
 		{
 			return ::GetProcAddress(library, symbol.data());
 		}

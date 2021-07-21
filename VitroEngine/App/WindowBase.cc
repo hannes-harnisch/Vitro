@@ -39,7 +39,7 @@ namespace vt
 
 		static void ensureCallIsOnMainThread()
 		{
-			bool const isOnMainThread = AppContextBase::get().mainThreadId() == std::this_thread::get_id();
+			bool isOnMainThread = AppContextBase::get().mainThreadId() == std::this_thread::get_id();
 			vtEnsure(isOnMainThread, "Window operations must happen on the main thread.");
 		}
 	};

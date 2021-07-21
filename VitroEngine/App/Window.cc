@@ -14,7 +14,7 @@ namespace vt
 		using Base = VT_SYSTEM_NAME::Window;
 
 	public:
-		Window(std::string_view const title, Rectangle const rect = Base::DefaultRect) : Base(title, rect)
+		Window(std::string_view title, Rectangle rect = Base::DefaultRect) : Base(title, rect)
 		{
 			ensureCallIsOnMainThread();
 

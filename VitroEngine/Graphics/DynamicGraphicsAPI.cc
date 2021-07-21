@@ -4,7 +4,12 @@ import Vitro.Core.Singleton;
 
 namespace vt
 {
-	export enum class GraphicsAPI { VT_DYNAMIC_GRAPHICS_API_MODULE, VT_DYNAMIC_GRAPHICS_API_MODULE_PRIMARY };
+	export enum class GraphicsAPI {
+		VT_GRAPHICS_API_MODULE,
+#if VT_DYNAMIC_GRAPHICS_API
+		VT_GRAPHICS_API_MODULE_PRIMARY
+#endif
+	};
 
 	export class DynamicGraphicsAPI : public Singleton<DynamicGraphicsAPI>
 	{

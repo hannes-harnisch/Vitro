@@ -12,7 +12,7 @@ namespace vt
 		static uint64_t measureTime()
 		{
 			using namespace std::chrono;
-			auto const now = steady_clock::now().time_since_epoch();
+			auto now = steady_clock::now().time_since_epoch();
 			return duration_cast<microseconds>(now).count();
 		}
 
@@ -20,9 +20,9 @@ namespace vt
 
 		void update(uint64_t& previousTime)
 		{
-			uint64_t const current = Tick::measureTime();
-			secs				   = (current - previousTime) / 1000000.0f;
-			previousTime		   = current;
+			uint64_t current = Tick::measureTime();
+			secs			 = (current - previousTime) / 1000000.0f;
+			previousTime	 = current;
 		}
 
 		float seconds() const

@@ -14,10 +14,10 @@ namespace vt::d3d12
 	export class SwapChain final : public SwapChainBase
 	{
 	public:
-		SwapChain(vt::Device& device, void* const nativeWindow, unsigned const bufferCount) :
+		SwapChain(vt::Device& device, void* nativeWindow, unsigned bufferCount) :
 			bufferCount(bufferCount),
 			presentFlags(vt::Driver::get().d3d12.swapChainTearingAvailable() ? DXGI_PRESENT_ALLOW_TEARING : 0),
-			swapChain(makeSwapChain(device.d3d12.renderQueue(), nativeWindow)),
+			swapChain(makeSwapChain(device.d3d12.renderQueueHandle(), nativeWindow)),
 			renderTargetHeap(makeRenderTargetHeap(device.d3d12.handle()))
 		{
 			initializeRenderTargets(device.d3d12.handle());
@@ -62,7 +62,7 @@ namespace vt::d3d12
 		ComUnique<ID3D12DescriptorHeap> renderTargetHeap;
 		ComUnique<ID3D12Resource> renderTargets[MaxBufferCount];
 
-		ComUnique<IDXGISwapChain3> makeSwapChain(ID3D12CommandQueue* const queue, void* const nativeWindow)
+		ComUnique<IDXGISwapChain3> makeSwapChain(ID3D12CommandQueue* queue, void* nativeWindow)
 		{
 			UINT flags = 0;
 			if(vt::Driver::get().d3d12.swapChainTearingAvailable())
@@ -76,8 +76,8 @@ namespace vt::d3d12
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 				.Flags		 = flags,
 			};
-			auto const factory = vt::Driver::get().d3d12.handle();
-			HWND const hwnd	   = static_cast<HWND>(nativeWindow);
+			auto factory = vt::Driver::get().d3d12.handle();
+			HWND hwnd	 = static_cast<HWND>(nativeWindow);
 			ComUnique<IDXGISwapChain1> proxySwapChain;
 			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &proxySwapChain);
 			vtEnsureResult(result, "Failed to create D3D12 proxy swap chain.");
@@ -92,7 +92,7 @@ namespace vt::d3d12
 			return mainSwapChain;
 		}
 
-		ComUnique<ID3D12DescriptorHeap> makeRenderTargetHeap(ID3D12Device* const device)
+		ComUnique<ID3D12DescriptorHeap> makeRenderTargetHeap(ID3D12Device* device)
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
@@ -104,10 +104,10 @@ namespace vt::d3d12
 			return heap;
 		}
 
-		void initializeRenderTargets(ID3D12Device* const device)
+		void initializeRenderTargets(ID3D12Device* device)
 		{
-			UINT const size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			auto handle		= renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
+			UINT size	= device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			auto handle = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
 			for(unsigned i = 0; i < bufferCount; ++i)
 			{
 				ComUnique<ID3D12Resource> backBuffer;

@@ -18,17 +18,17 @@ namespace vt
 			return mainThread;
 		}
 
-		void notifyWindowMapping(void* const nativeHandle, class Window& window)
+		void notifyWindowMapping(void* nativeHandle, class Window& window)
 		{
 			nativeWindowToEngineWindow[nativeHandle] = &window;
 		}
 
-		void notifyWindowDestruction(void* const nativeHandle)
+		void notifyWindowDestruction(void* nativeHandle)
 		{
 			nativeWindowToEngineWindow.erase(nativeHandle);
 		}
 
-		Window* findWindow(void* const nativeHandle)
+		Window* findWindow(void* nativeHandle)
 		{
 			auto it = nativeWindowToEngineWindow.find(nativeHandle);
 

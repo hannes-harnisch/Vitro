@@ -14,7 +14,7 @@ import Vitro.Core.StringUtils;
 
 namespace vt
 {
-	constexpr std::string demangle(std::string_view const symbol)
+	constexpr std::string demangle(std::string_view symbol)
 	{
 #if VT_COMPILER_MSVC
 		std::string name(symbol);
@@ -24,7 +24,7 @@ namespace vt
 		removeFirstOf(name, "enum vt::");
 #else
 		int status;
-		char const* const nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
+		char const* nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
 		std::string name(nameBuffer);
 		std::free(nameBuffer);
 #endif

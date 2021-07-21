@@ -7,28 +7,30 @@ import Vitro.D3D12.ComUnique;
 import Vitro.D3D12.RenderPass;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
+import Vitro.Graphics.CommandType;
 import Vitro.Graphics.Handle;
 import Vitro.Math.Rectangle;
 
 namespace vt::d3d12
 {
-	consteval D3D12_COMMAND_LIST_TYPE mapQueuePurposeToCommandListType(QueuePurpose purpose)
+	constexpr D3D12_COMMAND_LIST_TYPE convertCommandType(CommandType type)
 	{
-		switch(purpose)
+		switch(type)
 		{
-			case QueuePurpose::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
-			case QueuePurpose::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-			case QueuePurpose::Render: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+			case CommandType::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
+			case CommandType::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
+			case CommandType::Render: return D3D12_COMMAND_LIST_TYPE_DIRECT;
 		}
+		vtUnreachable();
 	}
 
-	template<QueuePurpose Purpose> class CommandListData
+	template<CommandType Type> class CommandListData
 	{};
 
-	template<> class CommandListData<QueuePurpose::Compute> : public CommandListData<QueuePurpose::Copy>
+	template<> class CommandListData<CommandType::Compute> : public CommandListData<CommandType::Copy>
 	{};
 
-	template<> class CommandListData<QueuePurpose::Render> : public CommandListData<QueuePurpose::Compute>
+	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
 	{
 	protected:
 		RenderPass* currentRenderPass		= nullptr;
@@ -36,12 +38,22 @@ namespace vt::d3d12
 		unsigned subpassIndex				= 1;
 	};
 
-	export template<QueuePurpose Purpose>
-	class CommandList final : public RenderCommandListBase, public CommandListData<Purpose>
+	export template<CommandType Type> class CommandList final : public RenderCommandListBase, public CommandListData<Type>
 	{
 	public:
-		CommandList(vt::Device& device) : allocator(makeAllocator(device)), cmd(makeCommandList(device))
+		CommandList(vt::Device& device) :
+			allocator(makeAllocator(device.d3d12.handle())), cmd(makeCommandList(device.d3d12.handle()))
 		{}
+
+		vt::CommandListHandle handle() override
+		{
+			return {{
+				cmd,
+#if VT_DEBUG
+				Type,
+#endif
+			}};
+		}
 
 		void begin() override
 		{
@@ -55,33 +67,33 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to end D3D12 command list.");
 		}
 
-		void bindPipeline(vt::PipelineHandle const pipeline) override
+		void bindPipeline(vt::PipelineHandle pipeline) override
 		{
 			cmd->SetPipelineState(pipeline.d3d12.handle);
 		}
 
-		void bindRootSignature(vt::RootSignatureHandle const rootSignature) override
+		void bindRootSignature(vt::RootSignatureHandle rootSignature) override
 		{
-			if constexpr(Purpose == QueuePurpose::Render)
+			if constexpr(Type == CommandType::Render)
 				cmd->SetGraphicsRootSignature(rootSignature.d3d12.handle);
-			else if constexpr(Purpose == QueuePurpose::Compute)
+			else if constexpr(Type == CommandType::Compute)
 				cmd->SetComputeRootSignature(rootSignature.d3d12.handle);
 			else
 				static_assert(false, "This command is not supported on copy command lists.");
 		}
 
-		void dispatch(unsigned const xCount, unsigned const yCount, unsigned const zCount) override
+		void dispatch(unsigned xCount, unsigned yCount, unsigned zCount) override
 		{
 			cmd->Dispatch(xCount, yCount, zCount);
 		}
 
-		void beginRenderPass(vt::RenderPassHandle const renderPass, vt::RenderTargetHandle const renderTarget) override
+		void beginRenderPass(vt::RenderPassHandle renderPass, vt::RenderTargetHandle renderTarget) override
 		{
 			cmd->OMSetRenderTargets(1, &renderTarget.d3d12.rtv, true, &renderTarget.d3d12.dsv);
 			this->currentRenderPass	  = renderPass.d3d12.handle;
 			this->currentRenderTarget = renderTarget.d3d12.resource;
 
-			auto const pass = this->currentRenderPass;
+			auto pass = this->currentRenderPass;
 			D3D12_RENDER_PASS_RENDER_TARGET_DESC const rtDesc {
 				.cpuDescriptor	 = renderTarget.d3d12.rtv,
 				.BeginningAccess = pass->colorBeginAccess,
@@ -147,10 +159,11 @@ namespace vt::d3d12
 
 		void bindViewport(Viewport const viewport) override
 		{
-			cmd->RSSetViewports(1, reinterpret_cast<D3D12_VIEWPORT const*>(&viewport));
+			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(&viewport);
+			cmd->RSSetViewports(1, data);
 		}
 
-		void bindScissor(Rectangle const scissor) override
+		void bindScissor(Rectangle scissor) override
 		{
 			D3D12_RECT const rect {
 				.left	= scissor.x,
@@ -161,41 +174,38 @@ namespace vt::d3d12
 			cmd->RSSetScissorRects(1, &rect);
 		}
 
-		void draw(unsigned const vertexCount,
-				  unsigned const instanceCount,
-				  unsigned const firstVertex,
-				  unsigned const firstInstance) override
+		void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance) override
 		{
 			cmd->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 		}
 
-		void drawIndexed(unsigned const indexCount,
-						 unsigned const instanceCount,
-						 unsigned const firstIndex,
-						 int const vertexOffset,
-						 unsigned const firstInstance) override
+		void drawIndexed(unsigned indexCount,
+						 unsigned instanceCount,
+						 unsigned firstIndex,
+						 int vertexOffset,
+						 unsigned firstInstance) override
 		{
 			cmd->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 		}
 
 	private:
-		constexpr static D3D12_COMMAND_LIST_TYPE Type = mapQueuePurposeToCommandListType(Purpose);
+		constexpr static D3D12_COMMAND_LIST_TYPE D3D12CommandType = convertCommandType(Type);
 
 		ComUnique<ID3D12CommandAllocator> allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		static ComUnique<ID3D12CommandAllocator> makeAllocator(vt::Device& device)
+		static ComUnique<ID3D12CommandAllocator> makeAllocator(ID3D12Device1* device)
 		{
 			ComUnique<ID3D12CommandAllocator> allocator;
-			auto result = device.d3d12.handle()->CreateCommandAllocator(Type, IID_PPV_ARGS(&allocator));
+			auto result = device->CreateCommandAllocator(D3D12CommandType, IID_PPV_ARGS(&allocator));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 			return allocator;
 		}
 
-		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(vt::Device& device)
+		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(ID3D12Device1* device)
 		{
 			ComUnique<ID3D12GraphicsCommandList4> list;
-			auto result = device.d3d12.handle()->CreateCommandList(0, Type, allocator, nullptr, IID_PPV_ARGS(&list));
+			auto result = device->CreateCommandList(0, D3D12CommandType, allocator, nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 			return list;
 		}

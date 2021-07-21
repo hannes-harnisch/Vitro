@@ -22,7 +22,7 @@ namespace vt
 #define TXT_AQUA   "96"
 #define TXT_WHITE  "97"
 
-	export char const* mapLogLevelToEscapeCodeParameters(LogLevel const level)
+	export char const* mapLogLevelToEscapeCodeParameters(LogLevel level)
 	{
 		switch(level)
 		{

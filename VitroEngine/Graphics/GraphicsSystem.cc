@@ -22,9 +22,9 @@ namespace vt
 		void update()
 		{}
 
-		void notifyWindowConstruction(class Window const& window, void* const nativeWindowHandle)
+		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, device, nativeWindowHandle, FramesBuffered);
+			swapChains.try_emplace(&window, device, nativeWindowHandle, 2);
 		}
 
 		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
@@ -40,8 +40,6 @@ namespace vt
 		}
 
 	private:
-		constexpr static unsigned FramesBuffered = 2;
-
 		DynamicGraphicsAPI dynamicGraphicsAPI;
 		Driver driver;
 		Device device;

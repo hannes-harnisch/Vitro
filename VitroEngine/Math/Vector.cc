@@ -72,9 +72,9 @@ namespace vt
 		};
 	};
 
-	export template<typename From, typename To> concept LosslesslyConvertibleTo = requires(From from)
+	export template<typename TFrom, typename TTo> concept LosslesslyConvertibleTo = requires(TFrom from)
 	{
-		To {from};
+		TTo {from};
 	};
 
 	export template<typename T, int D> struct Vector : VectorData<T, D>
@@ -95,22 +95,22 @@ namespace vt
 			return to<S, D2>();
 		}
 
-		constexpr T& operator[](size_t const index) noexcept
+		constexpr T& operator[](size_t index) noexcept
 		{
 			return this->data[index];
 		}
 
-		constexpr T operator[](size_t const index) const noexcept
+		constexpr T operator[](size_t index) const noexcept
 		{
 			return this->data[index];
 		}
 
-		template<Scalar S> constexpr bool operator==(Vector<S, D> const that) const noexcept
+		template<Scalar S> constexpr bool operator==(Vector<S, D> that) const noexcept
 		{
 			return std::equal(std::begin(this->data), std::end(this->data), std::begin(that.data));
 		}
 
-		template<Scalar S> constexpr bool operator!=(Vector<S, D> const that) const noexcept
+		template<Scalar S> constexpr bool operator!=(Vector<S, D> that) const noexcept
 		{
 			return !operator==(that);
 		}
@@ -123,7 +123,7 @@ namespace vt
 			return promoted;
 		}
 
-		template<Scalar S> constexpr auto operator+(Vector<S, D> const that) const noexcept
+		template<Scalar S> constexpr auto operator+(Vector<S, D> that) const noexcept
 		{
 			Vector<decltype(this->data[0] + that[0]), D> sum;
 			for(int i = 0; i < D; ++i)
@@ -131,7 +131,7 @@ namespace vt
 			return sum;
 		}
 
-		constexpr auto operator+(Scalar auto const scalar) const noexcept
+		constexpr auto operator+(Scalar auto scalar) const noexcept
 		{
 			Vector<decltype(this->data[0] + scalar), D> sum;
 			for(int i = 0; i < D; ++i)
@@ -139,19 +139,19 @@ namespace vt
 			return sum;
 		}
 
-		friend constexpr auto operator+(Scalar auto const scalar, Vector const vec) noexcept
+		friend constexpr auto operator+(Scalar auto scalar, Vector vec) noexcept
 		{
 			return vec + scalar;
 		}
 
-		template<Scalar S> constexpr Vector& operator+=(Vector<S, D> const that) noexcept
+		template<Scalar S> constexpr Vector& operator+=(Vector<S, D> that) noexcept
 		{
 			for(int i = 0; i < D; ++i)
 				this->data[i] += that.data[i];
 			return *this;
 		}
 
-		constexpr Vector& operator+=(Scalar auto const scalar) noexcept
+		constexpr Vector& operator+=(Scalar auto scalar) noexcept
 		{
 			for(T& component : this->data)
 				component += scalar;
@@ -166,7 +166,7 @@ namespace vt
 			return negated;
 		}
 
-		template<Scalar S> constexpr auto operator-(Vector<S, D> const that) const noexcept
+		template<Scalar S> constexpr auto operator-(Vector<S, D> that) const noexcept
 		{
 			Vector<decltype(this->data[0] - that[0]), D> difference;
 			for(int i = 0; i < D; ++i)
@@ -174,7 +174,7 @@ namespace vt
 			return difference;
 		}
 
-		constexpr auto operator-(Scalar auto const scalar) const noexcept
+		constexpr auto operator-(Scalar auto scalar) const noexcept
 		{
 			Vector<decltype(this->data[0] - scalar), D> difference;
 			for(int i = 0; i < D; ++i)
@@ -182,7 +182,7 @@ namespace vt
 			return difference;
 		}
 
-		friend constexpr auto operator-(Scalar auto const scalar, Vector const vec) noexcept
+		friend constexpr auto operator-(Scalar auto scalar, Vector vec) noexcept
 		{
 			Vector<decltype(scalar - vec[0]), D> difference;
 			for(int i = 0; i < D; ++i)
@@ -190,21 +190,21 @@ namespace vt
 			return difference;
 		}
 
-		template<Scalar S> constexpr Vector& operator-=(Vector<S, D> const that) noexcept
+		template<Scalar S> constexpr Vector& operator-=(Vector<S, D> that) noexcept
 		{
 			for(int i = 0; i < D; ++i)
 				this->data[i] -= that.data[i];
 			return *this;
 		}
 
-		constexpr Vector& operator-=(Scalar auto const scalar) noexcept
+		constexpr Vector& operator-=(Scalar auto scalar) noexcept
 		{
 			for(T& component : this->data)
 				component -= scalar;
 			return *this;
 		}
 
-		template<Scalar S> constexpr auto operator*(Vector<S, D> const that) const noexcept
+		template<Scalar S> constexpr auto operator*(Vector<S, D> that) const noexcept
 		{
 			Vector<decltype(this->data[0] * that[0]), D> product;
 			for(int i = 0; i < D; ++i)
@@ -212,7 +212,7 @@ namespace vt
 			return product;
 		}
 
-		constexpr auto operator*(Scalar auto const scalar) const noexcept
+		constexpr auto operator*(Scalar auto scalar) const noexcept
 		{
 			Vector<decltype(this->data[0] * scalar), D> product;
 			for(int i = 0; i < D; ++i)
@@ -220,26 +220,26 @@ namespace vt
 			return product;
 		}
 
-		friend constexpr auto operator*(Scalar auto const scalar, Vector const vec) noexcept
+		friend constexpr auto operator*(Scalar auto scalar, Vector vec) noexcept
 		{
 			return vec * scalar;
 		}
 
-		template<Scalar S> constexpr Vector& operator*=(Vector<S, D> const that) noexcept
+		template<Scalar S> constexpr Vector& operator*=(Vector<S, D> that) noexcept
 		{
 			for(int i = 0; i < D; ++i)
 				this->data[i] *= that.data[i];
 			return *this;
 		}
 
-		constexpr Vector& operator*=(Scalar auto const scalar) noexcept
+		constexpr Vector& operator*=(Scalar auto scalar) noexcept
 		{
 			for(T& component : this->data)
 				component *= scalar;
 			return *this;
 		}
 
-		template<Scalar S> constexpr auto operator/(Vector<S, D> const that) const noexcept
+		template<Scalar S> constexpr auto operator/(Vector<S, D> that) const noexcept
 		{
 			Vector<decltype(this->data[0] / that[0]), D> quotient;
 			for(int i = 0; i < D; ++i)
@@ -247,7 +247,7 @@ namespace vt
 			return quotient;
 		}
 
-		constexpr auto operator/(Scalar auto const scalar) const noexcept
+		constexpr auto operator/(Scalar auto scalar) const noexcept
 		{
 			Vector<decltype(this->data[0] / scalar), D> quotient;
 			for(int i = 0; i < D; ++i)
@@ -255,7 +255,7 @@ namespace vt
 			return quotient;
 		}
 
-		friend constexpr auto operator/(Scalar auto const scalar, Vector const vec) noexcept
+		friend constexpr auto operator/(Scalar auto scalar, Vector vec) noexcept
 		{
 			Vector<decltype(scalar / vec[0]), D> quotient;
 			for(int i = 0; i < D; ++i)
@@ -263,14 +263,14 @@ namespace vt
 			return quotient;
 		}
 
-		template<Scalar S> constexpr Vector& operator/=(Vector<S, D> const that) noexcept
+		template<Scalar S> constexpr Vector& operator/=(Vector<S, D> that) noexcept
 		{
 			for(int i = 0; i < D; ++i)
 				this->data[i] /= that.data[i];
 			return *this;
 		}
 
-		constexpr Vector& operator/=(Scalar auto const scalar) noexcept
+		constexpr Vector& operator/=(Scalar auto scalar) noexcept
 		{
 			for(T& component : this->data)
 				component /= scalar;
@@ -295,7 +295,7 @@ namespace vt
 			return str + ']';
 		}
 
-		friend constexpr auto apply(Vector const vec, auto func) noexcept(func(vec[0]))
+		friend constexpr auto apply(Vector vec, auto func) noexcept(func(vec[0]))
 		{
 			Vector<decltype(func(vec[0])), D> result;
 			for(int i = 0; i < D; ++i)
@@ -303,53 +303,53 @@ namespace vt
 			return result;
 		}
 
-		template<Scalar S> friend constexpr auto dot(Vector const left, Vector<S, D> const right) noexcept
+		template<Scalar S> friend constexpr auto dot(Vector left, Vector<S, D> right) noexcept
 		{
-			auto const hadamard {left * right};
+			auto hadamard {left * right};
 			decltype(hadamard[0]) dot = 0;
 			for(auto component : hadamard.data)
 				dot += component;
 			return dot;
 		}
 
-		friend constexpr auto length(Vector const vec)
+		friend constexpr auto length(Vector vec)
 		{
 			return std::sqrt(dot(vec, vec));
 		}
 
-		friend constexpr auto normalize(Vector const vec)
+		friend constexpr auto normalize(Vector vec)
 		{
 			return 1.0f / length(vec) * vec;
 		}
 
-		template<Scalar S> friend constexpr auto distance(Vector const left, Vector<S, D> const right)
+		template<Scalar S> friend constexpr auto distance(Vector left, Vector<S, D> right)
 		{
 			return length(left - right);
 		}
 
-		friend constexpr auto sqrt(Vector const vec)
+		friend constexpr auto sqrt(Vector vec)
 		{
 			return apply(vec, [](auto component) { return std::sqrt(component); });
 		}
 
-		friend constexpr auto invSqrt(Vector const vec)
+		friend constexpr auto invSqrt(Vector vec)
 		{
 			return 1.0f / sqrt(vec);
 		}
 
-		friend constexpr auto sin(Vector const vec)
+		friend constexpr auto sin(Vector vec)
 		{
 			return apply(vec, [](auto component) { return std::sin(component); });
 		}
 
-		friend constexpr auto cos(Vector const vec)
+		friend constexpr auto cos(Vector vec)
 		{
 			return apply(vec, [](auto component) { return std::cos(component); });
 		}
 	};
 
 	export template<typename T, Scalar S>
-	constexpr auto cross(Vector<T, 3> const left, Vector<S, 3> const right) noexcept -> Vector<decltype(left[0] * right[0]), 3>
+	constexpr auto cross(Vector<T, 3> left, Vector<S, 3> right) noexcept -> Vector<decltype(left[0] * right[0]), 3>
 	{
 		return {left.y * right.z - right.y * left.z, left.z * right.x - right.z * left.x, left.x * right.y - right.x * left.y};
 	}

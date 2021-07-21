@@ -6,7 +6,7 @@ export module Vitro.Trace.SignalHandler;
 
 namespace vt
 {
-	void crash(std::string_view const crashMessage)
+	void crash(std::string_view crashMessage)
 	{
 		std::printf("Critical failure: %s", crashMessage.data());
 		std::exit(EXIT_FAILURE);

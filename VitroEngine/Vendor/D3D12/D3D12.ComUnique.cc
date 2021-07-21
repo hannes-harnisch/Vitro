@@ -6,7 +6,7 @@ import Vitro.Core.Unique;
 
 namespace vt::d3d12
 {
-	void deleteInterface(IUnknown* const ptr)
+	void deleteInterface(IUnknown* ptr)
 	{
 		ptr->Release();
 	}

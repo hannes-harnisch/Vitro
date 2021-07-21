@@ -56,31 +56,31 @@ namespace vt
 		friend class Log;
 
 	public:
-		void disableChannel(LogChannel const channel)
+		void disableChannel(LogChannel channel)
 		{
-			std::lock_guard const lock(mutex);
-			size_t const channelIndex = *getEnumIndex(channel);
+			std::lock_guard lock(mutex);
+			size_t channelIndex = *getEnumIndex(channel);
 			disabledChannels.set(channelIndex, true);
 		}
 
-		void enableChannel(LogChannel const channel)
+		void enableChannel(LogChannel channel)
 		{
-			std::lock_guard const lock(mutex);
-			size_t const channelIndex = *getEnumIndex(channel);
+			std::lock_guard lock(mutex);
+			size_t channelIndex = *getEnumIndex(channel);
 			disabledChannels.set(channelIndex, false);
 		}
 
-		void disableLevel(LogLevel const level)
+		void disableLevel(LogLevel level)
 		{
-			std::lock_guard const lock(mutex);
-			size_t const levelIndex = *getEnumIndex(level);
+			std::lock_guard lock(mutex);
+			size_t levelIndex = *getEnumIndex(level);
 			disabledChannels.set(levelIndex, true);
 		}
 
-		void enableLevel(LogLevel const level)
+		void enableLevel(LogLevel level)
 		{
-			std::lock_guard const lock(mutex);
-			size_t const levelIndex = *getEnumIndex(level);
+			std::lock_guard lock(mutex);
+			size_t levelIndex = *getEnumIndex(level);
 			disabledChannels.set(levelIndex, false);
 		}
 
@@ -100,7 +100,7 @@ namespace vt
 		std::bitset<sizeFromEnumMax<LogLevel>()> disabledLevels;
 		std::atomic_bool isAcceptingLogs = true;
 
-		static std::string_view prepareArgument(bool const arg)
+		static std::string_view prepareArgument(bool arg)
 		{
 			return arg ? "true" : "false";
 		}
@@ -110,7 +110,7 @@ namespace vt
 			return std::to_string(arg);
 		}
 
-		template<typename E> static std::string_view prepareArgument(E const arg) requires std::is_enum_v<E>
+		template<typename TEnum> static std::string_view prepareArgument(TEnum arg) requires std::is_enum_v<TEnum>
 		{
 			return enum_name(arg);
 		}
@@ -137,10 +137,10 @@ namespace vt
 			return str;
 		}
 
-		static std::string makeTimestamp(std::chrono::system_clock::duration const now)
+		static std::string makeTimestamp(std::chrono::system_clock::duration now)
 		{
 			using namespace std::chrono;
-			int64_t const secs = duration_cast<seconds>(now).count();
+			int64_t secs = duration_cast<seconds>(now).count();
 			std::tm calendarTime;
 			localtime_s(&calendarTime, &secs);
 
@@ -151,7 +151,7 @@ namespace vt
 
 		Logger() = default;
 
-		template<typename... Ts> void submit(LogLevel const level, LogChannel const channel, Ts&&... ts)
+		template<typename... Ts> void submit(LogLevel level, LogChannel channel, Ts&&... ts)
 		{
 			if(isLevelDisabled(level) || isChannelDisabled(channel))
 				return;
@@ -160,23 +160,23 @@ namespace vt
 			condition.notify_one();
 		}
 
-		bool isChannelDisabled(LogChannel const channel) const
+		bool isChannelDisabled(LogChannel channel) const
 		{
-			size_t const channelIndex = *getEnumIndex(channel);
+			size_t channelIndex = *getEnumIndex(channel);
 			return disabledChannels.test(channelIndex);
 		}
 
-		bool isLevelDisabled(LogLevel const level) const
+		bool isLevelDisabled(LogLevel level) const
 		{
-			size_t const levelIndex = *getEnumIndex(level);
+			size_t levelIndex = *getEnumIndex(level);
 			return disabledLevels.test(levelIndex);
 		}
 
-		void enqueue(LogLevel const level, LogChannel const channel, std::string message)
+		void enqueue(LogLevel level, LogChannel channel, std::string message)
 		{
-			auto const now = std::chrono::system_clock::now().time_since_epoch();
+			auto now = std::chrono::system_clock::now().time_since_epoch();
 
-			std::lock_guard const lock(mutex);
+			std::lock_guard lock(mutex);
 			queue.emplace(level, channel, now, std::move(message));
 		}
 
@@ -197,7 +197,7 @@ namespace vt
 			if(!isAcceptingLogs)
 				return;
 
-			auto const entry = dequeue();
+			auto entry = dequeue();
 			lock.unlock();
 
 			writeLog(entry);
@@ -212,14 +212,14 @@ namespace vt
 
 		void writeLog(Entry const& entry)
 		{
-			auto const level   = getEnumName(entry.level);
-			auto const channel = getEnumName(entry.channel);
+			auto level	 = getEnumName(entry.level);
+			auto channel = getEnumName(entry.channel);
 
 			using namespace std::chrono;
-			auto const timestamp	= makeTimestamp(entry.time);
-			int64_t const millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
+			auto timestamp	  = makeTimestamp(entry.time);
+			int64_t millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
 
-			auto const escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
+			auto escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
 			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ] %s\n", escCodeParams, timestamp.data(), millisecs, level.data(),
 						channel.data(), entry.message.data());
 		}
@@ -233,16 +233,16 @@ namespace vt
 
 	consteval LogChannel extractChannelFromPath(std::string_view path)
 	{
-		size_t const dirBegin	= path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
-		auto const pathAfterDir = path.substr(dirBegin);
-		size_t const dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
-		auto const dir			= pathAfterDir.substr(0, dirEnd);
-		auto const channel		= toEnum<LogChannel>(dir);
+		size_t dirBegin	  = path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
+		auto pathAfterDir = path.substr(dirBegin);
+		size_t dirEnd	  = pathAfterDir.find(std::filesystem::path::preferred_separator);
+		auto dir		  = pathAfterDir.substr(0, dirEnd);
+		auto channel	  = toEnum<LogChannel>(dir);
 
-		auto const restPath		 = pathAfterDir.substr(dirEnd + 1);
-		size_t const vendorEnd	 = restPath.find(std::filesystem::path::preferred_separator);
-		auto const vendorDir	 = restPath.substr(0, vendorEnd);
-		auto const vendorChannel = toEnum<LogChannel>(vendorDir);
+		auto restPath	   = pathAfterDir.substr(dirEnd + 1);
+		size_t vendorEnd   = restPath.find(std::filesystem::path::preferred_separator);
+		auto vendorDir	   = restPath.substr(0, vendorEnd);
+		auto vendorChannel = toEnum<LogChannel>(vendorDir);
 
 		return channel.value_or(vendorChannel.value_or(LogChannel::Client));
 	}
@@ -288,7 +288,7 @@ namespace vt
 	private:
 		LogChannel channel;
 
-		template<typename... Ts> void log(LogLevel const level, Ts&&... ts) const
+		template<typename... Ts> void log(LogLevel level, Ts&&... ts) const
 		{
 			Logger::get().submit(level, channel, std::forward<Ts>(ts)...);
 		}

@@ -8,7 +8,7 @@ namespace vt
 	export class EventBinding
 	{
 	public:
-		template<typename... Hs> EventBinding(void* target, Hs... handlers) : target(target)
+		template<typename... THandlers> EventBinding(void* target, THandlers... handlers) : target(target)
 		{
 			(submitHandler(handlers), ...);
 		}
@@ -24,23 +24,23 @@ namespace vt
 	private:
 		void* target;
 
-		template<typename C, typename E> void submitHandler(bool (C::*handler)(E&))
+		template<typename TClass, typename TEvent> void submitHandler(bool (TClass::*handler)(TEvent&))
 		{
 			auto func = [=](Event& e) {
-				E& event = static_cast<E&>(e);
-				return (static_cast<C*>(target)->*handler)(event);
+				auto& event = static_cast<TEvent&>(e);
+				return (static_cast<TClass*>(target)->*handler)(event);
 			};
-			EventSystem::get().submitHandler(func, typeid(E), target);
+			EventSystem::get().submitHandler(func, typeid(TEvent), target);
 		}
 
-		template<typename C, typename E> void submitHandler(void (C::*handler)(E&))
+		template<typename TClass, typename TEvent> void submitHandler(void (TClass::*handler)(TEvent&))
 		{
 			auto func = [=](Event& e) {
-				E& event = static_cast<E&>(e);
-				(static_cast<C*>(target)->*handler)(event);
+				auto& event = static_cast<TEvent&>(e);
+				(static_cast<TClass*>(target)->*handler)(event);
 				return false;
 			};
-			EventSystem::get().submitHandler(func, typeid(E), target);
+			EventSystem::get().submitHandler(func, typeid(TEvent), target);
 		}
 	};
 }
