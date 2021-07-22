@@ -26,34 +26,34 @@ namespace vt::d3d12
 			copyQueue(device, D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
 
-		void submitCopyCommands(std::span<vt::CommandListHandle const> commands) override
+		void submitCopyCommands(std::span<vt::CommandListHandle const> commandLists) override
 		{
 #if VT_DEBUG
-			for(auto handle : commands)
-				vtAssert(handle.d3d12.commandType == CommandType::Copy,
+			for(auto list : commandLists)
+				vtAssert(list.d3d12.commandType == CommandType::Copy,
 						 "All command lists for this submission must be copy command lists.");
 #endif
-			copyQueue.submit(commands);
+			copyQueue.submit(commandLists);
 		}
 
-		void submitComputeCommands(std::span<vt::CommandListHandle const> commands) override
+		void submitComputeCommands(std::span<vt::CommandListHandle const> commandLists) override
 		{
 #if VT_DEBUG
-			for(auto handle : commands)
-				vtAssert(handle.d3d12.commandType == CommandType::Compute,
+			for(auto list : commandLists)
+				vtAssert(list.d3d12.commandType == CommandType::Compute,
 						 "All command lists for this submission must be compute command lists.");
 #endif
-			computeQueue.submit(commands);
+			computeQueue.submit(commandLists);
 		}
 
-		void submitRenderCommands(std::span<vt::CommandListHandle const> commands) override
+		void submitRenderCommands(std::span<vt::CommandListHandle const> commandLists) override
 		{
 #if VT_DEBUG
-			for(auto handle : commands)
-				vtAssert(handle.d3d12.commandType == CommandType::Render,
+			for(auto list : commandLists)
+				vtAssert(list.d3d12.commandType == CommandType::Render,
 						 "All command lists for this submission must be render command lists.");
 #endif
-			renderQueue.submit(commands);
+			renderQueue.submit(commandLists);
 		}
 
 		ID3D12Device1* handle()
@@ -77,8 +77,6 @@ namespace vt::d3d12
 		}
 
 	private:
-		constexpr static D3D_FEATURE_LEVEL TargetFeatureLevel = D3D_FEATURE_LEVEL_11_0;
-
 		ComUnique<ID3D12Device1> device;
 		Queue renderQueue;
 		Queue computeQueue;
@@ -88,7 +86,7 @@ namespace vt::d3d12
 		{
 			auto d3d12CreateDevice = driver.d3d12.deviceCreationFunction();
 			ComUnique<ID3D12Device1> device;
-			auto result = d3d12CreateDevice(adapter.d3d12.handle(), TargetFeatureLevel, IID_PPV_ARGS(&device));
+			auto result = d3d12CreateDevice(adapter.d3d12.handle(), Driver::FeatureLevel, IID_PPV_ARGS(&device));
 			vtEnsureResult(result, "Failed to create D3D12 device.");
 			return device;
 		}

@@ -18,14 +18,14 @@ namespace vt::d3d12
 			queue(makeQueue(device, commandType)), fence(makeFence(device)), fenceEvent(makeEvent())
 		{}
 
-		void submit(std::span<vt::CommandListHandle const> commands)
+		void submit(std::span<vt::CommandListHandle const> commandLists)
 		{
-			UINT count = static_cast<UINT>(commands.size());
-			auto data  = reinterpret_cast<ID3D12CommandList* const*>(commands.data());
+			UINT count = static_cast<UINT>(commandLists.size());
+			auto data  = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
 			queue->ExecuteCommandLists(count, data);
 		}
 
-		uint64_t signal(uint64_t fenceValue)
+		uint64_t signal()
 		{
 			uint64_t valueToAwait = ++fenceValue;
 
@@ -35,19 +35,24 @@ namespace vt::d3d12
 			return valueToAwait;
 		}
 
-		void awaitFenceValue(uint64_t fenceValue)
+		bool isFenceComplete(uint64_t valueToCheck) const
 		{
-			if(fence->GetCompletedValue() < fenceValue)
-			{
-				auto result = fence->SetEventOnCompletion(fenceValue, fenceEvent);
-				vtAssertResult(result, "Failed to set event on graphics fence completion.");
-				::WaitForSingleObject(fenceEvent, INFINITE);
-			}
+			return fence->GetCompletedValue() >= valueToCheck;
 		}
 
-		void flush(uint64_t fenceValue)
+		void awaitFenceValue(uint64_t valueToAwait)
 		{
-			awaitFenceValue(signal(fenceValue));
+			if(isFenceComplete(valueToAwait))
+				return;
+
+			auto result = fence->SetEventOnCompletion(valueToAwait, fenceEvent);
+			vtAssertResult(result, "Failed to set event on graphics fence completion.");
+			::WaitForSingleObject(fenceEvent, INFINITE);
+		}
+
+		void flush()
+		{
+			awaitFenceValue(signal());
 		}
 
 		ID3D12CommandQueue* handle()
@@ -56,6 +61,7 @@ namespace vt::d3d12
 		}
 
 	private:
+		uint64_t fenceValue = 0;
 		ComUnique<ID3D12CommandQueue> queue;
 		ComUnique<ID3D12Fence> fence;
 		Unique<HANDLE, ::CloseHandle> fenceEvent;
@@ -71,12 +77,12 @@ namespace vt::d3d12
 			return queue;
 		}
 
-		static ComUnique<ID3D12Fence> makeFence(ID3D12Device* device)
+		ComUnique<ID3D12Fence> makeFence(ID3D12Device* device)
 		{
-			ComUnique<ID3D12Fence> fence;
-			auto result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence));
+			ComUnique<ID3D12Fence> queueFence;
+			auto result = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&queueFence));
 			vtEnsureResult(result, "Failed to create D3D12 fence.");
-			return fence;
+			return queueFence;
 		}
 
 		static Unique<HANDLE, ::CloseHandle> makeEvent()

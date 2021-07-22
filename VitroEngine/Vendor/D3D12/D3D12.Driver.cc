@@ -17,6 +17,8 @@ namespace vt::d3d12
 	export class Driver final : public DriverBase
 	{
 	public:
+		static constexpr D3D_FEATURE_LEVEL FeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
 		Driver() :
 			d3d12("d3d12"),
 			dxgi("dxgi"),
@@ -34,10 +36,18 @@ namespace vt::d3d12
 			std::vector<vt::Adapter> adapters;
 			for(UINT index = 0;; ++index)
 			{
-				ComUnique<IDXGIAdapter> adapter;
-				auto result = factory->EnumAdapters(index, &adapter);
+				ComUnique<IDXGIAdapter1> adapter;
+				auto result = factory->EnumAdapters1(index, &adapter);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
+
+				DXGI_ADAPTER_DESC1 desc;
+				result = adapter->GetDesc1(&desc);
+				vtEnsureResult(result, "Failed to get D3D12 adapter info.");
+
+				bool cannotMakeDevice = FAILED(d3d12CreateDevice(adapter, FeatureLevel, __uuidof(ID3D12Device), nullptr));
+				if(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE || cannotMakeDevice)
+					continue;
 
 				adapters.emplace_back(std::move(adapter));
 			}

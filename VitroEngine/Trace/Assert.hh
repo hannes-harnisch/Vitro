@@ -7,7 +7,7 @@
 
 #if VT_DEBUG
 
-	#define vtEnsure(condition, message,...)                                                                                       \
+	#define vtEnsure(condition, message, ...)                                                                                  \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 				vtDebugBreak();                                                                                                \
@@ -23,7 +23,7 @@
 	#define vtEnsure(condition, message, ...)                                                                                  \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
-				throw std::runtime_error(std::format("Assertion failed: " message, __VA_ARGS__));                              \
+				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
 		}
 
 	#define vtAssertPure(condition, message)

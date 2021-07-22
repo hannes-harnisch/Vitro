@@ -15,7 +15,7 @@ namespace vt
 
 		~EventBinding()
 		{
-			EventSystem::get().removeHandlersByTarget(target);
+			EventSystem::removeHandlersByTarget(target);
 		}
 
 		EventBinding(EventBinding const&) = delete;
@@ -30,7 +30,7 @@ namespace vt
 				auto& event = static_cast<TEvent&>(e);
 				return (static_cast<TClass*>(target)->*handler)(event);
 			};
-			EventSystem::get().submitHandler(func, typeid(TEvent), target);
+			EventSystem::submitHandler(func, typeid(TEvent), target);
 		}
 
 		template<typename TClass, typename TEvent> void submitHandler(void (TClass::*handler)(TEvent&))
@@ -40,7 +40,7 @@ namespace vt
 				(static_cast<TClass*>(target)->*handler)(event);
 				return false;
 			};
-			EventSystem::get().submitHandler(func, typeid(TEvent), target);
+			EventSystem::submitHandler(func, typeid(TEvent), target);
 		}
 	};
 }

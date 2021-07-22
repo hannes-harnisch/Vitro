@@ -2,7 +2,7 @@ module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.DeferredDeleter;
 
-import Vitro.Core.ReaderWriterQueue;
+import Vitro.Core.ConcurrentQueue;
 import Vitro.Graphics.DeferredDeleterBase;
 
 namespace vt::d3d12

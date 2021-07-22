@@ -3,17 +3,21 @@ module;
 
 #include <bitset>
 #include <concepts>
+#include <concurrentqueue/concurrentqueue.h> // TODO: Remove when type export doesn't crash compiler
 #include <condition_variable>
 #include <cstdio>
 #include <filesystem>
 #include <mutex>
-#include <queue>
+#include <ranges>
 #include <source_location>
 #include <string_view>
 export module Vitro.Trace.Log;
 
+import Vitro.Core.ConcurrentQueue;
 import Vitro.Core.Singleton;
 import Vitro.Trace.LogLevel;
+
+using namespace moodycamel; // TODO: Remove when type export doesn't crash compiler
 
 namespace vt
 {
@@ -45,43 +49,30 @@ namespace vt
 		std::to_string(t);
 	};
 
-	template<typename T> concept IsStringLike = requires(T t)
-	{
-		std::string(t);
-	};
-
 	export class Logger : public Singleton<Logger>
 	{
 		friend class TraceSystem;
 		friend class Log;
 
 	public:
-		void disableChannel(LogChannel channel)
+		static void disableChannel(LogChannel channel)
 		{
-			std::lock_guard lock(mutex);
-			size_t channelIndex = *getEnumIndex(channel);
-			disabledChannels.set(channelIndex, true);
+			get().atomicallySetDisabledChannels(channel, true);
 		}
 
-		void enableChannel(LogChannel channel)
+		static void enableChannel(LogChannel channel)
 		{
-			std::lock_guard lock(mutex);
-			size_t channelIndex = *getEnumIndex(channel);
-			disabledChannels.set(channelIndex, false);
+			get().atomicallySetDisabledChannels(channel, false);
 		}
 
-		void disableLevel(LogLevel level)
+		static void disableLevel(LogLevel level)
 		{
-			std::lock_guard lock(mutex);
-			size_t levelIndex = *getEnumIndex(level);
-			disabledChannels.set(levelIndex, true);
+			get().atomicallySetDisabledLevels(level, true);
 		}
 
-		void enableLevel(LogLevel level)
+		static void enableLevel(LogLevel level)
 		{
-			std::lock_guard lock(mutex);
-			size_t levelIndex = *getEnumIndex(level);
-			disabledChannels.set(levelIndex, false);
+			get().atomicallySetDisabledLevels(level, false);
 		}
 
 	private:
@@ -93,11 +84,12 @@ namespace vt
 			std::string message;
 		};
 
-		std::queue<Entry> queue;
+		ConcurrentQueue<Entry> queue;
+		ConsumerToken consumerToken;
 		std::mutex mutex;
 		std::condition_variable condition;
-		std::bitset<sizeFromEnumMax<LogChannel>()> disabledChannels;
-		std::bitset<sizeFromEnumMax<LogLevel>()> disabledLevels;
+		std::atomic<std::bitset<sizeFromEnumMax<LogChannel>()>> disabledChannels;
+		std::atomic<std::bitset<sizeFromEnumMax<LogLevel>()>> disabledLevels;
 		std::atomic_bool isAcceptingLogs = true;
 
 		static std::string_view prepareArgument(bool arg)
@@ -112,12 +104,15 @@ namespace vt
 
 		template<typename TEnum> static std::string_view prepareArgument(TEnum arg) requires std::is_enum_v<TEnum>
 		{
-			return enum_name(arg);
+			return getEnumName(arg);
 		}
 
-		static std::string prepareArgument(IsStringLike auto&& arg)
+		template<typename T>
+		static std::string_view prepareArgument(T&& arg) requires(std::same_as<T, std::string> ||
+																  std::same_as<T, std::string_view> ||
+																  std::convertible_to<T, char const*>)
 		{
-			return std::string(arg);
+			return arg;
 		}
 
 		static std::string prepareArgument(IndirectlyConvertibleToString auto&& arg)
@@ -133,7 +128,7 @@ namespace vt
 		template<typename... Ts> static std::string makeMessage(Ts&&... ts)
 		{
 			std::string str;
-			((str += prepareArgument(std::forward<Ts>(ts)) + ' '), ...);
+			((str += prepareArgument(std::forward<Ts>(ts))), ...);
 			return str;
 		}
 
@@ -149,65 +144,68 @@ namespace vt
 			return timestamp;
 		}
 
-		Logger() = default;
+		Logger() : consumerToken(queue)
+		{}
 
 		template<typename... Ts> void submit(LogLevel level, LogChannel channel, Ts&&... ts)
 		{
-			if(isLevelDisabled(level) || isChannelDisabled(channel))
-				return;
+			if(!isLevelDisabled(level) && !isChannelDisabled(channel))
+				enqueue(level, channel, makeMessage(std::forward<Ts>(ts)...));
+		}
 
-			enqueue(level, channel, makeMessage(std::forward<Ts>(ts)...));
+		void enqueue(LogLevel level, LogChannel channel, std::string message)
+		{
+			thread_local static ProducerToken const producerToken(queue);
+			auto now = std::chrono::system_clock::now().time_since_epoch();
+			queue.enqueue(producerToken, {level, channel, now, std::move(message)});
 			condition.notify_one();
+		}
+
+		void atomicallySetDisabledChannels(LogChannel channel, bool value)
+		{
+			auto channels = disabledChannels.load();
+			size_t index  = *getEnumIndex(channel);
+			channels.set(index, value);
+			disabledChannels.store(channels);
+		}
+
+		void atomicallySetDisabledLevels(LogLevel level, bool value)
+		{
+			auto levels	 = disabledLevels.load();
+			size_t index = *getEnumIndex(level);
+			levels.set(index, value);
+			disabledLevels.store(levels);
 		}
 
 		bool isChannelDisabled(LogChannel channel) const
 		{
 			size_t channelIndex = *getEnumIndex(channel);
-			return disabledChannels.test(channelIndex);
+			return disabledChannels.load().test(channelIndex);
 		}
 
 		bool isLevelDisabled(LogLevel level) const
 		{
 			size_t levelIndex = *getEnumIndex(level);
-			return disabledLevels.test(levelIndex);
-		}
-
-		void enqueue(LogLevel level, LogChannel channel, std::string message)
-		{
-			auto now = std::chrono::system_clock::now().time_since_epoch();
-
-			std::lock_guard lock(mutex);
-			queue.emplace(level, channel, now, std::move(message));
+			return disabledLevels.load().test(levelIndex);
 		}
 
 		void runLogProcessing()
 		{
 			while(isAcceptingLogs)
-				processQueue();
-
-			while(!queue.empty())
-				writeLog(dequeue());
+				flushQueue();
 		}
 
-		void processQueue()
+		void flushQueue()
 		{
 			std::unique_lock lock(mutex);
-			condition.wait(lock, [&] { return !queue.empty() || !isAcceptingLogs; });
-
-			if(!isAcceptingLogs)
-				return;
-
-			auto entry = dequeue();
+			condition.wait(lock);
 			lock.unlock();
 
-			writeLog(entry);
-		}
-
-		Entry dequeue()
-		{
-			auto entry = std::move(queue.front());
-			queue.pop();
-			return entry;
+			constexpr unsigned MaxEntriesDequeued = 100;
+			Entry entries[MaxEntriesDequeued];
+			size_t count = queue.try_dequeue_bulk(consumerToken, entries, MaxEntriesDequeued);
+			for(auto const& entry : std::views::take(entries, count))
+				writeLog(entry);
 		}
 
 		void writeLog(Entry const& entry)
@@ -227,7 +225,7 @@ namespace vt
 		void quit()
 		{
 			isAcceptingLogs = false;
-			condition.notify_all();
+			condition.notify_one();
 		}
 	};
 

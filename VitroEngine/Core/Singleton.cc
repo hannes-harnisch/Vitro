@@ -17,6 +17,9 @@ namespace vt
 			return *instance;
 		}
 
+		Singleton(Singleton const&) = delete;
+		Singleton& operator=(Singleton const&) = delete;
+
 	protected:
 		static inline T* instance;
 

@@ -189,7 +189,7 @@ namespace vt::d3d12
 		}
 
 	private:
-		constexpr static D3D12_COMMAND_LIST_TYPE D3D12CommandType = convertCommandType(Type);
+		static constexpr D3D12_COMMAND_LIST_TYPE D3D12CommandType = convertCommandType(Type);
 
 		ComUnique<ID3D12CommandAllocator> allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;

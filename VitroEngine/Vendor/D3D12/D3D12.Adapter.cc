@@ -14,22 +14,22 @@ namespace vt::d3d12
 	export class Adapter final : public AdapterBase
 	{
 	public:
-		Adapter(ComUnique<IDXGIAdapter> adapterHandle) : adapter(std::move(adapterHandle))
+		Adapter(ComUnique<IDXGIAdapter1> adapterHandle) : adapter(std::move(adapterHandle))
 		{
-			DXGI_ADAPTER_DESC desc;
-			auto result = adapter->GetDesc(&desc);
+			DXGI_ADAPTER_DESC1 desc;
+			auto result = adapter->GetDesc1(&desc);
 			vtEnsureResult(result, "Failed to get D3D12 adapter info.");
 
 			name = windows::narrowString(desc.Description);
 			vram = desc.DedicatedVideoMemory;
 		}
 
-		IDXGIAdapter* handle()
+		IDXGIAdapter1* handle()
 		{
 			return adapter;
 		}
 
 	private:
-		ComUnique<IDXGIAdapter> adapter;
+		ComUnique<IDXGIAdapter1> adapter;
 	};
 }

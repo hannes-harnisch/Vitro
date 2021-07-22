@@ -114,7 +114,7 @@ namespace vt::windows
 				return;
 
 			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
-			EventSystem::get().notify<WindowMoveEvent>(*window, position);
+			EventSystem::notify<WindowMoveEvent>(*window, position);
 		}
 
 		void onWindowSize(HWND hwnd, LPARAM lp)
@@ -124,7 +124,7 @@ namespace vt::windows
 				return;
 
 			Extent size(LOWORD(lp), HIWORD(lp));
-			EventSystem::get().notify<WindowSizeEvent>(*window, size);
+			EventSystem::notify<WindowSizeEvent>(*window, size);
 		}
 
 		void restoreWindowCursorState(HWND hwnd, WPARAM wp)
@@ -141,7 +141,7 @@ namespace vt::windows
 		{
 			auto window = findWindow(hwnd);
 			if(window)
-				EventSystem::get().notify<E>(*window);
+				EventSystem::notify<E>(*window);
 		}
 
 		void onWindowClose(HWND hwnd)
@@ -174,7 +174,7 @@ namespace vt::windows
 			auto input = new(bytes.data()) RAWINPUT;
 
 			Int2 direction {input->data.mouse.lLastX, input->data.mouse.lLastY};
-			EventSystem::get().notify<MouseMoveEvent>(*window, lastMousePosition, direction);
+			EventSystem::notify<MouseMoveEvent>(*window, lastMousePosition, direction);
 		}
 
 		void onKeyDown(HWND hwnd, WPARAM wp)
@@ -189,7 +189,7 @@ namespace vt::windows
 
 			auto window = findWindow(hwnd);
 			if(window)
-				EventSystem::get().notify<KeyDownEvent>(*window, key, keyRepeats);
+				EventSystem::notify<KeyDownEvent>(*window, key, keyRepeats);
 		}
 
 		void onKeyUp(HWND hwnd, WPARAM wp)
@@ -202,7 +202,7 @@ namespace vt::windows
 				return;
 
 			auto key = static_cast<KeyCode>(wp);
-			EventSystem::get().notify<KeyUpEvent>(*window, key);
+			EventSystem::notify<KeyUpEvent>(*window, key);
 		}
 
 		void onKeyText(HWND hwnd, WPARAM wp)
@@ -212,7 +212,7 @@ namespace vt::windows
 				return;
 
 			wchar_t const chars[] {static_cast<wchar_t>(wp), L'\0'};
-			EventSystem::get().notify<KeyTextEvent>(*window, lastKeyCode, narrowString(chars));
+			EventSystem::notify<KeyTextEvent>(*window, lastKeyCode, narrowString(chars));
 		}
 
 		void storeLastMousePosition(LPARAM lp)
@@ -227,7 +227,7 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			EventSystem::get().notify<E>(*window, button);
+			EventSystem::notify<E>(*window, button);
 		}
 
 		void onVerticalScroll(HWND hwnd, WPARAM wp)
@@ -237,7 +237,7 @@ namespace vt::windows
 				return;
 
 			Float2 offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
-			EventSystem::get().notify<MouseScrollEvent>(*window, offset);
+			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}
 
 		void onHorizontalScroll(HWND hwnd, WPARAM wp)
@@ -247,7 +247,7 @@ namespace vt::windows
 				return;
 
 			Float2 offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
-			EventSystem::get().notify<MouseScrollEvent>(*window, offset);
+			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}
 	};
 }

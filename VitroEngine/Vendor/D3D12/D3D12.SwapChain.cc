@@ -14,7 +14,7 @@ namespace vt::d3d12
 	export class SwapChain final : public SwapChainBase
 	{
 	public:
-		SwapChain(vt::Device& device, void* nativeWindow, unsigned bufferCount) :
+		SwapChain(vt::Device& device, void* nativeWindow, unsigned bufferCount = DefaultBufferCount) :
 			bufferCount(bufferCount),
 			presentFlags(vt::Driver::get().d3d12.swapChainTearingAvailable() ? DXGI_PRESENT_ALLOW_TEARING : 0),
 			swapChain(makeSwapChain(device.d3d12.renderQueueHandle(), nativeWindow)),
@@ -23,7 +23,7 @@ namespace vt::d3d12
 			initializeRenderTargets(device.d3d12.handle());
 		}
 
-		unsigned queryRenderTargetIndex() override
+		unsigned getNextRenderTargetIndex() override
 		{
 			return swapChain->GetCurrentBackBufferIndex();
 		}
@@ -54,8 +54,6 @@ namespace vt::d3d12
 		}
 
 	private:
-		constexpr static unsigned MaxBufferCount = 3;
-
 		unsigned bufferCount;
 		UINT presentFlags;
 		ComUnique<IDXGISwapChain3> swapChain;

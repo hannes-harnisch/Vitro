@@ -24,29 +24,25 @@ namespace vt
 		friend class AppSystem;
 
 	public:
-		void notify(Unique<Event> event)
+		static void notify(Unique<Event> event)
 		{
-			{
-				std::lock_guard lock(mutex);
-				events.emplace(std::move(event));
-			}
-			condition.notify_one();
+			get().emplaceEvent(std::move(event));
 		}
 
-		template<typename TEvent, typename... Ts> void notify(Ts&&... ts)
+		template<typename TEvent, typename... Ts> static void notify(Ts&&... ts)
 		{
-			notify(Unique<TEvent>::from(std::forward<Ts>(ts)...));
+			get().emplaceEvent(Unique<TEvent>::from(std::forward<Ts>(ts)...));
 		}
 
-		template<typename... Ts> void submitHandler(Ts&&... ts)
+		template<typename... Ts> static void submitHandler(Ts&&... ts)
 		{
-			std::lock_guard lock(mutex);
-			handlers.emplace_back(std::forward<Ts>(ts)...);
+			std::lock_guard lock(get().mutex);
+			get().handlers.emplace_back(std::forward<Ts>(ts)...);
 		}
 
-		void removeHandlersByTarget(void* target)
+		static void removeHandlersByTarget(void* target)
 		{
-			std::erase_if(handlers, [=](EventHandler const& handler) { return handler.callTarget == target; });
+			std::erase_if(get().handlers, [=](EventHandler const& handler) { return handler.callTarget == target; });
 		}
 
 	private:
@@ -55,6 +51,15 @@ namespace vt
 		std::mutex mutex;
 		std::condition_variable condition;
 		std::atomic_bool isAcceptingEvents = true;
+
+		void emplaceEvent(Unique<Event> event)
+		{
+			{
+				std::lock_guard lock(mutex);
+				events.emplace(std::move(event));
+			}
+			condition.notify_one();
+		}
 
 		void runEventProcessing()
 		{

@@ -7,3 +7,6 @@
 [submodule "Dependencies/Array"]
 	path = Dependencies/Array
 	url = https://github.com/hannes-harnisch/Array
+[submodule "Dependencies/concurrentqueue"]
+	path = Dependencies/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue

@@ -18,8 +18,8 @@ namespace vt
 		{
 			ensureCallIsOnMainThread();
 
-			AppContextBase::get().notifyWindowMapping(handle(), *this);
-			GraphicsSystem::get().notifyWindowConstruction(*this, handle());
+			AppContextBase::notifyWindowMapping(handle(), *this);
+			GraphicsSystem::notifyWindowConstruction(*this, handle());
 		}
 
 		Window(Window&& other) noexcept(false) : Base(std::move(other))
@@ -47,14 +47,14 @@ namespace vt
 	private:
 		void notifyDestruction()
 		{
-			AppContextBase::get().notifyWindowDestruction(handle());
-			GraphicsSystem::get().notifyWindowDestruction(*this);
+			AppContextBase::notifyWindowDestruction(handle());
+			GraphicsSystem::notifyWindowDestruction(*this);
 		}
 
 		void notifyMove(Window& oldWindow)
 		{
-			AppContextBase::get().notifyWindowMapping(handle(), *this);
-			GraphicsSystem::get().notifyWindowReplacement(oldWindow, *this);
+			AppContextBase::notifyWindowMapping(handle(), *this);
+			GraphicsSystem::notifyWindowReplacement(oldWindow, *this);
 		}
 	};
 }

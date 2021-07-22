@@ -4,7 +4,7 @@ module;
 #include <new>
 export module Vitro.Graphics.DeferredDeleterBase;
 
-import Vitro.Core.ReaderWriterQueue;
+import Vitro.Core.ConcurrentQueue;
 import Vitro.Core.Singleton;
 import Vitro.Graphics.Handle;
 

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <format>
 #include <string>
 export module Vitro.Math.Rectangle;
@@ -31,7 +31,7 @@ namespace vt
 
 	export struct Viewport
 	{
-		constexpr static float UpperDepthLimit = 1.0f;
+		static constexpr float UpperDepthLimit = 1.0f;
 
 		float x		   = 0;
 		float y		   = 0;

@@ -1,4 +1,6 @@
 module;
+#include "Trace/Assert.hh"
+
 #include <algorithm>
 export module Vitro.Graphics.GraphicsSystem;
 
@@ -16,27 +18,30 @@ namespace vt
 	export class GraphicsSystem : public Singleton<GraphicsSystem>
 	{
 	public:
+		static void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
+		{
+			get().swapChains.try_emplace(&window, get().device, nativeWindowHandle);
+		}
+
+		static void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
+		{
+			auto swapChainNode	= get().swapChains.extract(&oldWindow);
+			swapChainNode.key() = &newWindow;
+			get().swapChains.insert(std::move(swapChainNode));
+		}
+
+		static void notifyWindowDestruction(Window const& window)
+		{
+			get().swapChains.erase(&window);
+		}
+
 		GraphicsSystem() : device(driver, selectAdapter()), renderer(device)
 		{}
 
 		void update()
-		{}
-
-		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, device, nativeWindowHandle, 2);
-		}
-
-		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
-		{
-			auto swapChainNode	= swapChains.extract(&oldWindow);
-			swapChainNode.key() = &newWindow;
-			swapChains.insert(std::move(swapChainNode));
-		}
-
-		void notifyWindowDestruction(Window const& window)
-		{
-			swapChains.erase(&window);
+			for(auto& [window, swapChain] : swapChains)
+				renderer.draw(swapChain);
 		}
 
 	private:
@@ -52,6 +57,7 @@ namespace vt
 			auto selected = std::max_element(adapters.begin(), adapters.end(), [](Adapter const& a1, Adapter const& a2) {
 				return a1->getVRAM() < a2->getVRAM();
 			});
+			vtEnsure(selected != adapters.end(), "No suitable GPUs found.");
 			return std::move(*selected);
 		}
 	};
