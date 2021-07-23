@@ -26,31 +26,31 @@ namespace vt::d3d12
 			copyQueue(device, D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
 
-		void submitCopyCommands(std::span<vt::CommandListHandle const> commandLists) override
+		void submitCopyCommands(std::span<CommandListHandle const> commandLists) override
 		{
 #if VT_DEBUG
 			for(auto list : commandLists)
-				vtAssert(list.d3d12.commandType == CommandType::Copy,
+				vtAssert(list.d3d12.handle->GetType() == D3D12_COMMAND_LIST_TYPE_COPY,
 						 "All command lists for this submission must be copy command lists.");
 #endif
 			copyQueue.submit(commandLists);
 		}
 
-		void submitComputeCommands(std::span<vt::CommandListHandle const> commandLists) override
+		void submitComputeCommands(std::span<CommandListHandle const> commandLists) override
 		{
 #if VT_DEBUG
 			for(auto list : commandLists)
-				vtAssert(list.d3d12.commandType == CommandType::Compute,
+				vtAssert(list.d3d12.handle->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE,
 						 "All command lists for this submission must be compute command lists.");
 #endif
 			computeQueue.submit(commandLists);
 		}
 
-		void submitRenderCommands(std::span<vt::CommandListHandle const> commandLists) override
+		void submitRenderCommands(std::span<CommandListHandle const> commandLists) override
 		{
 #if VT_DEBUG
 			for(auto list : commandLists)
-				vtAssert(list.d3d12.commandType == CommandType::Render,
+				vtAssert(list.d3d12.handle->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT,
 						 "All command lists for this submission must be render command lists.");
 #endif
 			renderQueue.submit(commandLists);

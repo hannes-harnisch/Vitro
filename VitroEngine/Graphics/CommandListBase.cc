@@ -5,6 +5,17 @@ import Vitro.Math.Rectangle;
 
 namespace vt
 {
+	export enum class CommandType {
+		Copy,
+		Compute,
+		Render,
+	};
+
+	export enum class IndexFormat {
+		UInt16,
+		UInt32,
+	};
+
 	export class CopyCommandListBase
 	{
 	public:
@@ -16,9 +27,10 @@ namespace vt
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
-		virtual void bindPipeline(PipelineHandle pipeline)						 = 0;
-		virtual void bindRootSignature(RootSignatureHandle rootSignature)		 = 0;
-		virtual void dispatch(unsigned xCount, unsigned yCount, unsigned zCount) = 0;
+		virtual void bindPipeline(PipelineHandle pipeline)							 = 0;
+		virtual void bindRootSignature(RootSignatureHandle rootSignature)			 = 0;
+		virtual void pushConstants(void const* data, unsigned size, unsigned offset) = 0;
+		virtual void dispatch(unsigned xCount, unsigned yCount, unsigned zCount)	 = 0;
 	};
 
 	export class RenderCommandListBase : public ComputeCommandListBase
@@ -27,6 +39,7 @@ namespace vt
 		virtual void beginRenderPass(RenderPassHandle renderPass, RenderTargetHandle renderTarget)					  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
+		virtual void bindIndexBuffer(BufferHandle buffer, IndexFormat format, unsigned offset)						  = 0;
 		virtual void bindViewport(Viewport viewport)																  = 0;
 		virtual void bindScissor(Rectangle scissor)																	  = 0;
 		virtual void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance) = 0;

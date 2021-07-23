@@ -10,7 +10,8 @@ namespace vt::d3d12
 	{
 		struct SubpassTransition
 		{
-			D3D12_RESOURCE_STATES before = {}, after = {};
+			D3D12_RESOURCE_STATES before = {};
+			D3D12_RESOURCE_STATES after	 = {};
 		};
 
 		D3D12_RENDER_PASS_BEGINNING_ACCESS colorBeginAccess	  = {};

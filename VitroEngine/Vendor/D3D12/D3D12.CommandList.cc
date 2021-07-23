@@ -7,7 +7,6 @@ import Vitro.D3D12.ComUnique;
 import Vitro.D3D12.RenderPass;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
-import Vitro.Graphics.CommandType;
 import Vitro.Graphics.Handle;
 import Vitro.Math.Rectangle;
 
@@ -20,6 +19,16 @@ namespace vt::d3d12
 			case CommandType::Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
 			case CommandType::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
 			case CommandType::Render: return D3D12_COMMAND_LIST_TYPE_DIRECT;
+		}
+		vtUnreachable();
+	}
+
+	constexpr DXGI_FORMAT convertIndexFormat(IndexFormat format)
+	{
+		switch(format)
+		{
+			case IndexFormat::UInt16: return DXGI_FORMAT_R16_UINT;
+			case IndexFormat::UInt32: return DXGI_FORMAT_R32_UINT;
 		}
 		vtUnreachable();
 	}
@@ -45,14 +54,9 @@ namespace vt::d3d12
 			allocator(makeAllocator(device.d3d12.handle())), cmd(makeCommandList(device.d3d12.handle()))
 		{}
 
-		vt::CommandListHandle handle() override
+		CommandListHandle handle() override
 		{
-			return {{
-				cmd,
-#if VT_DEBUG
-				Type,
-#endif
-			}};
+			return {cmd};
 		}
 
 		void begin() override
@@ -67,12 +71,15 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to end D3D12 command list.");
 		}
 
-		void bindPipeline(vt::PipelineHandle pipeline) override
+		void bindPipeline(PipelineHandle pipeline) override
 		{
 			cmd->SetPipelineState(pipeline.d3d12.handle);
+
+			if constexpr(Type == CommandType::Render)
+				cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
-		void bindRootSignature(vt::RootSignatureHandle rootSignature) override
+		void bindRootSignature(RootSignatureHandle rootSignature) override
 		{
 			if constexpr(Type == CommandType::Render)
 				cmd->SetGraphicsRootSignature(rootSignature.d3d12.handle);
@@ -82,33 +89,27 @@ namespace vt::d3d12
 				static_assert(false, "This command is not supported on copy command lists.");
 		}
 
+		void pushConstants(void const* data, unsigned size, unsigned offset) override
+		{
+			if constexpr(Type == CommandType::Render)
+				cmd->SetGraphicsRoot32BitConstants(0, size / sizeof(int), data, offset / sizeof(int));
+			else if constexpr(Type == CommandType::Compute)
+				cmd->SetComputeRoot32BitConstants(0, size / sizeof(int), data, offset / sizeof(int));
+			else
+				static_assert(false, "This command is not supported on copy command lists.");
+		}
+
 		void dispatch(unsigned xCount, unsigned yCount, unsigned zCount) override
 		{
 			cmd->Dispatch(xCount, yCount, zCount);
 		}
 
-		void beginRenderPass(vt::RenderPassHandle renderPass, vt::RenderTargetHandle renderTarget) override
+		void beginRenderPass(RenderPassHandle renderPass, RenderTargetHandle renderTarget) override
 		{
-			cmd->OMSetRenderTargets(1, &renderTarget.d3d12.rtv, true, &renderTarget.d3d12.dsv);
 			this->currentRenderPass	  = renderPass.d3d12.handle;
 			this->currentRenderTarget = renderTarget.d3d12.resource;
 
-			auto pass = this->currentRenderPass;
-			D3D12_RENDER_PASS_RENDER_TARGET_DESC const rtDesc {
-				.cpuDescriptor	 = renderTarget.d3d12.rtv,
-				.BeginningAccess = pass->colorBeginAccess,
-				.EndingAccess	 = pass->colorEndAccess,
-			};
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC const dsDesc {
-				.cpuDescriptor			= renderTarget.d3d12.dsv,
-				.DepthBeginningAccess	= pass->depthBeginAccess,
-				.StencilBeginningAccess = pass->stencilBeginAccess,
-				.DepthEndingAccess		= pass->depthEndAccess,
-				.StencilEndingAccess	= pass->stencilEndAccess,
-			};
-			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, pass->flags);
-
-			auto const& transition = pass->transitions.front();
+			auto const& transition = this->currentRenderPass->transitions.front();
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition =
 					{
@@ -119,6 +120,20 @@ namespace vt::d3d12
 					},
 			};
 			cmd->ResourceBarrier(1, &barrier);
+
+			D3D12_RENDER_PASS_RENDER_TARGET_DESC const rtDesc {
+				.cpuDescriptor	 = renderTarget.d3d12.rtv,
+				.BeginningAccess = this->currentRenderPass->colorBeginAccess,
+				.EndingAccess	 = this->currentRenderPass->colorEndAccess,
+			};
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC const dsDesc {
+				.cpuDescriptor			= renderTarget.d3d12.dsv,
+				.DepthBeginningAccess	= this->currentRenderPass->depthBeginAccess,
+				.StencilBeginningAccess = this->currentRenderPass->stencilBeginAccess,
+				.DepthEndingAccess		= this->currentRenderPass->depthEndAccess,
+				.StencilEndingAccess	= this->currentRenderPass->stencilEndAccess,
+			};
+			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, this->currentRenderPass->flags);
 		}
 
 		void transitionToNextSubpass() override
@@ -141,6 +156,9 @@ namespace vt::d3d12
 
 		void endRenderPass() override
 		{
+			cmd->EndRenderPass();
+			this->subpassIndex = 1;
+
 			auto const& transition = this->currentRenderPass->transitions.back();
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition =
@@ -152,9 +170,16 @@ namespace vt::d3d12
 					},
 			};
 			cmd->ResourceBarrier(1, &barrier);
+		}
 
-			cmd->EndRenderPass();
-			this->subpassIndex = 1;
+		void bindIndexBuffer(BufferHandle buffer, IndexFormat format, unsigned offset) override
+		{
+			D3D12_INDEX_BUFFER_VIEW const view {
+				.BufferLocation = buffer.d3d12.handle->GetGPUVirtualAddress() + offset,
+				.SizeInBytes	= 0, // TODO?
+				.Format			= convertIndexFormat(format),
+			};
+			cmd->IASetIndexBuffer(&view);
 		}
 
 		void bindViewport(Viewport const viewport) override

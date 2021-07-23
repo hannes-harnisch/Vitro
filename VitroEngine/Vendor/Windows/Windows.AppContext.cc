@@ -224,10 +224,8 @@ namespace vt::windows
 		template<typename E> void onMouseEvent(HWND hwnd, MouseCode button)
 		{
 			auto window = findWindow(hwnd);
-			if(!window)
-				return;
-
-			EventSystem::notify<E>(*window, button);
+			if(window)
+				EventSystem::notify<E>(*window, button);
 		}
 
 		void onVerticalScroll(HWND hwnd, WPARAM wp)

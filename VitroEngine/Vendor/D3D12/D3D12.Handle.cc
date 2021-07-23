@@ -3,46 +3,42 @@ module;
 export module Vitro.D3D12.Handle;
 
 import Vitro.D3D12.RenderPass;
-import Vitro.Graphics.CommandType;
 
 namespace vt::d3d12
 {
-	export struct BufferHandle
+	export struct PlatformBufferHandle
 	{
 		ID3D12Resource* handle = nullptr;
 	};
 
-	export struct CommandListHandle
+	export struct PlatformCommandListHandle
 	{
 		ID3D12CommandList* handle = nullptr;
-#if VT_DEBUG
-		CommandType commandType;
-#endif
 	};
 
-	export struct PipelineHandle
+	export struct PlatformPipelineHandle
 	{
 		ID3D12PipelineState* handle = nullptr;
 	};
 
-	export struct RenderPassHandle
+	export struct PlatformRenderPassHandle
 	{
 		RenderPass* handle = nullptr;
 	};
 
-	export struct RenderTargetHandle
+	export struct PlatformRenderTargetHandle
 	{
 		ID3D12Resource* resource		= nullptr;
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
 	};
 
-	export struct RootSignatureHandle
+	export struct PlatformRootSignatureHandle
 	{
 		ID3D12RootSignature* handle = nullptr;
 	};
 
-	export struct TextureHandle
+	export struct PlatformTextureHandle
 	{
 		ID3D12Resource* handle = nullptr;
 	};

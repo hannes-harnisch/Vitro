@@ -15,7 +15,7 @@ namespace vt::windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			library.reset(makeLibrary());
+			library = makeLibrary();
 			return library;
 		}
 

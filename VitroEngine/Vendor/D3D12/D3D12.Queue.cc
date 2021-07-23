@@ -18,7 +18,7 @@ namespace vt::d3d12
 			queue(makeQueue(device, commandType)), fence(makeFence(device)), fenceEvent(makeEvent())
 		{}
 
-		void submit(std::span<vt::CommandListHandle const> commandLists)
+		void submit(std::span<CommandListHandle const> commandLists)
 		{
 			UINT count = static_cast<UINT>(commandLists.size());
 			auto data  = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
@@ -35,9 +35,9 @@ namespace vt::d3d12
 			return valueToAwait;
 		}
 
-		bool isFenceComplete(uint64_t valueToCheck) const
+		bool isFenceComplete(uint64_t value) const
 		{
-			return fence->GetCompletedValue() >= valueToCheck;
+			return fence->GetCompletedValue() >= value;
 		}
 
 		void awaitFenceValue(uint64_t valueToAwait)

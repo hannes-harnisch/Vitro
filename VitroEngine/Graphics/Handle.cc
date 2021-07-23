@@ -9,9 +9,9 @@ namespace vt
 {
 #if VT_DYNAMIC_GRAPHICS_API
 
-	#define EXPORT_RESOURCE_HANDLE(Resource)                                                                                   \
-		export using Resource##Handle =                                                                                        \
-			Handle<VT_GRAPHICS_API_NAME_PRIMARY::Resource##Handle, VT_GRAPHICS_API_NAME::Resource##Handle>
+	#define EXPORT_HANDLE(resource)                                                                                            \
+		export using resource##Handle =                                                                                        \
+			Handle<VT_GRAPHICS_API_NAME_PRIMARY::Platform##resource##Handle, VT_GRAPHICS_API_NAME::Platform##resource##Handle>
 
 	template<typename TImpl1, typename TImpl2> union Handle
 	{
@@ -21,7 +21,8 @@ namespace vt
 
 #else
 
-	#define EXPORT_RESOURCE_HANDLE(Resource) export using Resource##Handle = Handle<VT_GRAPHICS_API_NAME::Resource##Handle>
+	#define EXPORT_RESOURCE_HANDLE(resource)                                                                                   \
+		export using resource##Handle = Handle<VT_GRAPHICS_API_NAME::Platform##resource##Handle>
 
 	template<typename T> struct Handle
 	{

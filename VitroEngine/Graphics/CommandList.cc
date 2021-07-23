@@ -1,7 +1,6 @@
 export module Vitro.Graphics.CommandList;
 
 import Vitro.Graphics.CommandListBase;
-import Vitro.Graphics.CommandType;
 import Vitro.Graphics.InterfaceVariant;
 
 #if VT_DYNAMIC_GRAPHICS_API

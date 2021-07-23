@@ -17,8 +17,6 @@ import Vitro.Core.ConcurrentQueue;
 import Vitro.Core.Singleton;
 import Vitro.Trace.LogLevel;
 
-using namespace moodycamel; // TODO: Remove when type export doesn't crash compiler
-
 namespace vt
 {
 	export enum class LogChannel : unsigned char {
@@ -155,7 +153,7 @@ namespace vt
 
 		void enqueue(LogLevel level, LogChannel channel, std::string message)
 		{
-			thread_local static ProducerToken const producerToken(queue);
+			static thread_local ProducerToken const producerToken(queue);
 			auto now = std::chrono::system_clock::now().time_since_epoch();
 			queue.enqueue(producerToken, {level, channel, now, std::move(message)});
 			condition.notify_one();
