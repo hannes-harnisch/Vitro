@@ -7,7 +7,7 @@ module;
 export module Vitro.D3D12.Driver;
 
 import Vitro.App.SharedLibrary;
-import Vitro.D3D12.ComUnique;
+import Vitro.D3D12.Utils;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DriverBase;
 import Vitro.Windows.StringUtils;
@@ -36,8 +36,9 @@ namespace vt::d3d12
 			std::vector<vt::Adapter> adapters;
 			for(UINT index = 0;; ++index)
 			{
-				ComUnique<IDXGIAdapter1> adapter;
-				auto result = factory->EnumAdapters1(index, &adapter);
+				IDXGIAdapter1* adapterPtr;
+				auto result = factory->EnumAdapters1(index, &adapterPtr);
+				ComUnique<IDXGIAdapter1> adapter(adapterPtr);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
 
@@ -45,7 +46,7 @@ namespace vt::d3d12
 				result = adapter->GetDesc1(&desc);
 				vtEnsureResult(result, "Failed to get D3D12 adapter info.");
 
-				bool cannotMakeDevice = FAILED(d3d12CreateDevice(adapter, FeatureLevel, __uuidof(ID3D12Device), nullptr));
+				bool cannotMakeDevice = FAILED(d3d12CreateDevice(adapter.get(), FeatureLevel, __uuidof(ID3D12Device), nullptr));
 				if(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE || cannotMakeDevice)
 					continue;
 
@@ -61,7 +62,7 @@ namespace vt::d3d12
 
 		IDXGIFactory5* handle()
 		{
-			return factory;
+			return factory.get();
 		}
 
 		bool swapChainTearingAvailable()
@@ -83,9 +84,9 @@ namespace vt::d3d12
 #endif
 		ComUnique<IDXGIFactory5> factory;
 
-		ComUnique<ID3D12Debug> makeDebugInterface()
+		ID3D12Debug* makeDebugInterface()
 		{
-			ComUnique<ID3D12Debug> debugInterface;
+			ID3D12Debug* debugInterface;
 			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 			vtEnsureResult(result, "Failed to get D3D12 debug interface.");
 
@@ -93,18 +94,19 @@ namespace vt::d3d12
 			return debugInterface;
 		}
 
-		ComUnique<IDXGIFactory5> makeFactory()
+		IDXGIFactory5* makeFactory()
 		{
 			UINT flags = 0;
 #if VT_DEBUG
 			flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 
-			ComUnique<IDXGIFactory2> proxyFactory;
-			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&proxyFactory));
+			IDXGIFactory2* factoryPtr;
+			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&factoryPtr));
+			ComUnique<IDXGIFactory2> proxyFactory(factoryPtr);
 			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
 
-			ComUnique<IDXGIFactory5> mainFactory;
+			IDXGIFactory5* mainFactory;
 			result = proxyFactory->QueryInterface(&mainFactory);
 			vtEnsureResult(result, "Failed to get main DXGI factory.");
 			return mainFactory;

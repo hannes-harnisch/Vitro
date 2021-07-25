@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Trace/Assert.hh"
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
@@ -10,8 +10,8 @@ import Vitro.App.MouseCode;
 import Vitro.App.Window;
 import Vitro.App.WindowEvent;
 import Vitro.Core.Array;
-import Vitro.Math.Rectangle;
-import Vitro.Math.Vector;
+import Vitro.Core.Rectangle;
+import Vitro.Core.Vector;
 import Vitro.Windows.StringUtils;
 
 namespace vt::windows

@@ -9,7 +9,7 @@ import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
 import Vitro.App.WindowEvent;
 import Vitro.Core.Singleton;
-import Vitro.Math.Vector;
+import Vitro.Core.Vector;
 
 namespace vt
 {

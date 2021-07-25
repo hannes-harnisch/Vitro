@@ -2,6 +2,7 @@ module;
 #include <atomic>
 #include <condition_variable>
 #include <functional>
+#include <memory>
 #include <mutex>
 #include <queue>
 #include <ranges>
@@ -14,7 +15,6 @@ export module Vitro.App.EventSystem;
 import Vitro.App.Event;
 import Vitro.App.EventHandler;
 import Vitro.Core.Singleton;
-import Vitro.Core.Unique;
 import Vitro.Trace.Log;
 
 namespace vt
@@ -24,14 +24,14 @@ namespace vt
 		friend class AppSystem;
 
 	public:
-		static void notify(Unique<Event> event)
+		static void notify(std::unique_ptr<Event> event)
 		{
 			get().emplaceEvent(std::move(event));
 		}
 
 		template<typename TEvent, typename... Ts> static void notify(Ts&&... ts)
 		{
-			get().emplaceEvent(Unique<TEvent>::from(std::forward<Ts>(ts)...));
+			get().emplaceEvent(std::make_unique<TEvent>(std::forward<Ts>(ts)...));
 		}
 
 		template<typename... Ts> static void submitHandler(Ts&&... ts)
@@ -46,13 +46,13 @@ namespace vt
 		}
 
 	private:
-		std::queue<Unique<Event>> events;
+		std::queue<std::unique_ptr<Event>> events;
 		std::vector<EventHandler> handlers;
 		std::mutex mutex;
 		std::condition_variable condition;
 		std::atomic_bool isAcceptingEvents = true;
 
-		void emplaceEvent(Unique<Event> event)
+		void emplaceEvent(std::unique_ptr<Event> event)
 		{
 			{
 				std::lock_guard lock(mutex);
@@ -81,7 +81,7 @@ namespace vt
 			processEvent(std::move(event));
 		}
 
-		void processEvent(Unique<Event> event)
+		void processEvent(std::unique_ptr<Event> event)
 		{
 			std::type_index eventType(typeid(*event));
 

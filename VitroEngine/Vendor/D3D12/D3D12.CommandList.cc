@@ -3,12 +3,12 @@ module;
 #include "Trace/Assert.hh"
 export module Vitro.D3D12.CommandList;
 
-import Vitro.D3D12.ComUnique;
+import Vitro.Core.Rectangle;
 import Vitro.D3D12.RenderPass;
+import Vitro.D3D12.Utils;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
-import Vitro.Math.Rectangle;
 
 namespace vt::d3d12
 {
@@ -56,7 +56,7 @@ namespace vt::d3d12
 
 		CommandListHandle handle() override
 		{
-			return {cmd};
+			return {{cmd.get()}};
 		}
 
 		void begin() override
@@ -74,9 +74,6 @@ namespace vt::d3d12
 		void bindPipeline(PipelineHandle pipeline) override
 		{
 			cmd->SetPipelineState(pipeline.d3d12.handle);
-
-			if constexpr(Type == CommandType::Render)
-				cmd->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 		}
 
 		void bindRootSignature(RootSignatureHandle rootSignature) override
@@ -106,34 +103,33 @@ namespace vt::d3d12
 
 		void beginRenderPass(RenderPassHandle renderPass, RenderTargetHandle renderTarget) override
 		{
-			this->currentRenderPass	  = renderPass.d3d12.handle;
-			this->currentRenderTarget = renderTarget.d3d12.resource;
+			auto pass = this->currentRenderPass = renderPass.d3d12.handle;
+			this->currentRenderTarget			= renderTarget.d3d12.handle;
 
-			auto const& transition = this->currentRenderPass->transitions.front();
+			auto const& transition = pass->transitions.front();
 			D3D12_RESOURCE_BARRIER const barrier {
-				.Transition =
-					{
-						.pResource	 = this->currentRenderTarget,
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = transition.before,
-						.StateAfter	 = transition.after,
-					},
+				.Transition {
+					.pResource	 = this->currentRenderTarget,
+					.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+					.StateBefore = transition.before,
+					.StateAfter	 = transition.after,
+				},
 			};
 			cmd->ResourceBarrier(1, &barrier);
 
 			D3D12_RENDER_PASS_RENDER_TARGET_DESC const rtDesc {
 				.cpuDescriptor	 = renderTarget.d3d12.rtv,
-				.BeginningAccess = this->currentRenderPass->colorBeginAccess,
-				.EndingAccess	 = this->currentRenderPass->colorEndAccess,
+				.BeginningAccess = pass->colorBeginAccess,
+				.EndingAccess	 = pass->colorEndAccess,
 			};
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC const dsDesc {
 				.cpuDescriptor			= renderTarget.d3d12.dsv,
-				.DepthBeginningAccess	= this->currentRenderPass->depthBeginAccess,
-				.StencilBeginningAccess = this->currentRenderPass->stencilBeginAccess,
-				.DepthEndingAccess		= this->currentRenderPass->depthEndAccess,
-				.StencilEndingAccess	= this->currentRenderPass->stencilEndAccess,
+				.DepthBeginningAccess	= pass->depthBeginAccess,
+				.StencilBeginningAccess = pass->stencilBeginAccess,
+				.DepthEndingAccess		= pass->depthEndAccess,
+				.StencilEndingAccess	= pass->stencilEndAccess,
 			};
-			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, this->currentRenderPass->flags);
+			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, pass->flags);
 		}
 
 		void transitionToNextSubpass() override
@@ -143,13 +139,12 @@ namespace vt::d3d12
 
 			auto const& transition = this->currentRenderPass->transitions[this->subpassIndex++];
 			D3D12_RESOURCE_BARRIER const barrier {
-				.Transition =
-					{
-						.pResource	 = this->currentRenderTarget,
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = transition.before,
-						.StateAfter	 = transition.after,
-					},
+				.Transition {
+					.pResource	 = this->currentRenderTarget,
+					.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+					.StateBefore = transition.before,
+					.StateAfter	 = transition.after,
+				},
 			};
 			cmd->ResourceBarrier(1, &barrier);
 		}
@@ -161,13 +156,12 @@ namespace vt::d3d12
 
 			auto const& transition = this->currentRenderPass->transitions.back();
 			D3D12_RESOURCE_BARRIER const barrier {
-				.Transition =
-					{
-						.pResource	 = this->currentRenderTarget,
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = transition.before,
-						.StateAfter	 = transition.after,
-					},
+				.Transition {
+					.pResource	 = this->currentRenderTarget,
+					.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+					.StateBefore = transition.before,
+					.StateAfter	 = transition.after,
+				},
 			};
 			cmd->ResourceBarrier(1, &barrier);
 		}
@@ -219,18 +213,18 @@ namespace vt::d3d12
 		ComUnique<ID3D12CommandAllocator> allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		static ComUnique<ID3D12CommandAllocator> makeAllocator(ID3D12Device1* device)
+		static ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
 		{
-			ComUnique<ID3D12CommandAllocator> allocator;
+			ID3D12CommandAllocator* allocator;
 			auto result = device->CreateCommandAllocator(D3D12CommandType, IID_PPV_ARGS(&allocator));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 			return allocator;
 		}
 
-		ComUnique<ID3D12GraphicsCommandList4> makeCommandList(ID3D12Device1* device)
+		ID3D12GraphicsCommandList4* makeCommandList(ID3D12Device1* device)
 		{
-			ComUnique<ID3D12GraphicsCommandList4> list;
-			auto result = device->CreateCommandList(0, D3D12CommandType, allocator, nullptr, IID_PPV_ARGS(&list));
+			ID3D12GraphicsCommandList4* list;
+			auto result = device->CreateCommandList(0, D3D12CommandType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 			return list;
 		}

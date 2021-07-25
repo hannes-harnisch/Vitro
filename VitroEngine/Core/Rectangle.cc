@@ -1,7 +1,7 @@
 ﻿module;
 #include <format>
 #include <string>
-export module Vitro.Math.Rectangle;
+export module Vitro.Core.Rectangle;
 
 namespace vt
 {

@@ -5,7 +5,7 @@ module;
 #include <string_view>
 export module Vitro.D3D12.Adapter;
 
-import Vitro.D3D12.ComUnique;
+import Vitro.D3D12.Utils;
 import Vitro.Graphics.AdapterBase;
 import Vitro.Windows.StringUtils;
 
@@ -26,7 +26,7 @@ namespace vt::d3d12
 
 		IDXGIAdapter1* handle()
 		{
-			return adapter;
+			return adapter.get();
 		}
 
 	private:

@@ -28,7 +28,7 @@ namespace vt::d3d12
 
 	export struct PlatformRenderTargetHandle
 	{
-		ID3D12Resource* resource		= nullptr;
+		ID3D12Resource* handle			= nullptr;
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv = {};
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
 	};

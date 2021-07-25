@@ -6,9 +6,9 @@ export module Vitro.Windows.Window;
 
 import Vitro.App.AppContextBase;
 import Vitro.App.WindowBase;
+import Vitro.Core.Rectangle;
 import Vitro.Core.Unique;
-import Vitro.Math.Rectangle;
-import Vitro.Math.Vector;
+import Vitro.Core.Vector;
 import Vitro.Windows.StringUtils;
 
 namespace vt::windows
@@ -30,25 +30,25 @@ namespace vt::windows
 		void open() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(window, SW_RESTORE);
+			::ShowWindow(window.get(), SW_RESTORE);
 		}
 
 		void close() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(window, SW_HIDE);
+			::ShowWindow(window.get(), SW_HIDE);
 		}
 
 		void maximize() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(window, SW_MAXIMIZE);
+			::ShowWindow(window.get(), SW_MAXIMIZE);
 		}
 
 		void minimize() final override
 		{
 			ensureCallIsOnMainThread();
-			::ShowWindow(window, SW_MINIMIZE);
+			::ShowWindow(window.get(), SW_MINIMIZE);
 		}
 
 		void enableCursor() final override
@@ -71,8 +71,8 @@ namespace vt::windows
 			{}
 
 			RECT rect;
-			::GetClientRect(window, &rect);
-			::MapWindowPoints(window, nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
+			::GetClientRect(window.get(), &rect);
+			::MapWindowPoints(window.get(), nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
 			::ClipCursor(&rect);
 		}
 
@@ -81,7 +81,7 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			RECT rect;
-			::GetWindowRect(window, &rect);
+			::GetWindowRect(window.get(), &rect);
 
 			return Extent {
 				.width	= static_cast<unsigned>(rect.right - rect.left),
@@ -92,7 +92,7 @@ namespace vt::windows
 		void setSize(Extent size) final override
 		{
 			ensureCallIsOnMainThread();
-			::SetWindowPos(window, nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
+			::SetWindowPos(window.get(), nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
 		}
 
 		Int2 getPosition() const final override
@@ -100,23 +100,23 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			RECT rect;
-			::GetWindowRect(window, &rect);
+			::GetWindowRect(window.get(), &rect);
 			return {rect.left, rect.top};
 		}
 
 		void setPosition(Int2 position) final override
 		{
 			ensureCallIsOnMainThread();
-			::SetWindowPos(window, nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+			::SetWindowPos(window.get(), nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 		}
 
 		std::string getTitle() const final override
 		{
 			ensureCallIsOnMainThread();
 
-			int length = ::GetWindowTextLength(window);
+			int length = ::GetWindowTextLength(window.get());
 			std::wstring title(length, L'\0');
-			::GetWindowText(window, title.data(), length + 1);
+			::GetWindowText(window.get(), title.data(), length + 1);
 			return narrowString(title);
 		}
 
@@ -125,7 +125,7 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			auto widenedTitle = widenString(title);
-			::SetWindowText(window, widenedTitle.data());
+			::SetWindowText(window.get(), widenedTitle.data());
 		}
 
 		Rectangle clientArea() const final override
@@ -133,7 +133,7 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			RECT rect;
-			::GetClientRect(window, &rect);
+			::GetClientRect(window.get(), &rect);
 
 			return Rectangle {
 				.x		= rect.left,
@@ -145,13 +145,13 @@ namespace vt::windows
 
 		void* handle() final override
 		{
-			return window;
+			return window.get();
 		}
 
 	private:
 		Unique<HWND, ::DestroyWindow> window;
 
-		static Unique<HWND, ::DestroyWindow> makeWindow(std::string_view title, Rectangle rect)
+		static HWND makeWindow(std::string_view title, Rectangle rect)
 		{
 			auto widenedTitle	= widenString(title);
 			auto instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());

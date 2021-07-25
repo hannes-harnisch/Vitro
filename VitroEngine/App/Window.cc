@@ -3,8 +3,8 @@ module;
 export module Vitro.App.Window;
 
 import Vitro.App.AppContextBase;
+import Vitro.Core.Rectangle;
 import Vitro.Graphics.GraphicsSystem;
-import Vitro.Math.Rectangle;
 import Vitro.VT_SYSTEM_MODULE.Window;
 
 namespace vt

@@ -26,7 +26,18 @@ namespace vt
 
 	template<typename T> struct Handle
 	{
-		T VT_GRAPHICS_API_NAME;
+		T VT_GRAPHICS_API_NAME = {};
+
+		Handle(T handle) : VT_GRAPHICS_API_NAME(handle)
+		{}
+
+		Handle(std::nullptr_t)
+		{}
+
+		operator bool() const
+		{
+			return VT_GRAPHICS_API_NAME.handle;
+		}
 	};
 
 #endif

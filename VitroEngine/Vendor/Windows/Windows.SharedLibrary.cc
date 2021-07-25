@@ -15,13 +15,13 @@ namespace vt::windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			library = makeLibrary();
-			return library;
+			library.reset(makeLibrary());
+			return library.get() != nullptr;
 		}
 
 		void* handle() final override
 		{
-			return library;
+			return library.get();
 		}
 
 	protected:
@@ -30,14 +30,14 @@ namespace vt::windows
 
 		void* loadSymbolAddress(std::string_view symbol) const final override
 		{
-			return ::GetProcAddress(library, symbol.data());
+			return ::GetProcAddress(library.get(), symbol.data());
 		}
 
 	private:
 		std::wstring name;
 		Unique<HMODULE, ::FreeLibrary> library;
 
-		Unique<HMODULE, ::FreeLibrary> makeLibrary() const
+		HMODULE makeLibrary() const
 		{
 			return ::LoadLibrary(name.data());
 		}

@@ -1,9 +1,9 @@
 module;
 #include <cmath>
 #include <format>
-export module Vitro.Math.Matrix;
+export module Vitro.Core.Matrix;
 
-import Vitro.Math.Vector;
+import Vitro.Core.Vector;
 
 namespace vt
 {
@@ -16,7 +16,7 @@ namespace vt
 		{
 			Matrix mat {};
 			for(int r = 0; r < R; ++r)
-				rows[r].data[r] = 1;
+				mat.rows[r].data[r] = 1;
 			return mat;
 		}
 
@@ -171,7 +171,7 @@ namespace vt
 			Vector<decltype(rows[0][0] * vec[0]), R> product {};
 			for(int r = 0; r < R; ++r)
 				for(int c = 0; c < C; ++c)
-					product.rows[r] += rows[c].data[r] * vec.data[c];
+					product.data[r] += rows[c].data[r] * vec.data[c];
 			return product;
 		}
 
@@ -180,7 +180,7 @@ namespace vt
 			Vector<decltype(vec[0] * rows[0][0]), C> product {};
 			for(int c = 0; c < C; ++c)
 				for(int r = 0; r < R; ++r)
-					product.rows[c] += vec.data[r] * mat.rows[r].data[c];
+					product.data[c] += vec.data[r] * mat.rows[r].data[c];
 			return product;
 		}
 

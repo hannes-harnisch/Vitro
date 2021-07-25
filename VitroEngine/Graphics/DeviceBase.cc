@@ -11,10 +11,10 @@ namespace vt
 	export class DeviceBase
 	{
 	public:
+		virtual Pipeline makePipeline(PipelineInfo const& info) = 0;
+		// virtual Texture makeTexture(TextureInfo const& info)							= 0;
 		virtual void submitCopyCommands(std::span<CommandListHandle const> commands)	= 0;
 		virtual void submitComputeCommands(std::span<CommandListHandle const> commands) = 0;
 		virtual void submitRenderCommands(std::span<CommandListHandle const> commands)	= 0;
-		//	virtual Pipeline makePipeline(PipelineInfo const& info)							= 0;
-		//	virtual Texture makeTexture(TextureInfo const& info)							= 0;
 	};
 }

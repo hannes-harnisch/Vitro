@@ -6,8 +6,8 @@ module;
 export module Vitro.App.WindowBase;
 
 import Vitro.App.AppContextBase;
-import Vitro.Math.Rectangle;
-import Vitro.Math.Vector;
+import Vitro.Core.Rectangle;
+import Vitro.Core.Vector;
 
 namespace vt
 {

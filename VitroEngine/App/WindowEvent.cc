@@ -8,8 +8,8 @@ import Vitro.App.Event;
 import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
 import Vitro.App.Window;
-import Vitro.Math.Rectangle;
-import Vitro.Math.Vector;
+import Vitro.Core.Rectangle;
+import Vitro.Core.Vector;
 
 namespace vt
 {

@@ -2,6 +2,7 @@ module;
 #include "D3D12.API.hh"
 
 #include <concurrentqueue/concurrentqueue.h>
+#include <functional>
 #include <ranges>
 export module Vitro.D3D12.DeferredDeleter;
 
@@ -13,7 +14,7 @@ namespace vt::d3d12
 	export class DeferredDeleter : public DeferredDeleterBase
 	{
 	public:
-		DeferredDeleter() : comObjectsToken(comObjects), renderPassToken(renderPasses)
+		DeferredDeleter() : comObjectsToken(comObjects), miscDeletionsToken(miscDeletions)
 		{}
 
 		void submit(BufferHandle buffer) override
@@ -33,8 +34,7 @@ namespace vt::d3d12
 
 		void submit(RenderPassHandle renderPass) override
 		{
-			static thread_local ProducerToken const producerToken(renderPasses);
-			renderPasses.enqueue(producerToken, renderPass.d3d12.handle);
+			enqueueMiscellaneous([=] { delete renderPass.d3d12.handle; });
 		}
 
 		void submit(RootSignatureHandle rootSignature) override
@@ -45,14 +45,14 @@ namespace vt::d3d12
 		void deleteAll() override
 		{
 			flushQueue(comObjects, comObjectsToken, [](IUnknown* comObject) { comObject->Release(); });
-			flushQueue(renderPasses, renderPassToken, [](RenderPass* renderPass) { delete renderPass; });
+			flushQueue(miscDeletions, miscDeletionsToken, [](auto const& func) { func(); });
 		}
 
 	private:
 		ConcurrentQueue<IUnknown*> comObjects;
-		ConcurrentQueue<RenderPass*> renderPasses;
+		ConcurrentQueue<std::function<void()>> miscDeletions;
 		ConsumerToken comObjectsToken;
-		ConsumerToken renderPassToken;
+		ConsumerToken miscDeletionsToken;
 
 		template<typename T> static void flushQueue(ConcurrentQueue<T>& queue, ConsumerToken& token, auto destroy)
 		{
@@ -62,7 +62,7 @@ namespace vt::d3d12
 				T elems[MaxElementsDequeued];
 
 				size_t count = queue.try_dequeue_bulk(token, elems, MaxElementsDequeued);
-				for(T elem : std::views::take(elems, count))
+				for(auto&& elem : std::views::take(elems, count))
 					destroy(elem);
 			}
 		}
@@ -71,6 +71,12 @@ namespace vt::d3d12
 		{
 			static thread_local ProducerToken const producerToken(comObjects);
 			comObjects.enqueue(producerToken, handle);
+		}
+
+		void enqueueMiscellaneous(auto const& func)
+		{
+			static thread_local ProducerToken const producerToken(miscDeletions);
+			miscDeletions.enqueue(producerToken, func);
 		}
 	};
 }

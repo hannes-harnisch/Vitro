@@ -16,7 +16,7 @@ namespace vt
 		ForwardRenderer(Device& device) : cmd(device)
 		{}
 
-		void draw(SwapChain& swapChain)
+		void draw(SwapChain&)
 		{
 			// Log().info(swapChain->getNextRenderTargetIndex());
 			//	swapChain->present();

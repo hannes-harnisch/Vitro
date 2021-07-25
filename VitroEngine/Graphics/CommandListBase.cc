@@ -1,7 +1,7 @@
 export module Vitro.Graphics.CommandListBase;
 
+import Vitro.Core.Rectangle;
 import Vitro.Graphics.Handle;
-import Vitro.Math.Rectangle;
 
 namespace vt
 {

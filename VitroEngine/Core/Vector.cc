@@ -4,7 +4,7 @@ module;
 #include <cmath>
 #include <format>
 #include <type_traits>
-export module Vitro.Math.Vector;
+export module Vitro.Core.Vector;
 
 namespace vt
 {
@@ -295,7 +295,7 @@ namespace vt
 			return str + ']';
 		}
 
-		friend constexpr auto apply(Vector vec, auto func) noexcept(func(vec[0]))
+		friend constexpr auto apply(Vector vec, auto func)
 		{
 			Vector<decltype(func(vec[0])), D> result;
 			for(int i = 0; i < D; ++i)
@@ -305,7 +305,8 @@ namespace vt
 
 		template<Scalar S> friend constexpr auto dot(Vector left, Vector<S, D> right) noexcept
 		{
-			auto hadamard {left * right};
+			auto const hadamard = left * right;
+
 			decltype(hadamard[0]) dot = 0;
 			for(auto component : hadamard.data)
 				dot += component;
