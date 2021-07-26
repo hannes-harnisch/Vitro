@@ -1,12 +1,12 @@
 [submodule "Dependencies/magic_enum"]
 	path = Dependencies/magic_enum
 	url = https://github.com/Neargye/magic_enum
-[submodule "Dependencies/readerwriterqueue"]
-	path = Dependencies/readerwriterqueue
-	url = https://github.com/cameron314/readerwriterqueue
 [submodule "Dependencies/Array"]
 	path = Dependencies/Array
 	url = https://github.com/hannes-harnisch/Array
 [submodule "Dependencies/concurrentqueue"]
 	path = Dependencies/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue
+[submodule "Dependencies/D3D12MemoryAllocator"]
+	path = Dependencies/D3D12MemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
