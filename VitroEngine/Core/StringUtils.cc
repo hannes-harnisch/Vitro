@@ -1,5 +1,7 @@
 module;
 #include <string>
+#include <string_view>
+#include <vector>
 export module Vitro.Core.StringUtils;
 
 namespace vt
@@ -15,5 +17,18 @@ namespace vt
 	{
 		for(size_t i = str.find(pattern); i != std::string::npos; i = str.find(pattern))
 			str.erase(i, pattern.length());
+	}
+
+	export constexpr std::vector<std::string_view> split(std::string_view str, std::string_view delimiter)
+	{
+		std::vector<std::string_view> tokens;
+		size_t offset = 0, occurrence = 0;
+		while(occurrence != std::string_view::npos)
+		{
+			occurrence = str.find(delimiter, offset);
+			tokens.emplace_back(str.substr(offset, occurrence - offset));
+			offset = occurrence + delimiter.length();
+		}
+		return tokens;
 	}
 }

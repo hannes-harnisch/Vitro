@@ -3,11 +3,13 @@ module;
 export module Vitro.D3D12.RenderPass;
 
 import Vitro.Core.Array;
+import Vitro.Graphics.RenderPassBase;
 
 namespace vt::d3d12
 {
-	export struct RenderPass
+	export class RenderPass : public RenderPassBase
 	{
+	public:
 		struct SubpassTransition
 		{
 			D3D12_RESOURCE_STATES before = {};

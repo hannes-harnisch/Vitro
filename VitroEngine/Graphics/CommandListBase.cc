@@ -2,6 +2,8 @@ export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Core.Rectangle;
 import Vitro.Graphics.Handle;
+import Vitro.Graphics.RenderPass;
+import Vitro.Graphics.RenderTarget;
 
 namespace vt
 {
@@ -19,6 +21,8 @@ namespace vt
 	export class CopyCommandListBase
 	{
 	public:
+		virtual ~CopyCommandListBase() = default;
+
 		virtual CommandListHandle handle() = 0;
 		virtual void begin()			   = 0;
 		virtual void end()				   = 0;
@@ -36,10 +40,10 @@ namespace vt
 	export class RenderCommandListBase : public ComputeCommandListBase
 	{
 	public:
-		virtual void beginRenderPass(RenderPassHandle renderPass, RenderTargetHandle renderTarget)					  = 0;
+		virtual void beginRenderPass(RenderPass const& renderPass, RenderTarget const& renderTarget)				  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
-		virtual void bindIndexBuffer(BufferHandle buffer, IndexFormat format, unsigned offset)						  = 0;
+		virtual void bindIndexBuffer(BufferHandle buffer, IndexFormat format)										  = 0;
 		virtual void bindViewport(Viewport viewport)																  = 0;
 		virtual void bindScissor(Rectangle scissor)																	  = 0;
 		virtual void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance) = 0;

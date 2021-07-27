@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "D3D12.API.hh"
 #include "Trace/Assert.hh"
 export module Vitro.D3D12.SwapChain;
@@ -56,9 +56,9 @@ namespace vt::d3d12
 	private:
 		unsigned bufferCount;
 		UINT presentFlags;
-		ComUnique<IDXGISwapChain3> swapChain;
-		ComUnique<ID3D12DescriptorHeap> renderTargetHeap;
-		ComUnique<ID3D12Resource> renderTargets[MaxBufferCount];
+		UniqueInterface<IDXGISwapChain3> swapChain;
+		UniqueInterface<ID3D12DescriptorHeap> renderTargetHeap;
+		UniqueInterface<ID3D12Resource> renderTargets[MaxBufferCount];
 
 		IDXGISwapChain3* makeSwapChain(ID3D12CommandQueue* queue, void* nativeWindow)
 		{
@@ -78,7 +78,7 @@ namespace vt::d3d12
 			HWND hwnd	 = static_cast<HWND>(nativeWindow);
 			IDXGISwapChain1* swapChainPtr;
 			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &swapChainPtr);
-			ComUnique<IDXGISwapChain1> proxySwapChain(swapChainPtr);
+			UniqueInterface<IDXGISwapChain1> proxySwapChain(swapChainPtr);
 			vtEnsureResult(result, "Failed to create D3D12 proxy swap chain.");
 
 			IDXGISwapChain3* mainSwapChain;
@@ -110,7 +110,7 @@ namespace vt::d3d12
 			{
 				ID3D12Resource* backBufferPtr;
 				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBufferPtr));
-				ComUnique<ID3D12Resource> backBuffer(backBufferPtr);
+				UniqueInterface<ID3D12Resource> backBuffer(backBufferPtr);
 				vtEnsureResult(result, "Failed to get D3D12 swap chain buffer.");
 
 				device->CreateRenderTargetView(backBuffer.get(), nullptr, handle);

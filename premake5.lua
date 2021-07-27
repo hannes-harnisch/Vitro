@@ -6,7 +6,7 @@ workspace 'Vitro'
 	configurations		{ 'Debug', 'Development', 'Release' }
 	flags				{ 'MultiProcessorCompile' }
 	language			'C++'
-	cppdialect			'C++latest'
+	cppdialect			'C++20'
 	conformancemode		'On'
 	warnings			'Extra'
 	disablewarnings		'4201'
@@ -75,8 +75,8 @@ project 'VitroEngine'
 		defines			{
 							'VT_SYSTEM_MODULE=Windows',
 							'VT_SYSTEM_NAME=windows',
-							'VT_GRAPHICS_API_MODULE=D3D12',
-							'VT_GRAPHICS_API_NAME=d3d12'
+							'VT_GPU_API_MODULE=D3D12',
+							'VT_GPU_API_NAME=d3d12'
 						}
 
 project 'VitroMain'

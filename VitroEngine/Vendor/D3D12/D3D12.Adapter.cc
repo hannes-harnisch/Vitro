@@ -14,7 +14,7 @@ namespace vt::d3d12
 	export class Adapter final : public AdapterBase
 	{
 	public:
-		Adapter(ComUnique<IDXGIAdapter1> adapterHandle) : adapter(std::move(adapterHandle))
+		Adapter(UniqueInterface<IDXGIAdapter1> adapterHandle) : adapter(std::move(adapterHandle))
 		{
 			DXGI_ADAPTER_DESC1 desc;
 			auto result = adapter->GetDesc1(&desc);
@@ -30,6 +30,6 @@ namespace vt::d3d12
 		}
 
 	private:
-		ComUnique<IDXGIAdapter1> adapter;
+		UniqueInterface<IDXGIAdapter1> adapter;
 	};
 }

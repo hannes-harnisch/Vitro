@@ -9,7 +9,7 @@ import Vitro.Core.Singleton;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Driver;
-import Vitro.Graphics.DynamicGraphicsAPI;
+import Vitro.Graphics.DynamicGpuApi;
 import Vitro.Graphics.ForwardRenderer;
 import Vitro.Graphics.SwapChain;
 
@@ -45,7 +45,7 @@ namespace vt
 		}
 
 	private:
-		DynamicGraphicsAPI dynamicGraphicsAPI;
+		DynamicGpuApi dynamicGpuApi;
 		Driver driver;
 		Device device;
 		HashMap<Window const*, SwapChain> swapChains;

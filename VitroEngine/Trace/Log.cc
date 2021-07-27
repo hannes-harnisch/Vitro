@@ -83,7 +83,7 @@ namespace vt
 		};
 
 		ConcurrentQueue<Entry> queue;
-		ConsumerToken consumerToken;
+		ConsumerToken conToken;
 		std::mutex mutex;
 		std::condition_variable condition;
 		std::atomic<std::bitset<sizeFromEnumMax<LogChannel>()>> disabledChannels;
@@ -142,7 +142,7 @@ namespace vt
 			return timestamp;
 		}
 
-		Logger() : consumerToken(queue)
+		Logger() : conToken(queue)
 		{}
 
 		template<typename... Ts> void submit(LogLevel level, LogChannel channel, Ts&&... ts)
@@ -153,9 +153,9 @@ namespace vt
 
 		void enqueue(LogLevel level, LogChannel channel, std::string message)
 		{
-			static thread_local ProducerToken const producerToken(queue);
+			thread_local ProducerToken const proToken(queue);
 			auto now = std::chrono::system_clock::now().time_since_epoch();
-			queue.enqueue(producerToken, {level, channel, now, std::move(message)});
+			queue.enqueue(proToken, {level, channel, now, std::move(message)});
 			condition.notify_one();
 		}
 
@@ -201,7 +201,7 @@ namespace vt
 
 			constexpr unsigned MaxEntriesDequeued = 100;
 			Entry entries[MaxEntriesDequeued];
-			size_t count = queue.try_dequeue_bulk(consumerToken, entries, MaxEntriesDequeued);
+			size_t count = queue.try_dequeue_bulk(conToken, entries, MaxEntriesDequeued);
 			for(auto const& entry : std::views::take(entries, count))
 				writeLog(entry);
 		}

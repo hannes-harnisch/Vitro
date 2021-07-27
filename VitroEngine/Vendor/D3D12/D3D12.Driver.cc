@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "D3D12.API.hh"
 #include "Trace/Assert.hh"
 
@@ -38,7 +38,7 @@ namespace vt::d3d12
 			{
 				IDXGIAdapter1* adapterPtr;
 				auto result = factory->EnumAdapters1(index, &adapterPtr);
-				ComUnique<IDXGIAdapter1> adapter(adapterPtr);
+				UniqueInterface<IDXGIAdapter1> adapter(adapterPtr);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
 
@@ -80,9 +80,9 @@ namespace vt::d3d12
 		decltype(::CreateDXGIFactory2)* createDXGIFactory2;
 		PFN_D3D12_CREATE_DEVICE d3d12CreateDevice;
 #if VT_DEBUG
-		ComUnique<ID3D12Debug> debug;
+		UniqueInterface<ID3D12Debug> debug;
 #endif
-		ComUnique<IDXGIFactory5> factory;
+		UniqueInterface<IDXGIFactory5> factory;
 
 		ID3D12Debug* makeDebugInterface()
 		{
@@ -103,7 +103,7 @@ namespace vt::d3d12
 
 			IDXGIFactory2* factoryPtr;
 			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&factoryPtr));
-			ComUnique<IDXGIFactory2> proxyFactory(factoryPtr);
+			UniqueInterface<IDXGIFactory2> proxyFactory(factoryPtr);
 			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
 
 			IDXGIFactory5* mainFactory;

@@ -8,6 +8,8 @@ namespace vt
 	export class AdapterBase
 	{
 	public:
+		virtual ~AdapterBase() = default;
+
 		std::string_view getName() const
 		{
 			return name;

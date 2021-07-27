@@ -9,6 +9,8 @@ import Vitro.D3D12.Utils;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
+import Vitro.Graphics.RenderPass;
+import Vitro.Graphics.RenderTarget;
 
 namespace vt::d3d12
 {
@@ -42,7 +44,7 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
 	{
 	protected:
-		RenderPass* currentRenderPass		= nullptr;
+		RenderPass const* currentRenderPass = nullptr;
 		ID3D12Resource* currentRenderTarget = nullptr;
 		unsigned subpassIndex				= 1;
 	};
@@ -56,7 +58,7 @@ namespace vt::d3d12
 
 		CommandListHandle handle() override
 		{
-			return {{cmd.get()}};
+			return {cmd.get()};
 		}
 
 		void begin() override
@@ -73,15 +75,15 @@ namespace vt::d3d12
 
 		void bindPipeline(PipelineHandle pipeline) override
 		{
-			cmd->SetPipelineState(pipeline.d3d12.handle);
+			cmd->SetPipelineState(pipeline.d3d12());
 		}
 
 		void bindRootSignature(RootSignatureHandle rootSignature) override
 		{
 			if constexpr(Type == CommandType::Render)
-				cmd->SetGraphicsRootSignature(rootSignature.d3d12.handle);
+				cmd->SetGraphicsRootSignature(rootSignature.d3d12());
 			else if constexpr(Type == CommandType::Compute)
-				cmd->SetComputeRootSignature(rootSignature.d3d12.handle);
+				cmd->SetComputeRootSignature(rootSignature.d3d12());
 			else
 				static_assert(false, "This command is not supported on copy command lists.");
 		}
@@ -89,9 +91,9 @@ namespace vt::d3d12
 		void pushConstants(void const* data, unsigned size, unsigned offset) override
 		{
 			if constexpr(Type == CommandType::Render)
-				cmd->SetGraphicsRoot32BitConstants(0, size / sizeof(int), data, offset / sizeof(int));
+				cmd->SetGraphicsRoot32BitConstants(0, size / sizeof(DWORD), data, offset / sizeof(DWORD));
 			else if constexpr(Type == CommandType::Compute)
-				cmd->SetComputeRoot32BitConstants(0, size / sizeof(int), data, offset / sizeof(int));
+				cmd->SetComputeRoot32BitConstants(0, size / sizeof(DWORD), data, offset / sizeof(DWORD));
 			else
 				static_assert(false, "This command is not supported on copy command lists.");
 		}
@@ -101,10 +103,10 @@ namespace vt::d3d12
 			cmd->Dispatch(xCount, yCount, zCount);
 		}
 
-		void beginRenderPass(RenderPassHandle renderPass, RenderTargetHandle renderTarget) override
+		void beginRenderPass(vt::RenderPass const& renderPass, vt::RenderTarget const& renderTarget) override
 		{
-			auto pass = this->currentRenderPass = renderPass.d3d12.handle;
-			this->currentRenderTarget			= renderTarget.d3d12.handle;
+			auto pass = this->currentRenderPass = &renderPass.d3d12;
+			this->currentRenderTarget			= renderTarget.d3d12.resource();
 
 			auto const& transition = pass->transitions.front();
 			D3D12_RESOURCE_BARRIER const barrier {
@@ -118,12 +120,12 @@ namespace vt::d3d12
 			cmd->ResourceBarrier(1, &barrier);
 
 			D3D12_RENDER_PASS_RENDER_TARGET_DESC const rtDesc {
-				.cpuDescriptor	 = renderTarget.d3d12.rtv,
+				.cpuDescriptor	 = renderTarget.d3d12.rtv(),
 				.BeginningAccess = pass->colorBeginAccess,
 				.EndingAccess	 = pass->colorEndAccess,
 			};
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC const dsDesc {
-				.cpuDescriptor			= renderTarget.d3d12.dsv,
+				.cpuDescriptor			= renderTarget.d3d12.dsv(),
 				.DepthBeginningAccess	= pass->depthBeginAccess,
 				.StencilBeginningAccess = pass->stencilBeginAccess,
 				.DepthEndingAccess		= pass->depthEndAccess,
@@ -166,10 +168,10 @@ namespace vt::d3d12
 			cmd->ResourceBarrier(1, &barrier);
 		}
 
-		void bindIndexBuffer(BufferHandle buffer, IndexFormat format, unsigned offset) override
+		void bindIndexBuffer(BufferHandle buffer, IndexFormat format) override
 		{
 			D3D12_INDEX_BUFFER_VIEW const view {
-				.BufferLocation = buffer.d3d12.handle->GetGPUVirtualAddress() + offset,
+				.BufferLocation = buffer.d3d12()->GetGPUVirtualAddress(),
 				.SizeInBytes	= 0, // TODO?
 				.Format			= convertIndexFormat(format),
 			};
@@ -210,8 +212,8 @@ namespace vt::d3d12
 	private:
 		static constexpr D3D12_COMMAND_LIST_TYPE D3D12CommandType = convertCommandType(Type);
 
-		ComUnique<ID3D12CommandAllocator> allocator;
-		ComUnique<ID3D12GraphicsCommandList4> cmd;
+		UniqueInterface<ID3D12CommandAllocator> allocator;
+		UniqueInterface<ID3D12GraphicsCommandList4> cmd;
 
 		static ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
 		{
