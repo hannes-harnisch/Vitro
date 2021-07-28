@@ -41,7 +41,7 @@ namespace vt
 		DecrementWrap,
 	};
 
-	struct StencilOperationState
+	export struct StencilOperationState
 	{
 		StencilOperation failOp		  = {};
 		StencilOperation passOp		  = {};
@@ -55,8 +55,8 @@ namespace vt
 		bool enableDepthWrite				  = false;
 		ComparisonOperation depthComparisonOp = {};
 		bool enableStencilTest				  = false;
-		unsigned char stencilReadMask		  = {};
-		unsigned char stencilWriteMask		  = {};
+		unsigned char stencilReadMask		  = 0;
+		unsigned char stencilWriteMask		  = 0;
 		StencilOperationState front;
 		StencilOperationState back;
 	};
@@ -64,8 +64,8 @@ namespace vt
 	struct MultisampleState
 	{
 		bool enableAlphaToCoverage = {};
-		unsigned char sampleCount  = {};
-		unsigned sampleMask		   = {};
+		unsigned char sampleCount  = 0;
+		unsigned sampleMask		   = 0;
 	};
 
 	export enum class LogicOperation : unsigned char {
@@ -134,12 +134,13 @@ namespace vt
 		ColorComponent writeMask   = {};
 	};
 
-	struct BlendState
+	export struct BlendState
 	{
 		static constexpr unsigned MaxColorAttachments = 8;
 
-		bool enableLogicOp	   = false;
-		LogicOperation logicOp = {};
+		bool enableLogicOp			  = false;
+		LogicOperation logicOp		  = {};
+		unsigned char attachmentCount = 0;
 		ColorAttachmentBlendState attachmentStates[MaxColorAttachments];
 	};
 
@@ -148,7 +149,6 @@ namespace vt
 		PrimitiveTopology primitiveTopology = {};
 
 		RootSignatureHandle rootSignature;
-
 		Array<char> vertexShaderBytecode;
 		DepthStencilState depthStencil;
 		Array<char> fragmentShaderBytecode;
