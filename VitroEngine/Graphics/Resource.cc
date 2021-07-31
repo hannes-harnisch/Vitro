@@ -10,7 +10,7 @@ namespace vt
 	export class Pipeline
 	{
 	public:
-		Pipeline(Device& device, PipelineState const& state) : pipeline(device->makePipeline(state))
+		Pipeline(Device& device, RenderPipelineState const& state) : pipeline(device->makeRenderPipeline(state))
 		{}
 
 	private:

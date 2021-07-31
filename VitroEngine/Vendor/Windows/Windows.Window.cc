@@ -83,7 +83,7 @@ namespace vt::windows
 			RECT rect;
 			::GetWindowRect(window.get(), &rect);
 
-			return Extent {
+			return {
 				.width	= static_cast<unsigned>(rect.right - rect.left),
 				.height = static_cast<unsigned>(rect.bottom - rect.top),
 			};
@@ -135,7 +135,7 @@ namespace vt::windows
 			RECT rect;
 			::GetClientRect(window.get(), &rect);
 
-			return Rectangle {
+			return {
 				.x		= rect.left,
 				.y		= rect.top,
 				.width	= static_cast<unsigned>(rect.right - rect.left),
