@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Trace/Assert.hh"
 
 #include <cmath>
@@ -61,8 +61,8 @@ namespace vt
 		float const cos = std::cos(angle);
 		float const sin = std::sin(angle);
 
-		auto axis = normalize(vec);
-		auto temp = (1 - cos) * axis;
+		auto	 axis = normalize(vec);
+		auto	 temp = (1 - cos) * axis;
 		Float3x3 rotated {{
 			{
 				cos + temp.x * axis.x,

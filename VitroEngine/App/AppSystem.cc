@@ -1,7 +1,6 @@
-module;
+﻿module;
 #include <atomic>
 #include <condition_variable>
-#include <thread>
 #include <vector>
 export module Vitro.App.AppSystem;
 
@@ -20,15 +19,8 @@ namespace vt
 	{
 	public:
 		AppSystem(std::atomic_bool& engineRunningStatus) :
-			engineRunningStatus(engineRunningStatus),
-			eventWorker(&EventSystem::runEventProcessing, &eventSystem),
-			eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose)
+			engineRunningStatus(engineRunningStatus), eventBinding(this, &AppSystem::onWindowOpen, &AppSystem::onWindowClose)
 		{}
-
-		~AppSystem()
-		{
-			eventSystem.quit();
-		}
 
 		void update()
 		{
@@ -36,13 +28,12 @@ namespace vt
 		}
 
 	private:
-		std::atomic_bool& engineRunningStatus;
-		AppContext appContext;
-		EventSystem eventSystem;
-		Input input;
-		std::jthread eventWorker;
+		std::atomic_bool&	 engineRunningStatus;
+		AppContext			 appContext;
+		EventSystem			 eventSystem;
+		Input				 input;
 		std::vector<Window*> openWindows;
-		EventBinding eventBinding;
+		EventBinding		 eventBinding;
 
 		bool onWindowOpen(WindowOpenEvent& e)
 		{

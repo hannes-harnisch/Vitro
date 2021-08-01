@@ -1,13 +1,12 @@
 module;
-#include "Core/Enum.hh"
-
-#include <bitset>
+#include <new>
 export module Vitro.App.Input;
 
 import Vitro.App.EventBinding;
 import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
 import Vitro.App.WindowEvent;
+import Vitro.Core.Enum;
 import Vitro.Core.Singleton;
 import Vitro.Core.Vector;
 
@@ -20,12 +19,12 @@ namespace vt
 	public:
 		static bool isDown(KeyCode key)
 		{
-			return get().keyDownStates[static_cast<size_t>(key)];
+			return get().keyDownStates[key];
 		}
 
 		static bool isDown(MouseCode button)
 		{
-			return get().mouseDownStates[static_cast<size_t>(button)];
+			return get().mouseDownStates[button];
 		}
 
 		static Int2 mousePosition()
@@ -34,10 +33,10 @@ namespace vt
 		}
 
 	private:
-		std::bitset<sizeFromEnumMax<KeyCode>()> keyDownStates;
-		std::bitset<sizeFromEnumMax<MouseCode>()> mouseDownStates;
-		Int2 mousePos;
-		EventBinding eventBinding;
+		EnumBitArray<KeyCode>	keyDownStates;
+		EnumBitArray<MouseCode> mouseDownStates;
+		Int2					mousePos;
+		EventBinding			eventBinding;
 
 		Input() :
 			eventBinding(this, &Input::onKeyDown, &Input::onKeyUp, &Input::onMouseDown, &Input::onMouseUp, &Input::onMouseMove)
@@ -45,22 +44,22 @@ namespace vt
 
 		void onKeyDown(KeyDownEvent& e)
 		{
-			keyDownStates[static_cast<size_t>(e.key)] = true;
+			keyDownStates[e.key] = true;
 		}
 
 		void onKeyUp(KeyUpEvent& e)
 		{
-			keyDownStates[static_cast<size_t>(e.key)] = false;
+			keyDownStates[e.key] = false;
 		}
 
 		void onMouseDown(MouseDownEvent& e)
 		{
-			mouseDownStates[static_cast<size_t>(e.button)] = true;
+			mouseDownStates[e.button] = true;
 		}
 
 		void onMouseUp(MouseUpEvent& e)
 		{
-			mouseDownStates[static_cast<size_t>(e.button)] = false;
+			mouseDownStates[e.button] = false;
 		}
 
 		void onMouseMove(MouseMoveEvent& e)

@@ -17,6 +17,7 @@ namespace vt::d3d12
 		Adapter(UniqueInterface<IDXGIAdapter1> adapterHandle) : adapter(std::move(adapterHandle))
 		{
 			DXGI_ADAPTER_DESC1 desc;
+
 			auto result = adapter->GetDesc1(&desc);
 			vtEnsureResult(result, "Failed to get D3D12 adapter info.");
 

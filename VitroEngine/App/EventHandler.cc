@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <functional>
 #include <typeindex>
 export module Vitro.App.EventHandler;
@@ -10,7 +10,7 @@ namespace vt
 	export struct EventHandler
 	{
 		std::function<bool(Event&)> function;
-		std::type_index eventType;
-		void* callTarget;
+		std::type_index				eventType;
+		void*						callTarget;
 	};
 }

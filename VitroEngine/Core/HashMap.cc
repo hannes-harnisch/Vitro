@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <unordered_map>
 export module Vitro.Core.HashMap;
 

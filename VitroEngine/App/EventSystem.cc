@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -7,6 +7,7 @@ module;
 #include <queue>
 #include <ranges>
 #include <source_location>
+#include <thread>
 #include <typeindex>
 #include <utility>
 #include <vector>
@@ -42,15 +43,27 @@ namespace vt
 
 		static void removeHandlersByTarget(void* target)
 		{
-			std::erase_if(get().handlers, [=](EventHandler const& handler) { return handler.callTarget == target; });
+			std::erase_if(get().handlers, [=](EventHandler const& handler) {
+				return handler.callTarget == target;
+			});
 		}
 
 	private:
 		std::queue<std::unique_ptr<Event>> events;
-		std::vector<EventHandler> handlers;
-		std::mutex mutex;
-		std::condition_variable condition;
-		std::atomic_bool isAcceptingEvents = true;
+		std::vector<EventHandler>		   handlers;
+		std::mutex						   mutex;
+		std::condition_variable			   condition;
+		std::atomic_bool				   isAcceptingEvents = true;
+		std::jthread					   eventWorker;
+
+		EventSystem() : eventWorker(&EventSystem::runEventProcessing, this)
+		{}
+
+		~EventSystem()
+		{
+			isAcceptingEvents = false;
+			condition.notify_all();
+		}
 
 		void emplaceEvent(std::unique_ptr<Event> event)
 		{
@@ -70,7 +83,9 @@ namespace vt
 		void processQueue()
 		{
 			std::unique_lock lock(mutex);
-			condition.wait(lock, [&] { return !events.empty() || !isAcceptingEvents; });
+			condition.wait(lock, [&] {
+				return !events.empty() || !isAcceptingEvents;
+			});
 			if(!isAcceptingEvents)
 				return;
 
@@ -95,12 +110,6 @@ namespace vt
 				}
 			}
 			Log().verbose(event);
-		}
-
-		void quit()
-		{
-			isAcceptingEvents = false;
-			condition.notify_all();
 		}
 	};
 }

@@ -8,10 +8,10 @@ import Vitro.VT_GPU_API_MODULE.Handle;
 namespace vt
 {
 #if VT_DYNAMIC_GPU_API
-	#define EXPORT_HANDLE(resource)                                                                                            \
-		export using resource##Handle = Handle<VT_GPU_API_NAME_PRIMARY::resource##Ptr, VT_GPU_API_NAME::resource##Ptr>
+	#define EXPORT_HANDLE(object)                                                                                              \
+		export using object##Handle = Handle<VT_GPU_API_NAME_PRIMARY::object##Ptr, VT_GPU_API_NAME::object##Ptr>
 #else
-	#define EXPORT_RESOURCE_HANDLE(resource) export using resource##Handle = Handle<VT_GPU_API_NAME::resource##Ptr>
+	#define EXPORT_HANDLE(object) export using object##Handle = Handle<VT_GPU_API_NAME::object##Ptr>
 #endif
 
 	template<
@@ -41,11 +41,13 @@ namespace vt
 		}
 	};
 
-	EXPORT_RESOURCE_HANDLE(Buffer);
-	EXPORT_RESOURCE_HANDLE(CommandList);
-	EXPORT_RESOURCE_HANDLE(Pipeline);
-	EXPORT_RESOURCE_HANDLE(QueryPool);
-	EXPORT_RESOURCE_HANDLE(RootSignature);
-	EXPORT_RESOURCE_HANDLE(Sampler);
-	EXPORT_RESOURCE_HANDLE(Texture);
+	EXPORT_HANDLE(Buffer);
+	EXPORT_HANDLE(CommandList);
+	EXPORT_HANDLE(Device);
+	EXPORT_HANDLE(Pipeline);
+	EXPORT_HANDLE(QueryPool);
+	EXPORT_HANDLE(Queue);
+	EXPORT_HANDLE(RootSignature);
+	EXPORT_HANDLE(Sampler);
+	EXPORT_HANDLE(Texture);
 }

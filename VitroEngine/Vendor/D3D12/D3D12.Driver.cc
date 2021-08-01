@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "D3D12.API.hh"
 #include "Trace/Assert.hh"
 
@@ -25,9 +25,7 @@ namespace vt::d3d12
 			d3d12GetDebugInterface(d3d12.loadSymbol<decltype(::D3D12GetDebugInterface)>("D3D12GetDebugInterface")),
 			createDXGIFactory2(dxgi.loadSymbol<decltype(::CreateDXGIFactory2)>("CreateDXGIFactory2")),
 			d3d12CreateDevice(d3d12.loadSymbol<decltype(::D3D12CreateDevice)>("D3D12CreateDevice")),
-#if VT_DEBUG
 			debug(makeDebugInterface()),
-#endif
 			factory(makeFactory())
 		{}
 
@@ -37,7 +35,8 @@ namespace vt::d3d12
 			for(UINT index = 0;; ++index)
 			{
 				IDXGIAdapter1* adapterPtr;
-				auto result = factory->EnumAdapters1(index, &adapterPtr);
+
+				auto						   result = factory->EnumAdapters1(index, &adapterPtr);
 				UniqueInterface<IDXGIAdapter1> adapter(adapterPtr);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
@@ -74,19 +73,18 @@ namespace vt::d3d12
 		}
 
 	private:
-		SharedLibrary d3d12;
-		SharedLibrary dxgi;
-		PFN_D3D12_GET_DEBUG_INTERFACE d3d12GetDebugInterface;
+		SharedLibrary					d3d12;
+		SharedLibrary					dxgi;
+		PFN_D3D12_GET_DEBUG_INTERFACE	d3d12GetDebugInterface;
 		decltype(::CreateDXGIFactory2)* createDXGIFactory2;
-		PFN_D3D12_CREATE_DEVICE d3d12CreateDevice;
-#if VT_DEBUG
-		UniqueInterface<ID3D12Debug> debug;
-#endif
-		UniqueInterface<IDXGIFactory5> factory;
+		PFN_D3D12_CREATE_DEVICE			d3d12CreateDevice;
+		UniqueInterface<ID3D12Debug>	debug;
+		UniqueInterface<IDXGIFactory5>	factory;
 
 		ID3D12Debug* makeDebugInterface()
 		{
 			ID3D12Debug* debugInterface;
+
 			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
 			vtEnsureResult(result, "Failed to get D3D12 debug interface.");
 
@@ -100,16 +98,12 @@ namespace vt::d3d12
 #if VT_DEBUG
 			flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
+			IDXGIFactory5* factoryPtr;
 
-			IDXGIFactory2* factoryPtr;
 			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&factoryPtr));
-			UniqueInterface<IDXGIFactory2> proxyFactory(factoryPtr);
 			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
 
-			IDXGIFactory5* mainFactory;
-			result = proxyFactory->QueryInterface(&mainFactory);
-			vtEnsureResult(result, "Failed to get main DXGI factory.");
-			return mainFactory;
+			return factoryPtr;
 		}
 	};
 }

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Trace/Assert.hh"
 export module Vitro.Core.Singleton;
 

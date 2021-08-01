@@ -44,16 +44,16 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
 	{
 	protected:
-		RenderPass const* currentRenderPass = nullptr;
-		ID3D12Resource* currentRenderTarget = nullptr;
-		unsigned subpassIndex				= 1;
+		RenderPass const* currentRenderPass	  = nullptr;
+		ID3D12Resource*	  currentRenderTarget = nullptr;
+		unsigned		  subpassIndex		  = 1;
 	};
 
 	export template<CommandType Type> class CommandList final : public RenderCommandListBase, public CommandListData<Type>
 	{
 	public:
 		CommandList(vt::Device& device) :
-			allocator(makeAllocator(device.d3d12.handle())), cmd(makeCommandList(device.d3d12.handle()))
+			allocator(makeAllocator(device->handle().d3d12())), cmd(makeCommandList(device->handle().d3d12()))
 		{}
 
 		CommandListHandle handle() override
@@ -109,6 +109,7 @@ namespace vt::d3d12
 			this->currentRenderTarget			= renderTarget.d3d12.resource();
 
 			auto const& transition = pass->transitions.front();
+
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition {
 					.pResource	 = this->currentRenderTarget,
@@ -140,6 +141,7 @@ namespace vt::d3d12
 					 "All subpasses of this render pass have already been transitioned through.");
 
 			auto const& transition = this->currentRenderPass->transitions[this->subpassIndex++];
+
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition {
 					.pResource	 = this->currentRenderTarget,
@@ -157,6 +159,7 @@ namespace vt::d3d12
 			this->subpassIndex = 1;
 
 			auto const& transition = this->currentRenderPass->transitions.back();
+
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition {
 					.pResource	 = this->currentRenderTarget,
@@ -203,31 +206,35 @@ namespace vt::d3d12
 		void drawIndexed(unsigned indexCount,
 						 unsigned instanceCount,
 						 unsigned firstIndex,
-						 int vertexOffset,
+						 int	  vertexOffset,
 						 unsigned firstInstance) override
 		{
 			cmd->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 		}
 
 	private:
-		static constexpr D3D12_COMMAND_LIST_TYPE D3D12CommandType = convertCommandType(Type);
+		static constexpr D3D12_COMMAND_LIST_TYPE CommandListType = convertCommandType(Type);
 
-		UniqueInterface<ID3D12CommandAllocator> allocator;
+		UniqueInterface<ID3D12CommandAllocator>		allocator;
 		UniqueInterface<ID3D12GraphicsCommandList4> cmd;
 
 		static ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
 		{
 			ID3D12CommandAllocator* allocator;
-			auto result = device->CreateCommandAllocator(D3D12CommandType, IID_PPV_ARGS(&allocator));
+
+			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&allocator));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
+
 			return allocator;
 		}
 
 		ID3D12GraphicsCommandList4* makeCommandList(ID3D12Device1* device)
 		{
 			ID3D12GraphicsCommandList4* list;
-			auto result = device->CreateCommandList(0, D3D12CommandType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
+
+			auto result = device->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
+
 			return list;
 		}
 	};

@@ -13,13 +13,16 @@ workspace 'Vitro'
 	floatingpoint		'Fast'
 	files				{
 							'%{prj.name}/**.cc',
-							'%{prj.name}/**.hh'
+							'%{prj.name}/**.hh',
+							'%{prj.name}/**.hlsl'
 						}
-	removefiles			{ '%{prj.name}/**/**.*.*' }
-	files				{ '%{prj.name}/**.hlsl' } -- Add shaders only after removing files with two dots
-	objdir				('.bin_int/' .. output_dir .. '/%{prj.name}')
-	targetdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
+	removefiles			{
+							'%{prj.name}/**/**.*.cc',
+							'prj.name}/**/**.*.hh'
+						}
 	debugdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
+	targetdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
+	objdir				('.bin_int/' .. output_dir .. '/%{prj.name}')
 
 	filter 'files:**.cc'
 		compileas		'Module'
@@ -53,15 +56,12 @@ workspace 'Vitro'
 		optimize		'Speed'
 		runtime			'Release'
 
-group 'Dependencies'
-group ''
-
 project 'VitroEngine'
 	location			'%{prj.name}'
 	kind				'StaticLib'
 	includedirs			{ '%{prj.name}', 'Dependencies' }
-	libdirs				'Dependencies'
 	defines				'VT_ENGINE_NAME="%{prj.name}"'
+	links				'D3D12MemoryAllocator'
 
 	filter 'system:Windows'
 		systemversion	'latest'
@@ -97,3 +97,14 @@ project 'VitroTests'
 	filter 'configurations:Release'
 		kind			'WindowedApp'
 		entrypoint		'mainCRTStartup'
+
+group 'Dependencies'
+
+	project 'D3D12MemoryAllocator'
+		location		'Dependencies/%{prj.name}'
+		kind			'StaticLib'
+		files			{
+							'%{prj.location}/src/D3D12MemAlloc.cpp',
+							'%{prj.location}/src/D3D12MemAlloc.h'
+						}
+		warnings		'Off'

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.RenderTarget;
 
@@ -27,7 +27,7 @@ namespace vt::d3d12
 
 	private:
 		UniqueInterface<ID3D12Resource> renderTarget;
-		D3D12_CPU_DESCRIPTOR_HANDLE renderTargetView;
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView;
+		D3D12_CPU_DESCRIPTOR_HANDLE		renderTargetView;
+		D3D12_CPU_DESCRIPTOR_HANDLE		depthStencilView;
 	};
 }

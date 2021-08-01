@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <csignal>
 #include <cstdio>
 #include <string_view>

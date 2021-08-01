@@ -1,4 +1,4 @@
-export module Vitro.Graphics.DynamicGpuApi;
+﻿export module Vitro.Graphics.DynamicGpuApi;
 
 import Vitro.Core.Singleton;
 

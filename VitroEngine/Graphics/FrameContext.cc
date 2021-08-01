@@ -1,4 +1,4 @@
-export module Vitro.Graphics.FrameContext;
+﻿export module Vitro.Graphics.FrameContext;
 
 namespace vt
 {}

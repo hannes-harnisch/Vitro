@@ -1,3 +1,5 @@
+﻿module;
+#include <thread>
 export module Vitro.App.EventBinding;
 
 import Vitro.App.Event;

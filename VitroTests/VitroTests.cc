@@ -1,5 +1,4 @@
-import Vitro.App.App;
-import Vitro.App.Window;
+﻿import Vitro;
 
 class VitroTests : public vt::App
 {

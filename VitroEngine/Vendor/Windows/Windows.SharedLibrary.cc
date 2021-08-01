@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -34,7 +34,7 @@ namespace vt::windows
 		}
 
 	private:
-		std::wstring name;
+		std::wstring				   name;
 		Unique<HMODULE, ::FreeLibrary> library;
 
 		HMODULE makeLibrary() const

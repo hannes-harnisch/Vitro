@@ -288,6 +288,16 @@ namespace vt::d3d12
 			copyQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
 
+		DeviceHandle handle() override
+		{
+			return {device.get()};
+		}
+
+		QueueHandle presentationQueueHandle() override
+		{
+			return {renderQueue.handle()};
+		}
+
 		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineDescription const& desc) override
 		{
 			D3D12_INPUT_ELEMENT_DESC inputElementDescs[RenderPipelineDescription::MaxVertexAttributes];
@@ -331,7 +341,8 @@ namespace vt::d3d12
 				},
 				.DepthStencilState {
 					.DepthEnable	  = desc.depthStencil.enableDepthTest,
-					.DepthWriteMask	  = static_cast<D3D12_DEPTH_WRITE_MASK>(desc.depthStencil.enableDepthWrite),
+					.DepthWriteMask	  = desc.depthStencil.enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL
+																		   : D3D12_DEPTH_WRITE_MASK_ZERO,
 					.DepthFunc		  = convertComparisonOp(desc.depthStencil.depthComparisonOp),
 					.StencilEnable	  = desc.depthStencil.enableStencilTest,
 					.StencilReadMask  = desc.depthStencil.stencilReadMask,
@@ -349,9 +360,12 @@ namespace vt::d3d12
 				.NumRenderTargets	   = desc.blend.attachmentCount,
 				.SampleDesc			   = {.Count = desc.multisample.sampleCount},
 			};
+
 			ID3D12PipelineState* pipeline;
+
 			auto result = device->CreateGraphicsPipelineState(&d3d12Desc, IID_PPV_ARGS(&pipeline));
 			vtAssertResult(result, "Failed to create render pipeline.");
+
 			return DeferredUnique<PipelineHandle>({pipeline});
 		}
 
@@ -364,6 +378,7 @@ namespace vt::d3d12
 				vtAssert(isRightType, "All command lists for this submission must be copy command lists.");
 			}
 #endif
+
 			copyQueue.submit(commandLists);
 		}
 
@@ -376,6 +391,7 @@ namespace vt::d3d12
 				vtAssert(isRightType, "All command lists for this submission must be compute command lists.");
 			}
 #endif
+
 			computeQueue.submit(commandLists);
 		}
 
@@ -388,41 +404,23 @@ namespace vt::d3d12
 				vtAssert(isRightType, "All command lists for this submission must be render command lists.");
 			}
 #endif
+
 			renderQueue.submit(commandLists);
-		}
-
-		ID3D12Device1* handle()
-		{
-			return device.get();
-		}
-
-		ID3D12CommandQueue* renderQueueHandle()
-		{
-			return renderQueue.handle();
-		}
-
-		ID3D12CommandQueue* computeQueueHandle()
-		{
-			return computeQueue.handle();
-		}
-
-		ID3D12CommandQueue* copyQueueHandle()
-		{
-			return copyQueue.handle();
 		}
 
 	private:
 		UniqueInterface<ID3D12Device1> device;
-		Queue renderQueue;
-		Queue computeQueue;
-		Queue copyQueue;
+		Queue						   renderQueue;
+		Queue						   computeQueue;
+		Queue						   copyQueue;
 
 		static ID3D12Device1* makeDevice(vt::Driver& driver, vt::Adapter& adapter)
 		{
 			auto d3d12CreateDevice = driver.d3d12.deviceCreationFunction();
+
 			ID3D12Device1* device;
-			auto result = d3d12CreateDevice(adapter.d3d12.handle(), Driver::FeatureLevel, IID_PPV_ARGS(&device));
-			vtEnsureResult(result, "Failed to create D3D12 device.");
+			vtEnsureResult(d3d12CreateDevice(adapter.d3d12.handle(), Driver::FeatureLevel, IID_PPV_ARGS(&device)),
+						   "Failed to create D3D12 device.");
 			return device;
 		}
 	};

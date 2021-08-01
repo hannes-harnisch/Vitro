@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <format>
 #include <string>
 export module Vitro.Core.Version;

@@ -1,4 +1,4 @@
-export module Vitro.Graphics.Adapter;
+﻿export module Vitro.Graphics.Adapter;
 
 import Vitro.Graphics.AdapterBase;
 import Vitro.Graphics.InterfaceVariant;

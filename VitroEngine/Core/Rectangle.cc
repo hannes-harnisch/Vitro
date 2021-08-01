@@ -7,8 +7,8 @@ namespace vt
 {
 	export struct Rectangle
 	{
-		int x			= 0;
-		int y			= 0;
+		int		 x		= 0;
+		int		 y		= 0;
 		unsigned width	= 0;
 		unsigned height = 0;
 

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <atomic>
 #include <condition_variable>
 #include <string_view>
@@ -9,6 +9,7 @@ import Vitro.App.AppSystem;
 import Vitro.Core.Tick;
 import Vitro.Editor.Editor;
 import Vitro.Graphics.GraphicsSystem;
+import Vitro.Trace.Log;
 import Vitro.Trace.TraceSystem;
 
 namespace vt
@@ -31,13 +32,13 @@ namespace vt
 		}
 
 	private:
-		std::atomic_bool isRunning = true;
+		std::atomic_bool			  isRunning = true;
 		std::vector<std::string_view> commandLineArgs;
-		Tick tick;
-		TraceSystem traceSystem;
-		AppSystem appSystem;
-		GraphicsSystem graphicsSystem;
-		Editor editor;
+		Tick						  tick;
+		TraceSystem					  traceSystem;
+		AppSystem					  appSystem;
+		GraphicsSystem				  graphicsSystem;
+		Editor						  editor;
 
 		void update()
 		{

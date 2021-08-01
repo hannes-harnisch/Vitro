@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <array>
 #include <cmath>
 #include <format>
@@ -327,7 +327,9 @@ namespace vt
 
 	export template<typename T, int D> constexpr auto sqrt(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) { return std::sqrt(component); });
+		return apply(vec, [](auto component) {
+			return std::sqrt(component);
+		});
 	}
 
 	export template<typename T, int D> constexpr auto invSqrt(Vector<T, D> vec)
@@ -337,12 +339,16 @@ namespace vt
 
 	export template<typename T, int D> constexpr auto sin(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) { return std::sin(component); });
+		return apply(vec, [](auto component) {
+			return std::sin(component);
+		});
 	}
 
 	export template<typename T, int D> constexpr auto cos(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) { return std::cos(component); });
+		return apply(vec, [](auto component) {
+			return std::cos(component);
+		});
 	}
 
 	export template<typename T1, typename T2>

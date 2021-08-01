@@ -1,4 +1,4 @@
-export module Vitro.Graphics.DeferredDeleterBase;
+﻿export module Vitro.Graphics.DeferredDeleterBase;
 
 import Vitro.Graphics.Handle;
 

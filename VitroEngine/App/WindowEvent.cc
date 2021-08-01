@@ -1,6 +1,4 @@
 module;
-#include "Core/Enum.hh"
-
 #include <format>
 export module Vitro.App.WindowEvent;
 
@@ -8,6 +6,7 @@ import Vitro.App.Event;
 import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
 import Vitro.App.Window;
+import Vitro.Core.Enum;
 import Vitro.Core.Rectangle;
 import Vitro.Core.Vector;
 
@@ -91,7 +90,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}, Key({})", WindowEvent::toString(), getEnumName(key));
+			return std::format("{}, Key({})", WindowEvent::toString(), enum_name(key));
 		}
 
 	protected:
@@ -141,7 +140,7 @@ namespace vt
 
 		std::string toString() const override
 		{
-			return std::format("{}, Button({})", WindowEvent::toString(), getEnumName(button));
+			return std::format("{}, Button({})", WindowEvent::toString(), enum_name(button));
 		}
 
 	protected:

@@ -1,4 +1,4 @@
-export module Vitro.App.AppContext;
+﻿export module Vitro.App.AppContext;
 
 import Vitro.VT_SYSTEM_MODULE.AppContext;
 

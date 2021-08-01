@@ -1,4 +1,4 @@
-export module Vitro.Graphics.PipelineDescription;
+﻿export module Vitro.Graphics.PipelineDescription;
 
 import Vitro.Core.Array;
 import Vitro.Core.Flags;
@@ -86,10 +86,10 @@ namespace vt
 
 	export struct VertexAttribute
 	{
-		unsigned char slot			 = 0;
-		unsigned char byteOffset	 = 0;
-		Format format				 = {};
-		AttributeInputRate inputRate = {};
+		unsigned char	   slot		  = 0;
+		unsigned char	   byteOffset = 0;
+		Format			   format	  = {};
+		AttributeInputRate inputRate  = {};
 	};
 
 	export enum class PrimitiveTopology : unsigned char {
@@ -123,13 +123,13 @@ namespace vt
 
 	struct RasterizerState
 	{
-		PolygonFillMode fillMode = {};
-		CullMode cullMode		 = {};
-		FrontFace frontFace		 = {};
-		bool enableDepthClip	 = false;
-		int depthBias			 = 0;
-		float depthBiasClamp	 = 0;
-		float depthBiasSlope	 = 0;
+		PolygonFillMode fillMode		= {};
+		CullMode		cullMode		= {};
+		FrontFace		frontFace		= {};
+		bool			enableDepthClip = false;
+		int				depthBias		= 0;
+		float			depthBiasClamp	= 0;
+		float			depthBiasSlope	= 0;
 	};
 
 	export enum class ComparisonOperation : unsigned char {
@@ -156,30 +156,30 @@ namespace vt
 
 	export struct StencilOperationState
 	{
-		StencilOperation failOp		  = {};
-		StencilOperation passOp		  = {};
-		StencilOperation depthFailOp  = {};
-		ComparisonOperation compareOp = {};
+		StencilOperation	failOp		= {};
+		StencilOperation	passOp		= {};
+		StencilOperation	depthFailOp = {};
+		ComparisonOperation compareOp	= {};
 	};
 
 	struct DepthStencilState
 	{
-		bool enableDepthTest				  = false;
-		bool enableDepthWrite				  = false;
-		ComparisonOperation depthComparisonOp = {};
-		bool enableStencilTest				  = false;
-		unsigned char stencilReadMask		  = 0;
-		unsigned char stencilWriteMask		  = 0;
+		bool				  enableDepthTest	= false;
+		bool				  enableDepthWrite	= false;
+		ComparisonOperation	  depthComparisonOp = {};
+		bool				  enableStencilTest = false;
+		unsigned char		  stencilReadMask	= 0;
+		unsigned char		  stencilWriteMask	= 0;
 		StencilOperationState front;
 		StencilOperationState back;
 	};
 
 	struct MultisampleState
 	{
-		unsigned sampleMask					= 0;
+		unsigned	  sampleMask			= 0;
 		unsigned char sampleCount			= 0;
 		unsigned char rasterizerSampleCount = 0;
-		bool enableAlphaToCoverage			= {};
+		bool		  enableAlphaToCoverage = {};
 	};
 
 	export enum class LogicOperation : unsigned char {
@@ -238,22 +238,22 @@ namespace vt
 
 	struct ColorAttachmentBlendState
 	{
-		bool enableBlend		   = false;
-		BlendFactor srcColorFactor = BlendFactor::SrcAlpha;
-		BlendFactor dstColorFactor = BlendFactor::SrcAlphaInv;
-		BlendOperation colorOp	   = BlendOperation::Add;
-		BlendFactor srcAlphaFactor = BlendFactor::One;
-		BlendFactor dstAlphaFactor = BlendFactor::One;
-		BlendOperation alphaOp	   = BlendOperation::Add;
-		ColorComponent writeMask   = ColorComponent::All;
+		bool		   enableBlend	  = false;
+		BlendFactor	   srcColorFactor = BlendFactor::SrcAlpha;
+		BlendFactor	   dstColorFactor = BlendFactor::SrcAlphaInv;
+		BlendOperation colorOp		  = BlendOperation::Add;
+		BlendFactor	   srcAlphaFactor = BlendFactor::One;
+		BlendFactor	   dstAlphaFactor = BlendFactor::One;
+		BlendOperation alphaOp		  = BlendOperation::Add;
+		ColorComponent writeMask	  = ColorComponent::All;
 	};
 
 	export struct BlendState
 	{
 		ColorAttachmentBlendState attachmentStates[RenderPassDescription::MaxColorAttachments];
-		unsigned char attachmentCount = 0;
-		bool enableLogicOp			  = false;
-		LogicOperation logicOp		  = {};
+		unsigned char			  attachmentCount = 0;
+		bool					  enableLogicOp	  = false;
+		LogicOperation			  logicOp		  = {};
 	};
 
 	export struct RenderPipelineDescription
@@ -261,16 +261,16 @@ namespace vt
 		static constexpr unsigned MaxVertexAttributes = 16;
 
 		RootSignatureHandle rootSignature;
-		RenderPass const& renderPass;
-		Array<char> const& vertexShaderBytecode;
-		Array<char> const& fragmentShaderBytecode;
-		VertexAttribute vertexAttributes[MaxVertexAttributes];
-		unsigned char vertexAttributeCount	= 0;
-		PrimitiveTopology primitiveTopology = {};
-		bool enablePrimitiveRestart			= false;
-		RasterizerState rasterizer;
-		DepthStencilState depthStencil;
-		MultisampleState multisample;
-		BlendState blend;
+		RenderPass const&	renderPass;
+		Array<char> const&	vertexShaderBytecode;
+		Array<char> const&	fragmentShaderBytecode;
+		VertexAttribute		vertexAttributes[MaxVertexAttributes];
+		unsigned char		vertexAttributeCount   = 0;
+		PrimitiveTopology	primitiveTopology	   = {};
+		bool				enablePrimitiveRestart = false;
+		RasterizerState		rasterizer;
+		DepthStencilState	depthStencil;
+		MultisampleState	multisample;
+		BlendState			blend;
 	};
 }

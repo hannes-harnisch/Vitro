@@ -80,16 +80,16 @@ namespace vt
 		}
 
 	private:
-		static const inline Float3 DefaultRight {1, 0, 0};	 // TODO: constexpr after compiler fix
-		static const inline Float3 DefaultUp {0, 1, 0};		 // TODO: constexpr after compiler fix
-		static const inline Float3 DefaultForward {0, 0, 1}; // TODO: constexpr after compiler fix
+		static constexpr Float3 DefaultRight {1, 0, 0};
+		static constexpr Float3 DefaultUp {0, 1, 0};
+		static constexpr Float3 DefaultForward {0, 0, 1};
 
 		Float4x4 projection		= {};
 		Float4x4 viewProjection = {};
-		Float3 position			= {};
-		Float3 right			= DefaultRight;
-		Float3 up				= DefaultUp;
-		Float3 forward			= DefaultForward;
+		Float3	 position		= {};
+		Float3	 right			= DefaultRight;
+		Float3	 up				= DefaultUp;
+		Float3	 forward		= DefaultForward;
 
 		void updateView()
 		{

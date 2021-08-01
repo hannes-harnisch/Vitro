@@ -3,7 +3,7 @@ AccessModifierOffset: '-4'
 AlignAfterOpenBracket: Align
 AlignConsecutiveMacros: 'true'
 AlignConsecutiveAssignments: 'true'
-AlignConsecutiveDeclarations: 'false'
+AlignConsecutiveDeclarations: 'true'
 AlignEscapedNewlines: Right
 AlignOperands: 'true'
 AlignTrailingComments: 'true'
@@ -14,7 +14,7 @@ AllowShortBlocksOnASingleLine: 'false'
 AllowShortFunctionsOnASingleLine: None
 AllowShortCaseLabelsOnASingleLine: 'true'
 AllowShortIfStatementsOnASingleLine: Never
-AllowShortLambdasOnASingleLine: Inline
+AllowShortLambdasOnASingleLine: Empty
 AllowShortLoopsOnASingleLine: 'false'
 AlwaysBreakBeforeMultilineStrings: 'false'
 BinPackArguments: 'true'
@@ -63,6 +63,9 @@ KeepEmptyLinesAtTheStartOfBlocks: 'false'
 Language: Cpp
 MaxEmptyLinesToKeep: '1'
 NamespaceIndentation: All
+PenaltyBreakAssignment: '1000'
+PenaltyBreakBeforeFirstCallParameter: '1000'
+PenaltyReturnTypeOnItsOwnLine: '1000'
 PointerAlignment: Left
 ReflowComments: 'true'
 SortIncludes: 'true'

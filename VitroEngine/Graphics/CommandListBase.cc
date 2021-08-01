@@ -24,8 +24,8 @@ namespace vt
 		virtual ~CopyCommandListBase() = default;
 
 		virtual CommandListHandle handle() = 0;
-		virtual void begin()			   = 0;
-		virtual void end()				   = 0;
+		virtual void			  begin()  = 0;
+		virtual void			  end()	   = 0;
 	};
 
 	export class ComputeCommandListBase : public CopyCommandListBase
@@ -50,7 +50,7 @@ namespace vt
 		virtual void drawIndexed(unsigned indexCount,
 								 unsigned instanceCount,
 								 unsigned firstIndex,
-								 int vertexOffset,
+								 int	  vertexOffset,
 								 unsigned firstInstance)															  = 0;
 	};
 }

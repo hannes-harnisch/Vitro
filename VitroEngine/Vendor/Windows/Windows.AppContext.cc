@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Trace/Assert.hh"
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
@@ -60,9 +60,9 @@ namespace vt::windows
 
 	private:
 		HINSTANCE const instanceHandle;
-		unsigned keyRepeats	   = 0;
-		KeyCode lastKeyCode	   = {};
-		Int2 lastMousePosition = {};
+		unsigned		keyRepeats		  = 0;
+		KeyCode			lastKeyCode		  = {};
+		Int2			lastMousePosition = {};
 
 		static LRESULT CALLBACK forwardMessages(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{

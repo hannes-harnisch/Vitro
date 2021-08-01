@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <type_traits>
 #include <utility>
 export module Vitro.Core.Flags;

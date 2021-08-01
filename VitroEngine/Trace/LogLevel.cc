@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Intrinsics.hh"
 export module Vitro.Trace.LogLevel;
 

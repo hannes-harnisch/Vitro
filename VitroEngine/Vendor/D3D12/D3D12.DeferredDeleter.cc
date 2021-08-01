@@ -41,9 +41,9 @@ namespace vt::d3d12
 			while(comObjects.size_approx())
 			{
 				constexpr unsigned MaxDequeued = 20;
-				IUnknown* interfaces[MaxDequeued];
 
-				size_t count = comObjects.try_dequeue_bulk(conToken, interfaces, MaxDequeued);
+				IUnknown* interfaces[MaxDequeued];
+				size_t	  count = comObjects.try_dequeue_bulk(conToken, interfaces, MaxDequeued);
 				for(auto comObject : std::views::take(interfaces, count))
 					comObject->Release();
 			}
@@ -51,7 +51,7 @@ namespace vt::d3d12
 
 	private:
 		ConcurrentQueue<IUnknown*> comObjects;
-		ConsumerToken conToken;
+		ConsumerToken			   conToken;
 
 		void enqueueComObject(IUnknown* handle)
 		{

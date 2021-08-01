@@ -13,6 +13,8 @@ namespace vt
 	public:
 		virtual ~DeviceBase() = default;
 
+		virtual DeviceHandle				   handle()													 = 0;
+		virtual QueueHandle					   presentationQueueHandle()								 = 0;
 		virtual DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineDescription const& desc) = 0;
 		// virtual DeferredUnique<TextureHandle> makeTexture(TextureDescription const& desc)	 = 0;
 		virtual void submitCopyCommands(std::span<CommandListHandle> commands)	  = 0;

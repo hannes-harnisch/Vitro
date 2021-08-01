@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <string>
 #include <string_view>
 export module Vitro.Graphics.AdapterBase;
@@ -22,7 +22,7 @@ namespace vt
 
 	protected:
 		std::string name;
-		size_t vram;
+		size_t		vram;
 
 		AdapterBase() = default;
 	};

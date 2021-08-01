@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "D3D12.API.hh"
 #include "Trace/Assert.hh"
 
@@ -61,10 +61,10 @@ namespace vt::d3d12
 		}
 
 	private:
-		uint64_t fenceValue = 0;
+		uint64_t							fenceValue = 0;
 		UniqueInterface<ID3D12CommandQueue> queue;
-		UniqueInterface<ID3D12Fence> fence;
-		Unique<HANDLE, ::CloseHandle> fenceEvent;
+		UniqueInterface<ID3D12Fence>		fence;
+		Unique<HANDLE, ::CloseHandle>		fenceEvent;
 
 		static ID3D12CommandQueue* makeQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType)
 		{
@@ -72,16 +72,20 @@ namespace vt::d3d12
 				.Type = commandType,
 			};
 			ID3D12CommandQueue* queue;
+
 			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue));
 			vtEnsureResult(result, "Failed to create D3D12 command queue.");
+
 			return queue;
 		}
 
 		ID3D12Fence* makeFence(ID3D12Device* device)
 		{
 			ID3D12Fence* queueFence;
+
 			auto result = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&queueFence));
 			vtEnsureResult(result, "Failed to create D3D12 fence.");
+
 			return queueFence;
 		}
 

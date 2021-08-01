@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Intrinsics.hh"
 
 #include <algorithm>
@@ -23,7 +23,7 @@ namespace vt
 		removeFirstOf(name, "union vt::");
 		removeFirstOf(name, "enum vt::");
 #else
-		int status;
+		int			status;
 		char const* nameBuffer = abi::__cxa_demangle(symbol.data(), nullptr, nullptr, &status);
 		std::string name(nameBuffer);
 		std::free(nameBuffer);

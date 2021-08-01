@@ -1,9 +1,6 @@
 module;
-#include "Core/Enum.hh"
-
-#include <bitset>
 #include <concepts>
-#include <concurrentqueue/concurrentqueue.h> // TODO: Remove when type export doesn't crash compiler
+#include <concurrentqueue/concurrentqueue.h>
 #include <condition_variable>
 #include <cstdio>
 #include <filesystem>
@@ -11,9 +8,11 @@ module;
 #include <ranges>
 #include <source_location>
 #include <string_view>
+#include <thread>
 export module Vitro.Trace.Log;
 
 import Vitro.Core.ConcurrentQueue;
+import Vitro.Core.Enum;
 import Vitro.Core.Singleton;
 import Vitro.Trace.LogLevel;
 
@@ -41,15 +40,14 @@ namespace vt
 	};
 
 	template<typename T>
-	concept HasStdToStringOverload =
-		!std::same_as<bool, T> && !std::is_enum_v<T> && !IndirectlyConvertibleToString<T> && requires(T t)
+	concept HasStdToStringOverload = !std::same_as<bool, T> && !std::is_enum_v<T> && !IndirectlyConvertibleToString<T> &&
+									 requires(T t)
 	{
 		std::to_string(t);
 	};
 
 	export class Logger : public Singleton<Logger>
 	{
-		friend class TraceSystem;
 		friend class Log;
 
 	public:
@@ -73,22 +71,32 @@ namespace vt
 			get().atomicallySetDisabledLevels(level, false);
 		}
 
+		Logger() : conToken(queue), logWorker(&Logger::runLogProcessing, this)
+		{}
+
+		~Logger()
+		{
+			isAcceptingLogs = false;
+			condition.notify_one();
+		}
+
 	private:
 		struct Entry
 		{
-			LogLevel level;
-			LogChannel channel;
+			LogLevel							level;
+			LogChannel							channel;
 			std::chrono::system_clock::duration time;
-			std::string message;
+			std::string							message;
 		};
 
-		ConcurrentQueue<Entry> queue;
-		ConsumerToken conToken;
-		std::mutex mutex;
-		std::condition_variable condition;
-		std::atomic<std::bitset<sizeFromEnumMax<LogChannel>()>> disabledChannels;
-		std::atomic<std::bitset<sizeFromEnumMax<LogLevel>()>> disabledLevels;
-		std::atomic_bool isAcceptingLogs = true;
+		ConcurrentQueue<Entry>				  queue;
+		ConsumerToken						  conToken;
+		std::mutex							  mutex;
+		std::condition_variable				  condition;
+		std::atomic<EnumBitArray<LogChannel>> disabledChannels;
+		std::atomic<EnumBitArray<LogLevel>>	  disabledLevels;
+		std::atomic_bool					  isAcceptingLogs = true;
+		std::jthread						  logWorker;
 
 		static std::string_view prepareArgument(bool arg)
 		{
@@ -142,9 +150,6 @@ namespace vt
 			return timestamp;
 		}
 
-		Logger() : conToken(queue)
-		{}
-
 		template<typename... Ts> void submit(LogLevel level, LogChannel channel, Ts&&... ts)
 		{
 			if(!isLevelDisabled(level) && !isChannelDisabled(channel))
@@ -154,6 +159,7 @@ namespace vt
 		void enqueue(LogLevel level, LogChannel channel, std::string message)
 		{
 			thread_local ProducerToken const proToken(queue);
+
 			auto now = std::chrono::system_clock::now().time_since_epoch();
 			queue.enqueue(proToken, {level, channel, now, std::move(message)});
 			condition.notify_one();
@@ -162,29 +168,25 @@ namespace vt
 		void atomicallySetDisabledChannels(LogChannel channel, bool value)
 		{
 			auto channels = disabledChannels.load();
-			size_t index  = *getEnumIndex(channel);
-			channels.set(index, value);
+			channels.set(channel, value);
 			disabledChannels.store(channels);
 		}
 
 		void atomicallySetDisabledLevels(LogLevel level, bool value)
 		{
-			auto levels	 = disabledLevels.load();
-			size_t index = *getEnumIndex(level);
-			levels.set(index, value);
+			auto levels = disabledLevels.load();
+			levels.set(level, value);
 			disabledLevels.store(levels);
 		}
 
 		bool isChannelDisabled(LogChannel channel) const
 		{
-			size_t channelIndex = *getEnumIndex(channel);
-			return disabledChannels.load().test(channelIndex);
+			return disabledChannels.load().test(channel);
 		}
 
 		bool isLevelDisabled(LogLevel level) const
 		{
-			size_t levelIndex = *getEnumIndex(level);
-			return disabledLevels.load().test(levelIndex);
+			return disabledLevels.load().test(level);
 		}
 
 		void runLogProcessing()
@@ -199,46 +201,44 @@ namespace vt
 			condition.wait(lock);
 			lock.unlock();
 
-			constexpr unsigned MaxEntriesDequeued = 100;
-			Entry entries[MaxEntriesDequeued];
-			size_t count = queue.try_dequeue_bulk(conToken, entries, MaxEntriesDequeued);
-			for(auto const& entry : std::views::take(entries, count))
-				writeLog(entry);
+			while(queue.size_approx())
+			{
+				constexpr unsigned MaxEntriesDequeued = 100;
+
+				Entry  entries[MaxEntriesDequeued];
+				size_t count = queue.try_dequeue_bulk(conToken, entries, MaxEntriesDequeued);
+				for(auto const& entry : std::views::take(entries, count))
+					writeLog(entry);
+			}
 		}
 
 		void writeLog(Entry const& entry)
 		{
-			auto level	 = getEnumName(entry.level);
-			auto channel = getEnumName(entry.channel);
+			auto level	 = enum_name(entry.level);
+			auto channel = enum_name(entry.channel);
 
 			using namespace std::chrono;
-			auto timestamp	  = makeTimestamp(entry.time);
+			auto	timestamp = makeTimestamp(entry.time);
 			int64_t millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
 
 			auto escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
 			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ] %s\n", escCodeParams, timestamp.data(), millisecs, level.data(),
 						channel.data(), entry.message.data());
 		}
-
-		void quit()
-		{
-			isAcceptingLogs = false;
-			condition.notify_one();
-		}
 	};
 
 	consteval LogChannel extractChannelFromPath(std::string_view path)
 	{
-		size_t dirBegin	  = path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
-		auto pathAfterDir = path.substr(dirBegin);
-		size_t dirEnd	  = pathAfterDir.find(std::filesystem::path::preferred_separator);
-		auto dir		  = pathAfterDir.substr(0, dirEnd);
-		auto channel	  = toEnum<LogChannel>(dir);
+		size_t dirBegin		= path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
+		auto   pathAfterDir = path.substr(dirBegin);
+		size_t dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
+		auto   dir			= pathAfterDir.substr(0, dirEnd);
+		auto   channel		= enum_cast<LogChannel>(dir);
 
-		auto restPath	   = pathAfterDir.substr(dirEnd + 1);
-		size_t vendorEnd   = restPath.find(std::filesystem::path::preferred_separator);
-		auto vendorDir	   = restPath.substr(0, vendorEnd);
-		auto vendorChannel = toEnum<LogChannel>(vendorDir);
+		auto   restPath		 = pathAfterDir.substr(dirEnd + 1);
+		size_t vendorEnd	 = restPath.find(std::filesystem::path::preferred_separator);
+		auto   vendorDir	 = restPath.substr(0, vendorEnd);
+		auto   vendorChannel = enum_cast<LogChannel>(vendorDir);
 
 		return channel.value_or(vendorChannel.value_or(LogChannel::Client));
 	}

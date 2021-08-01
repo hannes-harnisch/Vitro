@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -16,7 +16,7 @@ namespace vt::windows
 	export class Window : public WindowBase
 	{
 	public:
-		static constexpr auto WindowClassName = TEXT(VT_ENGINE_NAME);
+		static constexpr auto	   WindowClassName = TEXT(VT_ENGINE_NAME);
 		static constexpr Rectangle DefaultRect {
 			.x		= CW_USEDEFAULT,
 			.y		= CW_USEDEFAULT,
@@ -116,7 +116,7 @@ namespace vt::windows
 		{
 			ensureCallIsOnMainThread();
 
-			int length = ::GetWindowTextLength(window.get());
+			int			 length = ::GetWindowTextLength(window.get());
 			std::wstring title(length, L'\0');
 			::GetWindowText(window.get(), title.data(), length + 1);
 			return narrowString(title);

@@ -1,4 +1,4 @@
-export module Vitro.Graphics.RenderPass;
+﻿export module Vitro.Graphics.RenderPass;
 
 import Vitro.Graphics.InterfaceVariant;
 import Vitro.Graphics.RenderPassBase;

@@ -18,21 +18,21 @@ namespace vt
 	export class GraphicsSystem : public Singleton<GraphicsSystem>
 	{
 	public:
-		static void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
+		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
-			get().swapChains.try_emplace(&window, get().device, nativeWindowHandle);
+			swapChains.try_emplace(&window, device->handle(), device->presentationQueueHandle(), nativeWindowHandle);
 		}
 
-		static void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
+		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
 		{
-			auto swapChainNode	= get().swapChains.extract(&oldWindow);
-			swapChainNode.key() = &newWindow;
-			get().swapChains.insert(std::move(swapChainNode));
+			auto node  = swapChains.extract(&oldWindow);
+			node.key() = &newWindow;
+			swapChains.insert(std::move(node));
 		}
 
-		static void notifyWindowDestruction(Window const& window)
+		void notifyWindowDestruction(Window const& window)
 		{
-			get().swapChains.erase(&window);
+			swapChains.erase(&window);
 		}
 
 		GraphicsSystem() : device(driver, selectAdapter()), renderer(device)
@@ -45,11 +45,11 @@ namespace vt
 		}
 
 	private:
-		DynamicGpuApi dynamicGpuApi;
-		Driver driver;
-		Device device;
+		DynamicGpuApi					  dynamicGpuApi;
+		Driver							  driver;
+		Device							  device;
 		HashMap<Window const*, SwapChain> swapChains;
-		ForwardRenderer renderer;
+		ForwardRenderer					  renderer;
 
 		Adapter selectAdapter()
 		{

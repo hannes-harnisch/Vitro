@@ -10,23 +10,23 @@ namespace vt
 	export class AppContextBase : public Singleton<AppContextBase>
 	{
 	public:
-		static std::thread::id mainThreadId()
+		virtual void  pollEvents() const = 0;
+		virtual void* handle()			 = 0;
+
+		std::thread::id mainThreadId()
 		{
 			return get().mainThread;
 		}
 
-		static void notifyWindowMapping(void* nativeHandle, class Window& window)
+		void notifyWindowMapping(void* nativeHandle, class Window& window)
 		{
 			get().nativeWindowToEngineWindow[nativeHandle] = &window;
 		}
 
-		static void notifyWindowDestruction(void* nativeHandle)
+		void notifyWindowDestruction(void* nativeHandle)
 		{
 			get().nativeWindowToEngineWindow.erase(nativeHandle);
 		}
-
-		virtual void pollEvents() const = 0;
-		virtual void* handle()			= 0;
 
 	protected:
 		Window* findWindow(void* nativeHandle)
@@ -41,6 +41,6 @@ namespace vt
 
 	private:
 		HashMap<void*, Window*> nativeWindowToEngineWindow;
-		std::thread::id mainThread = std::this_thread::get_id();
+		std::thread::id			mainThread = std::this_thread::get_id();
 	};
 }

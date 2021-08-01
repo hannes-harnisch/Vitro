@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <new>
 export module Vitro.Graphics.ForwardRenderer;
 
@@ -27,8 +27,8 @@ namespace vt
 	private:
 		static constexpr unsigned MaxFramesInFlight = 2;
 
-		DeferredDeleter deferredDeleter;
+		DeferredDeleter	  deferredDeleter;
 		RenderCommandList cmd;
-		unsigned frameResourceIndex = 0;
+		unsigned		  frameResourceIndex = 0;
 	};
 }

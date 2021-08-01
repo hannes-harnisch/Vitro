@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <cmath>
 #include <format>
 export module Vitro.Core.Matrix;
@@ -282,7 +282,7 @@ namespace vt
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R > 2)
 		{
 			Matrix<T, R - 1, R - 1> submatrix;
-			T det {};
+			T						det {};
 			for(int i = 0; i != R; ++i)
 			{
 				for(int r = 1; r != R; ++r)
@@ -305,7 +305,7 @@ namespace vt
 
 		friend constexpr auto inverse(Matrix const& mat) noexcept requires(R == C)
 		{
-			Matrix cofactor;
+			Matrix					cofactor;
 			Matrix<T, R - 1, R - 1> submatrix;
 			for(int cofC = 0; cofC != C; ++cofC)
 			{

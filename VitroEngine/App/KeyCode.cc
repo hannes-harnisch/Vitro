@@ -1,4 +1,4 @@
-export module Vitro.App.KeyCode;
+﻿export module Vitro.App.KeyCode;
 
 namespace vt
 {
