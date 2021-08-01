@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Trace/Assert.hh"
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
@@ -60,9 +60,9 @@ namespace vt::windows
 
 	private:
 		HINSTANCE const instanceHandle;
-		KeyCode lastKeyCode = KeyCode::None;
-		unsigned keyRepeats = 0;
-		Int2 lastMousePosition {};
+		unsigned keyRepeats	   = 0;
+		KeyCode lastKeyCode	   = {};
+		Int2 lastMousePosition = {};
 
 		static LRESULT CALLBACK forwardMessages(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
@@ -113,7 +113,10 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			Int2 position {GET_X_LPARAM(lp), GET_Y_LPARAM(lp)};
+			Int2 position {
+				.x = GET_X_LPARAM(lp),
+				.y = GET_Y_LPARAM(lp),
+			};
 			EventSystem::notify<WindowMoveEvent>(*window, position);
 		}
 
@@ -123,7 +126,10 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			Extent size(LOWORD(lp), HIWORD(lp));
+			Extent size {
+				.width	= LOWORD(lp),
+				.height = HIWORD(lp),
+			};
 			EventSystem::notify<WindowSizeEvent>(*window, size);
 		}
 
@@ -173,7 +179,10 @@ namespace vt::windows
 			::GetRawInputData(inputHandle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
 			auto input = new(bytes.data()) RAWINPUT;
 
-			Int2 direction {input->data.mouse.lLastX, input->data.mouse.lLastY};
+			Int2 direction {
+				.x = input->data.mouse.lLastX,
+				.y = input->data.mouse.lLastY,
+			};
 			EventSystem::notify<MouseMoveEvent>(*window, lastMousePosition, direction);
 		}
 
@@ -194,8 +203,8 @@ namespace vt::windows
 
 		void onKeyUp(HWND hwnd, WPARAM wp)
 		{
-			lastKeyCode = KeyCode::None;
 			keyRepeats	= 0;
+			lastKeyCode = KeyCode::None;
 
 			auto window = findWindow(hwnd);
 			if(!window)
@@ -234,7 +243,9 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			Float2 offset {0.0f, short(HIWORD(wp)) / float(WHEEL_DELTA)};
+			Float2 offset {
+				.y = short(HIWORD(wp)) / float(WHEEL_DELTA),
+			};
 			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}
 
@@ -244,7 +255,9 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			Float2 offset {short(HIWORD(wp)) / -float(WHEEL_DELTA), 0.0f};
+			Float2 offset {
+				.x = short(HIWORD(wp)) / -float(WHEEL_DELTA),
+			};
 			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}
 	};

@@ -9,7 +9,6 @@ import Vitro.App.AppSystem;
 import Vitro.Core.Tick;
 import Vitro.Editor.Editor;
 import Vitro.Graphics.GraphicsSystem;
-import Vitro.Trace.Log;
 import Vitro.Trace.TraceSystem;
 
 namespace vt
@@ -27,7 +26,6 @@ namespace vt
 			while(isRunning)
 			{
 				tick.update(previousTime);
-
 				update();
 			}
 		}

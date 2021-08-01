@@ -82,7 +82,6 @@ namespace vt::windows
 
 			RECT rect;
 			::GetWindowRect(window.get(), &rect);
-
 			return {
 				.width	= static_cast<unsigned>(rect.right - rect.left),
 				.height = static_cast<unsigned>(rect.bottom - rect.top),
@@ -101,7 +100,10 @@ namespace vt::windows
 
 			RECT rect;
 			::GetWindowRect(window.get(), &rect);
-			return {rect.left, rect.top};
+			return {
+				.x = rect.left,
+				.y = rect.top,
+			};
 		}
 
 		void setPosition(Int2 position) final override
@@ -134,7 +136,6 @@ namespace vt::windows
 
 			RECT rect;
 			::GetClientRect(window.get(), &rect);
-
 			return {
 				.x		= rect.left,
 				.y		= rect.top,

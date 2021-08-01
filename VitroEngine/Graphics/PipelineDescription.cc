@@ -1,8 +1,10 @@
-export module Vitro.Graphics.PipelineState;
+export module Vitro.Graphics.PipelineDescription;
 
 import Vitro.Core.Array;
 import Vitro.Core.Flags;
 import Vitro.Graphics.Handle;
+import Vitro.Graphics.RenderPass;
+import Vitro.Graphics.RenderPassBase;
 
 namespace vt
 {
@@ -124,10 +126,10 @@ namespace vt
 		PolygonFillMode fillMode = {};
 		CullMode cullMode		 = {};
 		FrontFace frontFace		 = {};
+		bool enableDepthClip	 = false;
 		int depthBias			 = 0;
 		float depthBiasClamp	 = 0;
 		float depthBiasSlope	 = 0;
-		bool enableDepthClip	 = false;
 	};
 
 	export enum class ComparisonOperation : unsigned char {
@@ -174,9 +176,10 @@ namespace vt
 
 	struct MultisampleState
 	{
-		bool enableAlphaToCoverage = {};
-		unsigned char sampleCount  = 0;
-		unsigned sampleMask		   = 0;
+		unsigned sampleMask					= 0;
+		unsigned char sampleCount			= 0;
+		unsigned char rasterizerSampleCount = 0;
+		bool enableAlphaToCoverage			= {};
 	};
 
 	export enum class LogicOperation : unsigned char {
@@ -236,38 +239,37 @@ namespace vt
 	struct ColorAttachmentBlendState
 	{
 		bool enableBlend		   = false;
-		BlendFactor srcColorFactor = {};
-		BlendFactor dstColorFactor = {};
-		BlendOperation colorOp	   = {};
-		BlendFactor srcAlphaFactor = {};
-		BlendFactor dstAlphaFactor = {};
-		BlendOperation alphaOp	   = {};
-		ColorComponent writeMask   = {};
+		BlendFactor srcColorFactor = BlendFactor::SrcAlpha;
+		BlendFactor dstColorFactor = BlendFactor::SrcAlphaInv;
+		BlendOperation colorOp	   = BlendOperation::Add;
+		BlendFactor srcAlphaFactor = BlendFactor::One;
+		BlendFactor dstAlphaFactor = BlendFactor::One;
+		BlendOperation alphaOp	   = BlendOperation::Add;
+		ColorComponent writeMask   = ColorComponent::All;
 	};
 
 	export struct BlendState
 	{
-		static constexpr unsigned MaxColorAttachments = 8;
-
-		ColorAttachmentBlendState attachmentStates[MaxColorAttachments];
+		ColorAttachmentBlendState attachmentStates[RenderPassDescription::MaxColorAttachments];
 		unsigned char attachmentCount = 0;
 		bool enableLogicOp			  = false;
 		LogicOperation logicOp		  = {};
 	};
 
-	export struct RenderPipelineState
+	export struct RenderPipelineDescription
 	{
 		static constexpr unsigned MaxVertexAttributes = 16;
 
 		RootSignatureHandle rootSignature;
+		RenderPass const& renderPass;
+		Array<char> const& vertexShaderBytecode;
+		Array<char> const& fragmentShaderBytecode;
 		VertexAttribute vertexAttributes[MaxVertexAttributes];
 		unsigned char vertexAttributeCount	= 0;
 		PrimitiveTopology primitiveTopology = {};
 		bool enablePrimitiveRestart			= false;
-		Array<char> vertexShaderBytecode;
 		RasterizerState rasterizer;
 		DepthStencilState depthStencil;
-		Array<char> fragmentShaderBytecode;
 		MultisampleState multisample;
 		BlendState blend;
 	};

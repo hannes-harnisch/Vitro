@@ -16,7 +16,7 @@ namespace vt
 		{
 			Matrix mat {};
 			for(int r = 0; r < R; ++r)
-				mat.rows[r].data[r] = 1;
+				mat.rows[r].arr[r] = 1;
 			return mat;
 		}
 
@@ -162,7 +162,7 @@ namespace vt
 			for(int r = 0; r < R; ++r)
 				for(int c = 0; c < C2; ++c)
 					for(int i = 0; i < C; ++i)
-						product.rows[r].data[c] += rows[r].data[i] * that.rows[i].data[c];
+						product.rows[r].arr[c] += rows[r].arr[i] * that.rows[i].arr[c];
 			return product;
 		}
 
@@ -171,7 +171,7 @@ namespace vt
 			Vector<decltype(rows[0][0] * vec[0]), R> product {};
 			for(int r = 0; r < R; ++r)
 				for(int c = 0; c < C; ++c)
-					product.data[r] += rows[c].data[r] * vec.data[c];
+					product.arr[r] += rows[c].arr[r] * vec.arr[c];
 			return product;
 		}
 
@@ -180,7 +180,7 @@ namespace vt
 			Vector<decltype(vec[0] * rows[0][0]), C> product {};
 			for(int c = 0; c < C; ++c)
 				for(int r = 0; r < R; ++r)
-					product.data[c] += vec.data[r] * mat.rows[r].data[c];
+					product.arr[c] += vec.arr[r] * mat.rows[r].arr[c];
 			return product;
 		}
 
@@ -234,12 +234,12 @@ namespace vt
 
 		constexpr T* data() noexcept
 		{
-			return rows[0].data;
+			return rows[0].arr.data();
 		}
 
 		constexpr T const* data() const noexcept
 		{
-			return rows[0].data;
+			return rows[0].arr.data();
 		}
 
 		template<Scalar S, int R2, int C2> constexpr Matrix<S, R2, C2> to() const noexcept
@@ -265,18 +265,18 @@ namespace vt
 			Matrix<T, C, R> transposed;
 			for(int c = 0; c < C; ++c)
 				for(int r = 0; r < R; ++r)
-					transposed.rows[c].data[r] = mat.rows[r].data[c];
+					transposed.rows[c].arr[r] = mat.rows[r].arr[c];
 			return transposed;
 		}
 
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R == 1)
 		{
-			return mat.rows[0].data[0];
+			return mat.rows[0].arr[0];
 		}
 
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R == 2)
 		{
-			return mat.rows[0].data[0] * mat.rows[1].data[1] - mat.rows[1].data[0] * mat.rows[0].data[1];
+			return mat.rows[0].arr[0] * mat.rows[1].arr[1] - mat.rows[1].arr[0] * mat.rows[0].arr[1];
 		}
 
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R > 2)
@@ -291,14 +291,14 @@ namespace vt
 					{
 						if(c == i)
 							continue;
-						submatrix.rows[r - 1].data[subC] = mat.rows[r].data[c];
+						submatrix.rows[r - 1].arr[subC] = mat.rows[r].arr[c];
 						++subC;
 					}
 				}
 				T minor = determinant(submatrix);
 				if(i & 1)
 					minor = -minor;
-				det += mat.rows[0].data[i] * minor;
+				det += mat.rows[0].arr[i] * minor;
 			}
 			return det;
 		}
@@ -319,7 +319,7 @@ namespace vt
 						{
 							if(c == cofC)
 								continue;
-							submatrix.rows[subR].data[subC] = mat.rows[r].data[c];
+							submatrix.rows[subR].arr[subC] = mat.rows[r].arr[c];
 							++subC;
 						}
 						++subR;
@@ -327,7 +327,7 @@ namespace vt
 					T minor = determinant(submatrix);
 					if((cofR + cofC) & 1)
 						minor = -minor;
-					cofactor.rows[cofR].data[cofC] = minor;
+					cofactor.rows[cofR].arr[cofC] = minor;
 				}
 			}
 			return transpose(cofactor) * (1.0f / determinant(mat));

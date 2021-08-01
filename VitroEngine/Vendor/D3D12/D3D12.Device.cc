@@ -13,7 +13,7 @@ import Vitro.Graphics.DeferredUnique;
 import Vitro.Graphics.DeviceBase;
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.Handle;
-import Vitro.Graphics.PipelineState;
+import Vitro.Graphics.PipelineDescription;
 
 namespace vt::d3d12
 {
@@ -111,7 +111,7 @@ namespace vt::d3d12
 			.InputSlot			  = attrib.slot,
 			.AlignedByteOffset	  = attrib.byteOffset,
 			.InputSlotClass		  = convertAttributeInputRate(attrib.inputRate),
-			.InstanceDataStepRate = attrib.inputRate == AttributeInputRate::PerInstance,
+			.InstanceDataStepRate = attrib.inputRate == AttributeInputRate::PerInstance ? 1u : 0u,
 		};
 	}
 
@@ -288,68 +288,69 @@ namespace vt::d3d12
 			copyQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
 
-		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineState const& state) override
+		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineDescription const& desc) override
 		{
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[RenderPipelineState::MaxVertexAttributes];
-			for(unsigned i = 0; i < state.vertexAttributeCount; ++i)
-				inputElementDescs[i] = convertVertexAttribute(state.vertexAttributes[i]);
+			D3D12_INPUT_ELEMENT_DESC inputElementDescs[RenderPipelineDescription::MaxVertexAttributes];
+			for(unsigned i = 0; i < desc.vertexAttributeCount; ++i)
+				inputElementDescs[i] = convertVertexAttribute(desc.vertexAttributes[i]);
 
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC const desc {
-				.pRootSignature = state.rootSignature.d3d12(),
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC const d3d12Desc {
+				.pRootSignature = desc.rootSignature.d3d12(),
 				.VS {
-					.pShaderBytecode = state.vertexShaderBytecode.data(),
-					.BytecodeLength	 = state.vertexShaderBytecode.size(),
+					.pShaderBytecode = desc.vertexShaderBytecode.data(),
+					.BytecodeLength	 = desc.vertexShaderBytecode.size(),
 				},
 				.PS {
-					.pShaderBytecode = state.fragmentShaderBytecode.data(),
-					.BytecodeLength	 = state.fragmentShaderBytecode.size(),
+					.pShaderBytecode = desc.fragmentShaderBytecode.data(),
+					.BytecodeLength	 = desc.fragmentShaderBytecode.size(),
 				},
 				.BlendState {
-					.AlphaToCoverageEnable	= state.multisample.enableAlphaToCoverage,
+					.AlphaToCoverageEnable	= desc.multisample.enableAlphaToCoverage,
 					.IndependentBlendEnable = true,
 					.RenderTarget {
-						convertColorAttachmentBlendState(state.blend, 0),
-						convertColorAttachmentBlendState(state.blend, 1),
-						convertColorAttachmentBlendState(state.blend, 2),
-						convertColorAttachmentBlendState(state.blend, 3),
-						convertColorAttachmentBlendState(state.blend, 4),
-						convertColorAttachmentBlendState(state.blend, 5),
-						convertColorAttachmentBlendState(state.blend, 6),
-						convertColorAttachmentBlendState(state.blend, 7),
+						convertColorAttachmentBlendState(desc.blend, 0),
+						convertColorAttachmentBlendState(desc.blend, 1),
+						convertColorAttachmentBlendState(desc.blend, 2),
+						convertColorAttachmentBlendState(desc.blend, 3),
+						convertColorAttachmentBlendState(desc.blend, 4),
+						convertColorAttachmentBlendState(desc.blend, 5),
+						convertColorAttachmentBlendState(desc.blend, 6),
+						convertColorAttachmentBlendState(desc.blend, 7),
 					},
 				},
-				.SampleMask = state.multisample.sampleMask,
+				.SampleMask = desc.multisample.sampleMask,
 				.RasterizerState {
-					.FillMode			   = convertFillMode(state.rasterizer.fillMode),
-					.CullMode			   = convertCullMode(state.rasterizer.cullMode),
-					.FrontCounterClockwise = state.rasterizer.frontFace == FrontFace::CounterClockwise,
-					.DepthBias			   = state.rasterizer.depthBias,
-					.DepthBiasClamp		   = state.rasterizer.depthBiasClamp,
-					.SlopeScaledDepthBias  = state.rasterizer.depthBiasSlope,
-					.DepthClipEnable	   = state.rasterizer.enableDepthClip,
+					.FillMode			   = convertFillMode(desc.rasterizer.fillMode),
+					.CullMode			   = convertCullMode(desc.rasterizer.cullMode),
+					.FrontCounterClockwise = desc.rasterizer.frontFace == FrontFace::CounterClockwise,
+					.DepthBias			   = desc.rasterizer.depthBias,
+					.DepthBiasClamp		   = desc.rasterizer.depthBiasClamp,
+					.SlopeScaledDepthBias  = desc.rasterizer.depthBiasSlope,
+					.DepthClipEnable	   = desc.rasterizer.enableDepthClip,
+					.ForcedSampleCount	   = desc.multisample.rasterizerSampleCount,
 				},
 				.DepthStencilState {
-					.DepthEnable	  = state.depthStencil.enableDepthTest,
-					.DepthWriteMask	  = static_cast<D3D12_DEPTH_WRITE_MASK>(state.depthStencil.enableDepthWrite),
-					.DepthFunc		  = convertComparisonOp(state.depthStencil.depthComparisonOp),
-					.StencilEnable	  = state.depthStencil.enableStencilTest,
-					.StencilReadMask  = state.depthStencil.stencilReadMask,
-					.StencilWriteMask = state.depthStencil.stencilWriteMask,
-					.FrontFace		  = convertStencilOpState(state.depthStencil.front),
-					.BackFace		  = convertStencilOpState(state.depthStencil.back),
+					.DepthEnable	  = desc.depthStencil.enableDepthTest,
+					.DepthWriteMask	  = static_cast<D3D12_DEPTH_WRITE_MASK>(desc.depthStencil.enableDepthWrite),
+					.DepthFunc		  = convertComparisonOp(desc.depthStencil.depthComparisonOp),
+					.StencilEnable	  = desc.depthStencil.enableStencilTest,
+					.StencilReadMask  = desc.depthStencil.stencilReadMask,
+					.StencilWriteMask = desc.depthStencil.stencilWriteMask,
+					.FrontFace		  = convertStencilOpState(desc.depthStencil.front),
+					.BackFace		  = convertStencilOpState(desc.depthStencil.back),
 				},
 				.InputLayout {
 					.pInputElementDescs = inputElementDescs,
-					.NumElements		= state.vertexAttributeCount,
+					.NumElements		= desc.vertexAttributeCount,
 				},
-				.IBStripCutValue	   = state.enablePrimitiveRestart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
-																	  : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
-				.PrimitiveTopologyType = categorizePrimitiveTopology(state.primitiveTopology),
-				.NumRenderTargets	   = state.blend.attachmentCount,
-				.SampleDesc			   = {.Count = state.multisample.sampleCount},
+				.IBStripCutValue	   = desc.enablePrimitiveRestart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
+																	 : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
+				.PrimitiveTopologyType = categorizePrimitiveTopology(desc.primitiveTopology),
+				.NumRenderTargets	   = desc.blend.attachmentCount,
+				.SampleDesc			   = {.Count = desc.multisample.sampleCount},
 			};
 			ID3D12PipelineState* pipeline;
-			auto result = device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipeline));
+			auto result = device->CreateGraphicsPipelineState(&d3d12Desc, IID_PPV_ARGS(&pipeline));
 			vtAssertResult(result, "Failed to create render pipeline.");
 			return DeferredUnique<PipelineHandle>({pipeline});
 		}
