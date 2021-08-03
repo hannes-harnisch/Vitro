@@ -111,14 +111,14 @@ namespace vt::d3d12
 			auto handle = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
 			for(unsigned i = 0; i < bufferCount; ++i)
 			{
-				ID3D12Resource* backBufferPtr;
+				ID3D12Resource* renderTargetPtr;
 
-				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&backBufferPtr));
+				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargetPtr));
 				vtEnsureResult(result, "Failed to get D3D12 swap chain buffer.");
-				UniqueInterface<ID3D12Resource> backBuffer(backBufferPtr);
+				UniqueInterface<ID3D12Resource> renderTarget(renderTargetPtr);
 
-				device->CreateRenderTargetView(backBuffer.get(), nullptr, handle);
-				renderTargets[i] = std::move(backBuffer);
+				device->CreateRenderTargetView(renderTarget.get(), nullptr, handle);
+				renderTargets[i] = std::move(renderTarget);
 
 				handle.ptr += size;
 			}

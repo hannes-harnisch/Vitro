@@ -1,7 +1,8 @@
-export module Vitro.Graphics.CommandListBase;
+﻿export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Core.Rectangle;
 import Vitro.Graphics.Handle;
+import Vitro.Graphics.PipelineInfo;
 import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderTarget;
 
@@ -44,6 +45,7 @@ namespace vt
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
 		virtual void bindIndexBuffer(BufferHandle buffer, IndexFormat format)										  = 0;
+		virtual void bindPrimitiveTopology(PrimitiveTopology topology)												  = 0;
 		virtual void bindViewport(Viewport viewport)																  = 0;
 		virtual void bindScissor(Rectangle scissor)																	  = 0;
 		virtual void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance) = 0;

@@ -4,7 +4,8 @@ export module Vitro.Graphics.DeviceBase;
 
 import Vitro.Graphics.DeferredUnique;
 import Vitro.Graphics.Handle;
-import Vitro.Graphics.PipelineDescription;
+import Vitro.Graphics.PipelineInfo;
+import Vitro.Graphics.TextureInfo;
 
 namespace vt
 {
@@ -13,12 +14,12 @@ namespace vt
 	public:
 		virtual ~DeviceBase() = default;
 
-		virtual DeviceHandle				   handle()													 = 0;
-		virtual QueueHandle					   presentationQueueHandle()								 = 0;
-		virtual DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineDescription const& desc) = 0;
-		// virtual DeferredUnique<TextureHandle> makeTexture(TextureDescription const& desc)	 = 0;
-		virtual void submitCopyCommands(std::span<CommandListHandle> commands)	  = 0;
-		virtual void submitComputeCommands(std::span<CommandListHandle> commands) = 0;
-		virtual void submitRenderCommands(std::span<CommandListHandle> commands)  = 0;
+		virtual DeviceHandle				   handle()														= 0;
+		virtual QueueHandle					   presentationQueueHandle()									= 0;
+		virtual DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineInfo const& info)			= 0;
+		virtual DeferredUnique<TextureHandle>  makeTexture(TextureInfo const& info)							= 0;
+		virtual void						   submitCopyCommands(std::span<CommandListHandle> commands)	= 0;
+		virtual void						   submitComputeCommands(std::span<CommandListHandle> commands) = 0;
+		virtual void						   submitRenderCommands(std::span<CommandListHandle> commands)	= 0;
 	};
 }

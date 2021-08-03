@@ -9,7 +9,9 @@ import Vitro.D3D12.Utils;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
+import Vitro.Graphics.PipelineInfo;
 import Vitro.Graphics.RenderPass;
+import Vitro.Graphics.RenderPassBase;
 import Vitro.Graphics.RenderTarget;
 
 namespace vt::d3d12
@@ -35,6 +37,56 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
+	constexpr D3D_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology)
+	{
+		using enum PrimitiveTopology;
+		switch(topology)
+		{
+			case PointList: return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+			case LineList: return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+			case LineStrip: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+			case LineListWithAdjacency: return D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+			case LineStripWithAdjacency: return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+			case TriangleList: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+			case TriangleStrip: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+			case TriangleListWithAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+			case TriangleStripWithAdjacency: return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+			case PatchList_1ControlPoint: return D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+			case PatchList_2ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_2_CONTROL_POINT_PATCHLIST;
+			case PatchList_3ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST;
+			case PatchList_4ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST;
+			case PatchList_5ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_5_CONTROL_POINT_PATCHLIST;
+			case PatchList_6ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_6_CONTROL_POINT_PATCHLIST;
+			case PatchList_7ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_7_CONTROL_POINT_PATCHLIST;
+			case PatchList_8ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_8_CONTROL_POINT_PATCHLIST;
+			case PatchList_9ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_9_CONTROL_POINT_PATCHLIST;
+			case PatchList_10ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_10_CONTROL_POINT_PATCHLIST;
+			case PatchList_11ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_11_CONTROL_POINT_PATCHLIST;
+			case PatchList_12ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_12_CONTROL_POINT_PATCHLIST;
+			case PatchList_13ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_13_CONTROL_POINT_PATCHLIST;
+			case PatchList_14ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST;
+			case PatchList_15ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_15_CONTROL_POINT_PATCHLIST;
+			case PatchList_16ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST;
+			case PatchList_17ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_17_CONTROL_POINT_PATCHLIST;
+			case PatchList_18ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_18_CONTROL_POINT_PATCHLIST;
+			case PatchList_19ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_19_CONTROL_POINT_PATCHLIST;
+			case PatchList_20ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_20_CONTROL_POINT_PATCHLIST;
+			case PatchList_21ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_21_CONTROL_POINT_PATCHLIST;
+			case PatchList_22ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_22_CONTROL_POINT_PATCHLIST;
+			case PatchList_23ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_23_CONTROL_POINT_PATCHLIST;
+			case PatchList_24ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_24_CONTROL_POINT_PATCHLIST;
+			case PatchList_25ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST;
+			case PatchList_26ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_26_CONTROL_POINT_PATCHLIST;
+			case PatchList_27ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_27_CONTROL_POINT_PATCHLIST;
+			case PatchList_28ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_28_CONTROL_POINT_PATCHLIST;
+			case PatchList_29ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_29_CONTROL_POINT_PATCHLIST;
+			case PatchList_30ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_30_CONTROL_POINT_PATCHLIST;
+			case PatchList_31ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST;
+			case PatchList_32ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST;
+		}
+		vtUnreachable();
+	}
+
 	template<CommandType Type> class CommandListData
 	{};
 
@@ -44,9 +96,10 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
 	{
 	protected:
-		RenderPass const* currentRenderPass	  = nullptr;
-		ID3D12Resource*	  currentRenderTarget = nullptr;
-		unsigned		  subpassIndex		  = 1;
+		ID3D12Resource*	  activeColorAttachments[RenderPassBase::MaxColorAttachments] {};
+		ID3D12Resource*	  activeDepthStencilAttachment = nullptr;
+		RenderPass const* activeRenderPass			   = nullptr;
+		unsigned		  subpassIndex				   = 1;
 	};
 
 	export template<CommandType Type> class CommandList final : public RenderCommandListBase, public CommandListData<Type>
@@ -75,7 +128,8 @@ namespace vt::d3d12
 
 		void bindPipeline(PipelineHandle pipeline) override
 		{
-			cmd->SetPipelineState(pipeline.d3d12());
+			auto pipelineState = pipeline.d3d12();
+			cmd->SetPipelineState(pipelineState);
 		}
 
 		void bindRootSignature(RootSignatureHandle rootSignature) override
@@ -105,8 +159,8 @@ namespace vt::d3d12
 
 		void beginRenderPass(vt::RenderPass const& renderPass, vt::RenderTarget const& renderTarget) override
 		{
-			auto pass = this->currentRenderPass = &renderPass.d3d12;
-			this->currentRenderTarget			= renderTarget.d3d12.resource();
+			auto pass = this->activeRenderPass = &renderPass.d3d12;
+			this->currentRenderTarget		   = renderTarget.d3d12.resource();
 
 			auto const& transition = pass->transitions.front();
 
@@ -132,15 +186,15 @@ namespace vt::d3d12
 				.DepthEndingAccess		= pass->depthEndAccess,
 				.StencilEndingAccess	= pass->stencilEndAccess,
 			};
-			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, pass->flags);
+			cmd->BeginRenderPass(1, &rtDesc, &dsDesc, 0);
 		}
 
 		void transitionToNextSubpass() override
 		{
-			vtAssert(this->subpassIndex < this->currentRenderPass->transitions.size() - 1,
+			vtAssert(this->subpassIndex < this->activeRenderPass->subpassCount - 1,
 					 "All subpasses of this render pass have already been transitioned through.");
 
-			auto const& transition = this->currentRenderPass->transitions[this->subpassIndex++];
+			auto const& transition = this->activeRenderPass->transitions[this->subpassIndex++];
 
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition {
@@ -157,8 +211,11 @@ namespace vt::d3d12
 		{
 			cmd->EndRenderPass();
 			this->subpassIndex = 1;
+#if VT_DEBUG
+			this->activeRenderPass = nullptr;
+#endif
 
-			auto const& transition = this->currentRenderPass->transitions.back();
+			auto const& transition = this->activeRenderPass->transitions.back();
 
 			D3D12_RESOURCE_BARRIER const barrier {
 				.Transition {
@@ -179,6 +236,11 @@ namespace vt::d3d12
 				.Format			= convertIndexFormat(format),
 			};
 			cmd->IASetIndexBuffer(&view);
+		}
+
+		void bindPrimitiveTopology(PrimitiveTopology topology) override
+		{
+			cmd->IASetPrimitiveTopology(convertPrimitiveTopology(topology));
 		}
 
 		void bindViewport(Viewport const viewport) override

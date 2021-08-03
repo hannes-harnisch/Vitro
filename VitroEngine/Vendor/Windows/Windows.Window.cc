@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -116,9 +116,11 @@ namespace vt::windows
 		{
 			ensureCallIsOnMainThread();
 
-			int			 length = ::GetWindowTextLength(window.get());
+			int length = ::GetWindowTextLength(window.get());
+
 			std::wstring title(length, L'\0');
 			::GetWindowText(window.get(), title.data(), length + 1);
+
 			return narrowString(title);
 		}
 

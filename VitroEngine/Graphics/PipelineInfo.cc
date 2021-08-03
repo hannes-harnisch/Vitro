@@ -1,4 +1,4 @@
-﻿export module Vitro.Graphics.PipelineDescription;
+export module Vitro.Graphics.PipelineInfo;
 
 import Vitro.Core.Array;
 import Vitro.Core.Flags;
@@ -8,75 +8,20 @@ import Vitro.Graphics.RenderPassBase;
 
 namespace vt
 {
-	export enum class Format : unsigned char {
-		Unknown,
-		R32_G32_B32_A32_Float,
-		R32_G32_B32_A32_UInt,
-		R32_G32_B32_A32_SInt,
-		R32_G32_B32_Float,
-		R32_G32_B32_UInt,
-		R32_G32_B32_SInt,
-		R16_G16_B16_A16_Float,
-		R16_G16_B16_A16_UNorm,
-		R16_G16_B16_A16_UInt,
-		R16_G16_B16_A16_SNorm,
-		R16_G16_B16_A16_SInt,
-		R32_G32_Float,
-		R32_G32_UInt,
-		R32_G32_SInt,
-		R32_G8_X24_Typeless,
-		D32_Float_S8_X24_UInt,
-		R10_G10_B10_A2_UNorm,
-		R10_G10_B10_A2_UInt,
-		R11_G11_B10_Float,
-		R8_G8_B8_A8_UNorm,
-		R8_G8_B8_A8_UNormSrgb,
-		R8_G8_B8_A8_UInt,
-		R8_G8_B8_A8_SNorm,
-		R8_G8_B8_A8_SInt,
-		B8_G8_R8_A8_UNorm,
-		B8_G8_R8_A8_UNormSrgb,
-		R16_G16_Float,
-		R16_G16_UNorm,
-		R16_G16_UInt,
-		R16_G16_SNorm,
-		R16_G16_SInt,
-		R32_Typeless,
-		D32_Float,
-		R32_Float,
-		R32_UInt,
-		R32_SInt,
-		R24_G8_Typeless,
-		D24_UNorm_S8_UInt,
-		R8_G8_UNorm,
-		R8_G8_UInt,
-		R8_G8_SNorm,
-		R8_G8_SInt,
-		R16_Typeless,
-		R16_Float,
-		D16_UNorm,
-		R16_UNorm,
-		R16_UInt,
-		R16_SNorm,
-		R16_SInt,
-		R8_UNorm,
-		R8_UInt,
-		R8_SNorm,
-		R8_SInt,
-		Bc1_UNorm,
-		Bc1_UNormSrgb,
-		Bc2_UNorm,
-		Bc2_UNormSrgb,
-		Bc3_UNorm,
-		Bc3_UNormSrgb,
-		Bc4_UNorm,
-		Bc4_SNorm,
-		Bc5_UNorm,
-		Bc5_SNorm,
-		Bc6H_UFloat16,
-		Bc6H_SFloat16,
-		Bc7_UNorm,
-		Bc7_UNormSrgb,
+	export enum class VertexDataType : unsigned char {
+		Float,
+		Float2,
+		Float3,
+		Float4,
+		Int,
+		Int2,
+		Int3,
+		Int4,
+		UInt,
+		UInt2,
+		UInt3,
+		UInt4,
+		Bool,
 	};
 
 	export enum class AttributeInputRate : unsigned char {
@@ -88,7 +33,7 @@ namespace vt
 	{
 		unsigned char	   slot		  = 0;
 		unsigned char	   byteOffset = 0;
-		Format			   format	  = {};
+		VertexDataType	   dataType	  = {};
 		AttributeInputRate inputRate  = {};
 	};
 
@@ -102,7 +47,38 @@ namespace vt
 		LineStripWithAdjacency,
 		TriangleListWithAdjacency,
 		TriangleStripWithAdjacency,
-		PatchList,
+		PatchList_1ControlPoint,
+		PatchList_2ControlPoints,
+		PatchList_3ControlPoints,
+		PatchList_4ControlPoints,
+		PatchList_5ControlPoints,
+		PatchList_6ControlPoints,
+		PatchList_7ControlPoints,
+		PatchList_8ControlPoints,
+		PatchList_9ControlPoints,
+		PatchList_10ControlPoints,
+		PatchList_11ControlPoints,
+		PatchList_12ControlPoints,
+		PatchList_13ControlPoints,
+		PatchList_14ControlPoints,
+		PatchList_15ControlPoints,
+		PatchList_16ControlPoints,
+		PatchList_17ControlPoints,
+		PatchList_18ControlPoints,
+		PatchList_19ControlPoints,
+		PatchList_20ControlPoints,
+		PatchList_21ControlPoints,
+		PatchList_22ControlPoints,
+		PatchList_23ControlPoints,
+		PatchList_24ControlPoints,
+		PatchList_25ControlPoints,
+		PatchList_26ControlPoints,
+		PatchList_27ControlPoints,
+		PatchList_28ControlPoints,
+		PatchList_29ControlPoints,
+		PatchList_30ControlPoints,
+		PatchList_31ControlPoints,
+		PatchList_32ControlPoints,
 	};
 
 	export enum class PolygonFillMode : unsigned char {
@@ -177,8 +153,8 @@ namespace vt
 	struct MultisampleState
 	{
 		unsigned	  sampleMask			= 0;
-		unsigned char sampleCount			= 0;
-		unsigned char rasterizerSampleCount = 0;
+		unsigned char sampleCount			= 1;
+		unsigned char rasterizerSampleCount = 1;
 		bool		  enableAlphaToCoverage = {};
 	};
 
@@ -250,13 +226,13 @@ namespace vt
 
 	export struct BlendState
 	{
-		ColorAttachmentBlendState attachmentStates[RenderPassDescription::MaxColorAttachments];
+		ColorAttachmentBlendState attachmentStates[RenderPassBase::MaxColorAttachments];
 		unsigned char			  attachmentCount = 0;
 		bool					  enableLogicOp	  = false;
 		LogicOperation			  logicOp		  = {};
 	};
 
-	export struct RenderPipelineDescription
+	export struct RenderPipelineInfo
 	{
 		static constexpr unsigned MaxVertexAttributes = 16;
 

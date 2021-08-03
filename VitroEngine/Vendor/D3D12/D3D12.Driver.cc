@@ -36,10 +36,10 @@ namespace vt::d3d12
 			{
 				IDXGIAdapter1* adapterPtr;
 
-				auto						   result = factory->EnumAdapters1(index, &adapterPtr);
-				UniqueInterface<IDXGIAdapter1> adapter(adapterPtr);
+				auto result = factory->EnumAdapters1(index, &adapterPtr);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
+				UniqueInterface<IDXGIAdapter1> adapter(adapterPtr);
 
 				DXGI_ADAPTER_DESC1 desc;
 				result = adapter->GetDesc1(&desc);

@@ -13,83 +13,29 @@ import Vitro.Graphics.DeferredUnique;
 import Vitro.Graphics.DeviceBase;
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.Handle;
-import Vitro.Graphics.PipelineDescription;
+import Vitro.Graphics.PipelineInfo;
+import Vitro.Graphics.TextureInfo;
 
 namespace vt::d3d12
 {
-	constexpr DXGI_FORMAT convertFormat(Format format)
+	constexpr DXGI_FORMAT convertVertexDataType(VertexDataType type)
 	{
-		using enum Format;
-		switch(format)
+		using enum VertexDataType;
+		switch(type)
 		{
-			case Unknown: return DXGI_FORMAT_UNKNOWN;
-			case R32_G32_B32_A32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case R32_G32_B32_A32_UInt: return DXGI_FORMAT_R32G32B32A32_UINT;
-			case R32_G32_B32_A32_SInt: return DXGI_FORMAT_R32G32B32A32_SINT;
-			case R32_G32_B32_Float: return DXGI_FORMAT_R32G32B32_FLOAT;
-			case R32_G32_B32_UInt: return DXGI_FORMAT_R32G32B32_UINT;
-			case R32_G32_B32_SInt: return DXGI_FORMAT_R32G32B32_SINT;
-			case R16_G16_B16_A16_Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-			case R16_G16_B16_A16_UNorm: return DXGI_FORMAT_R16G16B16A16_UNORM;
-			case R16_G16_B16_A16_UInt: return DXGI_FORMAT_R16G16B16A16_UINT;
-			case R16_G16_B16_A16_SNorm: return DXGI_FORMAT_R16G16B16A16_SNORM;
-			case R16_G16_B16_A16_SInt: return DXGI_FORMAT_R16G16B16A16_SINT;
-			case R32_G32_Float: return DXGI_FORMAT_R32G32_FLOAT;
-			case R32_G32_UInt: return DXGI_FORMAT_R32G32_UINT;
-			case R32_G32_SInt: return DXGI_FORMAT_R32G32_SINT;
-			case R32_G8_X24_Typeless: return DXGI_FORMAT_R32G8X24_TYPELESS;
-			case D32_Float_S8_X24_UInt: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
-			case R10_G10_B10_A2_UNorm: return DXGI_FORMAT_R10G10B10A2_UNORM;
-			case R10_G10_B10_A2_UInt: return DXGI_FORMAT_R10G10B10A2_UINT;
-			case R11_G11_B10_Float: return DXGI_FORMAT_R11G11B10_FLOAT;
-			case R8_G8_B8_A8_UNorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			case R8_G8_B8_A8_UNormSrgb: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-			case R8_G8_B8_A8_UInt: return DXGI_FORMAT_R8G8B8A8_UINT;
-			case R8_G8_B8_A8_SNorm: return DXGI_FORMAT_R8G8B8A8_SNORM;
-			case R8_G8_B8_A8_SInt: return DXGI_FORMAT_R8G8B8A8_SINT;
-			case B8_G8_R8_A8_UNorm: return DXGI_FORMAT_B8G8R8A8_UNORM;
-			case B8_G8_R8_A8_UNormSrgb: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-			case R16_G16_Float: return DXGI_FORMAT_R16G16_FLOAT;
-			case R16_G16_UNorm: return DXGI_FORMAT_R16G16_UNORM;
-			case R16_G16_UInt: return DXGI_FORMAT_R16G16_UINT;
-			case R16_G16_SNorm: return DXGI_FORMAT_R16G16_SNORM;
-			case R16_G16_SInt: return DXGI_FORMAT_R16G16_SINT;
-			case R32_Typeless: return DXGI_FORMAT_R32_TYPELESS;
-			case D32_Float: return DXGI_FORMAT_D32_FLOAT;
-			case R32_Float: return DXGI_FORMAT_R32_FLOAT;
-			case R32_UInt: return DXGI_FORMAT_R32_UINT;
-			case R32_SInt: return DXGI_FORMAT_R32_SINT;
-			case R24_G8_Typeless: return DXGI_FORMAT_R24G8_TYPELESS;
-			case D24_UNorm_S8_UInt: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-			case R8_G8_UNorm: return DXGI_FORMAT_R8G8_UNORM;
-			case R8_G8_UInt: return DXGI_FORMAT_R8G8_UINT;
-			case R8_G8_SNorm: return DXGI_FORMAT_R8G8_SNORM;
-			case R8_G8_SInt: return DXGI_FORMAT_R8G8_SINT;
-			case R16_Typeless: return DXGI_FORMAT_R16_TYPELESS;
-			case R16_Float: return DXGI_FORMAT_R16_FLOAT;
-			case D16_UNorm: return DXGI_FORMAT_D16_UNORM;
-			case R16_UNorm: return DXGI_FORMAT_R16_UNORM;
-			case R16_UInt: return DXGI_FORMAT_R16_UINT;
-			case R16_SNorm: return DXGI_FORMAT_R16_SNORM;
-			case R16_SInt: return DXGI_FORMAT_R16_SINT;
-			case R8_UNorm: return DXGI_FORMAT_R8_UNORM;
-			case R8_UInt: return DXGI_FORMAT_R8_UINT;
-			case R8_SNorm: return DXGI_FORMAT_R8_SNORM;
-			case R8_SInt: return DXGI_FORMAT_R8_SINT;
-			case Bc1_UNorm: return DXGI_FORMAT_BC1_UNORM;
-			case Bc1_UNormSrgb: return DXGI_FORMAT_BC1_UNORM_SRGB;
-			case Bc2_UNorm: return DXGI_FORMAT_BC2_UNORM;
-			case Bc2_UNormSrgb: return DXGI_FORMAT_BC2_UNORM_SRGB;
-			case Bc3_UNorm: return DXGI_FORMAT_BC3_UNORM;
-			case Bc3_UNormSrgb: return DXGI_FORMAT_BC3_UNORM_SRGB;
-			case Bc4_UNorm: return DXGI_FORMAT_BC4_UNORM;
-			case Bc4_SNorm: return DXGI_FORMAT_BC4_SNORM;
-			case Bc5_UNorm: return DXGI_FORMAT_BC5_UNORM;
-			case Bc5_SNorm: return DXGI_FORMAT_BC5_SNORM;
-			case Bc6H_UFloat16: return DXGI_FORMAT_BC6H_UF16;
-			case Bc6H_SFloat16: return DXGI_FORMAT_BC6H_SF16;
-			case Bc7_UNorm: return DXGI_FORMAT_BC7_UNORM;
-			case Bc7_UNormSrgb: return DXGI_FORMAT_BC7_UNORM_SRGB;
+			case Float: return DXGI_FORMAT_R32_FLOAT;
+			case Float2: return DXGI_FORMAT_R32G32_FLOAT;
+			case Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
+			case Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case Int: return DXGI_FORMAT_R32_SINT;
+			case Int2: return DXGI_FORMAT_R32G32_SINT;
+			case Int3: return DXGI_FORMAT_R32G32B32_SINT;
+			case Int4: return DXGI_FORMAT_R32G32B32A32_SINT;
+			case UInt: return DXGI_FORMAT_R32_UINT;
+			case UInt2: return DXGI_FORMAT_R32G32_UINT;
+			case UInt3: return DXGI_FORMAT_R32G32B32_UINT;
+			case UInt4: return DXGI_FORMAT_R32G32B32A32_UINT;
+			case Bool: return DXGI_FORMAT_R8_UINT;
 		}
 		vtUnreachable();
 	}
@@ -107,7 +53,7 @@ namespace vt::d3d12
 	constexpr D3D12_INPUT_ELEMENT_DESC convertVertexAttribute(VertexAttribute attrib)
 	{
 		return {
-			.Format				  = convertFormat(attrib.format),
+			.Format				  = convertVertexDataType(attrib.dataType),
 			.InputSlot			  = attrib.slot,
 			.AlignedByteOffset	  = attrib.byteOffset,
 			.InputSlotClass		  = convertAttributeInputRate(attrib.inputRate),
@@ -129,7 +75,38 @@ namespace vt::d3d12
 			case TriangleStrip:
 			case TriangleListWithAdjacency:
 			case TriangleStripWithAdjacency: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			case PatchList: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+			case PatchList_1ControlPoint:
+			case PatchList_2ControlPoints:
+			case PatchList_3ControlPoints:
+			case PatchList_4ControlPoints:
+			case PatchList_5ControlPoints:
+			case PatchList_6ControlPoints:
+			case PatchList_7ControlPoints:
+			case PatchList_8ControlPoints:
+			case PatchList_9ControlPoints:
+			case PatchList_10ControlPoints:
+			case PatchList_11ControlPoints:
+			case PatchList_12ControlPoints:
+			case PatchList_13ControlPoints:
+			case PatchList_14ControlPoints:
+			case PatchList_15ControlPoints:
+			case PatchList_16ControlPoints:
+			case PatchList_17ControlPoints:
+			case PatchList_18ControlPoints:
+			case PatchList_19ControlPoints:
+			case PatchList_20ControlPoints:
+			case PatchList_21ControlPoints:
+			case PatchList_22ControlPoints:
+			case PatchList_23ControlPoints:
+			case PatchList_24ControlPoints:
+			case PatchList_25ControlPoints:
+			case PatchList_26ControlPoints:
+			case PatchList_27ControlPoints:
+			case PatchList_28ControlPoints:
+			case PatchList_29ControlPoints:
+			case PatchList_30ControlPoints:
+			case PatchList_31ControlPoints:
+			case PatchList_32ControlPoints: return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 		}
 		vtUnreachable();
 	}
@@ -278,6 +255,105 @@ namespace vt::d3d12
 		};
 	}
 
+	constexpr DXGI_FORMAT convertImageFormat(ImageFormat format)
+	{
+		using enum ImageFormat;
+		switch(format)
+		{
+			case Unknown: return DXGI_FORMAT_UNKNOWN;
+			case R32_G32_B32_A32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case R32_G32_B32_A32_UInt: return DXGI_FORMAT_R32G32B32A32_UINT;
+			case R32_G32_B32_A32_SInt: return DXGI_FORMAT_R32G32B32A32_SINT;
+			case R32_G32_B32_Float: return DXGI_FORMAT_R32G32B32_FLOAT;
+			case R32_G32_B32_UInt: return DXGI_FORMAT_R32G32B32_UINT;
+			case R32_G32_B32_SInt: return DXGI_FORMAT_R32G32B32_SINT;
+			case R16_G16_B16_A16_Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
+			case R16_G16_B16_A16_UNorm: return DXGI_FORMAT_R16G16B16A16_UNORM;
+			case R16_G16_B16_A16_UInt: return DXGI_FORMAT_R16G16B16A16_UINT;
+			case R16_G16_B16_A16_SNorm: return DXGI_FORMAT_R16G16B16A16_SNORM;
+			case R16_G16_B16_A16_SInt: return DXGI_FORMAT_R16G16B16A16_SINT;
+			case R32_G32_Float: return DXGI_FORMAT_R32G32_FLOAT;
+			case R32_G32_UInt: return DXGI_FORMAT_R32G32_UINT;
+			case R32_G32_SInt: return DXGI_FORMAT_R32G32_SINT;
+			case R32_G8_X24_Typeless: return DXGI_FORMAT_R32G8X24_TYPELESS;
+			case D32_Float_S8_X24_UInt: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+			case R10_G10_B10_A2_UNorm: return DXGI_FORMAT_R10G10B10A2_UNORM;
+			case R10_G10_B10_A2_UInt: return DXGI_FORMAT_R10G10B10A2_UINT;
+			case R11_G11_B10_Float: return DXGI_FORMAT_R11G11B10_FLOAT;
+			case R8_G8_B8_A8_UNorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
+			case R8_G8_B8_A8_UNormSrgb: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+			case R8_G8_B8_A8_UInt: return DXGI_FORMAT_R8G8B8A8_UINT;
+			case R8_G8_B8_A8_SNorm: return DXGI_FORMAT_R8G8B8A8_SNORM;
+			case R8_G8_B8_A8_SInt: return DXGI_FORMAT_R8G8B8A8_SINT;
+			case B8_G8_R8_A8_UNorm: return DXGI_FORMAT_B8G8R8A8_UNORM;
+			case B8_G8_R8_A8_UNormSrgb: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+			case R16_G16_Float: return DXGI_FORMAT_R16G16_FLOAT;
+			case R16_G16_UNorm: return DXGI_FORMAT_R16G16_UNORM;
+			case R16_G16_UInt: return DXGI_FORMAT_R16G16_UINT;
+			case R16_G16_SNorm: return DXGI_FORMAT_R16G16_SNORM;
+			case R16_G16_SInt: return DXGI_FORMAT_R16G16_SINT;
+			case R32_Typeless: return DXGI_FORMAT_R32_TYPELESS;
+			case D32_Float: return DXGI_FORMAT_D32_FLOAT;
+			case R32_Float: return DXGI_FORMAT_R32_FLOAT;
+			case R32_UInt: return DXGI_FORMAT_R32_UINT;
+			case R32_SInt: return DXGI_FORMAT_R32_SINT;
+			case R24_G8_Typeless: return DXGI_FORMAT_R24G8_TYPELESS;
+			case D24_UNorm_S8_UInt: return DXGI_FORMAT_D24_UNORM_S8_UINT;
+			case R8_G8_UNorm: return DXGI_FORMAT_R8G8_UNORM;
+			case R8_G8_UInt: return DXGI_FORMAT_R8G8_UINT;
+			case R8_G8_SNorm: return DXGI_FORMAT_R8G8_SNORM;
+			case R8_G8_SInt: return DXGI_FORMAT_R8G8_SINT;
+			case R16_Typeless: return DXGI_FORMAT_R16_TYPELESS;
+			case R16_Float: return DXGI_FORMAT_R16_FLOAT;
+			case D16_UNorm: return DXGI_FORMAT_D16_UNORM;
+			case R16_UNorm: return DXGI_FORMAT_R16_UNORM;
+			case R16_UInt: return DXGI_FORMAT_R16_UINT;
+			case R16_SNorm: return DXGI_FORMAT_R16_SNORM;
+			case R16_SInt: return DXGI_FORMAT_R16_SINT;
+			case R8_UNorm: return DXGI_FORMAT_R8_UNORM;
+			case R8_UInt: return DXGI_FORMAT_R8_UINT;
+			case R8_SNorm: return DXGI_FORMAT_R8_SNORM;
+			case R8_SInt: return DXGI_FORMAT_R8_SINT;
+			case Bc1_UNorm: return DXGI_FORMAT_BC1_UNORM;
+			case Bc1_UNormSrgb: return DXGI_FORMAT_BC1_UNORM_SRGB;
+			case Bc2_UNorm: return DXGI_FORMAT_BC2_UNORM;
+			case Bc2_UNormSrgb: return DXGI_FORMAT_BC2_UNORM_SRGB;
+			case Bc3_UNorm: return DXGI_FORMAT_BC3_UNORM;
+			case Bc3_UNormSrgb: return DXGI_FORMAT_BC3_UNORM_SRGB;
+			case Bc4_UNorm: return DXGI_FORMAT_BC4_UNORM;
+			case Bc4_SNorm: return DXGI_FORMAT_BC4_SNORM;
+			case Bc5_UNorm: return DXGI_FORMAT_BC5_UNORM;
+			case Bc5_SNorm: return DXGI_FORMAT_BC5_SNORM;
+			case Bc6H_UFloat16: return DXGI_FORMAT_BC6H_UF16;
+			case Bc6H_SFloat16: return DXGI_FORMAT_BC6H_SF16;
+			case Bc7_UNorm: return DXGI_FORMAT_BC7_UNORM;
+			case Bc7_UNormSrgb: return DXGI_FORMAT_BC7_UNORM_SRGB;
+		}
+		vtUnreachable();
+	}
+
+	constexpr D3D12_RESOURCE_STATES convertImageLayout(ImageLayout layout)
+	{
+		using enum ImageLayout;
+		switch(layout)
+		{
+			case Undefined:
+			case General:
+			case Presentable: return D3D12_RESOURCE_STATE_COMMON;
+			case CopySource: return D3D12_RESOURCE_STATE_COPY_SOURCE;
+			case CopyTarget: return D3D12_RESOURCE_STATE_COPY_DEST;
+			case ColorAttachment: return D3D12_RESOURCE_STATE_RENDER_TARGET;
+			case DepthStencilAttachment: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
+			case DepthStencilReadOnly: return D3D12_RESOURCE_STATE_DEPTH_READ;
+			case ShaderResource:
+				return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+			case FragmentShaderResource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+			case NonFragmentShaderResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+			case UnorderedAccess: return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+		}
+		vtUnreachable();
+	}
+
 	export class Device final : public DeviceBase
 	{
 	public:
@@ -298,75 +374,80 @@ namespace vt::d3d12
 			return {renderQueue.handle()};
 		}
 
-		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineDescription const& desc) override
+		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineInfo const& info) override
 		{
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[RenderPipelineDescription::MaxVertexAttributes];
-			for(unsigned i = 0; i < desc.vertexAttributeCount; ++i)
-				inputElementDescs[i] = convertVertexAttribute(desc.vertexAttributes[i]);
+			D3D12_INPUT_ELEMENT_DESC inputElementDescs[RenderPipelineInfo::MaxVertexAttributes];
+			for(unsigned i = 0; i < info.vertexAttributeCount; ++i)
+				inputElementDescs[i] = convertVertexAttribute(info.vertexAttributes[i]);
 
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC const d3d12Desc {
-				.pRootSignature = desc.rootSignature.d3d12(),
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC const desc {
+				.pRootSignature = info.rootSignature.d3d12(),
 				.VS {
-					.pShaderBytecode = desc.vertexShaderBytecode.data(),
-					.BytecodeLength	 = desc.vertexShaderBytecode.size(),
+					.pShaderBytecode = info.vertexShaderBytecode.data(),
+					.BytecodeLength	 = info.vertexShaderBytecode.size(),
 				},
 				.PS {
-					.pShaderBytecode = desc.fragmentShaderBytecode.data(),
-					.BytecodeLength	 = desc.fragmentShaderBytecode.size(),
+					.pShaderBytecode = info.fragmentShaderBytecode.data(),
+					.BytecodeLength	 = info.fragmentShaderBytecode.size(),
 				},
 				.BlendState {
-					.AlphaToCoverageEnable	= desc.multisample.enableAlphaToCoverage,
+					.AlphaToCoverageEnable	= info.multisample.enableAlphaToCoverage,
 					.IndependentBlendEnable = true,
 					.RenderTarget {
-						convertColorAttachmentBlendState(desc.blend, 0),
-						convertColorAttachmentBlendState(desc.blend, 1),
-						convertColorAttachmentBlendState(desc.blend, 2),
-						convertColorAttachmentBlendState(desc.blend, 3),
-						convertColorAttachmentBlendState(desc.blend, 4),
-						convertColorAttachmentBlendState(desc.blend, 5),
-						convertColorAttachmentBlendState(desc.blend, 6),
-						convertColorAttachmentBlendState(desc.blend, 7),
+						convertColorAttachmentBlendState(info.blend, 0),
+						convertColorAttachmentBlendState(info.blend, 1),
+						convertColorAttachmentBlendState(info.blend, 2),
+						convertColorAttachmentBlendState(info.blend, 3),
+						convertColorAttachmentBlendState(info.blend, 4),
+						convertColorAttachmentBlendState(info.blend, 5),
+						convertColorAttachmentBlendState(info.blend, 6),
+						convertColorAttachmentBlendState(info.blend, 7),
 					},
 				},
-				.SampleMask = desc.multisample.sampleMask,
+				.SampleMask = info.multisample.sampleMask,
 				.RasterizerState {
-					.FillMode			   = convertFillMode(desc.rasterizer.fillMode),
-					.CullMode			   = convertCullMode(desc.rasterizer.cullMode),
-					.FrontCounterClockwise = desc.rasterizer.frontFace == FrontFace::CounterClockwise,
-					.DepthBias			   = desc.rasterizer.depthBias,
-					.DepthBiasClamp		   = desc.rasterizer.depthBiasClamp,
-					.SlopeScaledDepthBias  = desc.rasterizer.depthBiasSlope,
-					.DepthClipEnable	   = desc.rasterizer.enableDepthClip,
-					.ForcedSampleCount	   = desc.multisample.rasterizerSampleCount,
+					.FillMode			   = convertFillMode(info.rasterizer.fillMode),
+					.CullMode			   = convertCullMode(info.rasterizer.cullMode),
+					.FrontCounterClockwise = info.rasterizer.frontFace == FrontFace::CounterClockwise,
+					.DepthBias			   = info.rasterizer.depthBias,
+					.DepthBiasClamp		   = info.rasterizer.depthBiasClamp,
+					.SlopeScaledDepthBias  = info.rasterizer.depthBiasSlope,
+					.DepthClipEnable	   = info.rasterizer.enableDepthClip,
+					.ForcedSampleCount	   = info.multisample.rasterizerSampleCount,
 				},
 				.DepthStencilState {
-					.DepthEnable	  = desc.depthStencil.enableDepthTest,
-					.DepthWriteMask	  = desc.depthStencil.enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL
+					.DepthEnable	  = info.depthStencil.enableDepthTest,
+					.DepthWriteMask	  = info.depthStencil.enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL
 																		   : D3D12_DEPTH_WRITE_MASK_ZERO,
-					.DepthFunc		  = convertComparisonOp(desc.depthStencil.depthComparisonOp),
-					.StencilEnable	  = desc.depthStencil.enableStencilTest,
-					.StencilReadMask  = desc.depthStencil.stencilReadMask,
-					.StencilWriteMask = desc.depthStencil.stencilWriteMask,
-					.FrontFace		  = convertStencilOpState(desc.depthStencil.front),
-					.BackFace		  = convertStencilOpState(desc.depthStencil.back),
+					.DepthFunc		  = convertComparisonOp(info.depthStencil.depthComparisonOp),
+					.StencilEnable	  = info.depthStencil.enableStencilTest,
+					.StencilReadMask  = info.depthStencil.stencilReadMask,
+					.StencilWriteMask = info.depthStencil.stencilWriteMask,
+					.FrontFace		  = convertStencilOpState(info.depthStencil.front),
+					.BackFace		  = convertStencilOpState(info.depthStencil.back),
 				},
 				.InputLayout {
 					.pInputElementDescs = inputElementDescs,
-					.NumElements		= desc.vertexAttributeCount,
+					.NumElements		= info.vertexAttributeCount,
 				},
-				.IBStripCutValue	   = desc.enablePrimitiveRestart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
+				.IBStripCutValue	   = info.enablePrimitiveRestart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
 																	 : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
-				.PrimitiveTopologyType = categorizePrimitiveTopology(desc.primitiveTopology),
-				.NumRenderTargets	   = desc.blend.attachmentCount,
-				.SampleDesc			   = {.Count = desc.multisample.sampleCount},
+				.PrimitiveTopologyType = categorizePrimitiveTopology(info.primitiveTopology),
+				.NumRenderTargets	   = info.blend.attachmentCount,
+				.SampleDesc			   = {.Count = info.multisample.sampleCount},
 			};
 
 			ID3D12PipelineState* pipeline;
 
-			auto result = device->CreateGraphicsPipelineState(&d3d12Desc, IID_PPV_ARGS(&pipeline));
+			auto result = device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipeline));
 			vtAssertResult(result, "Failed to create render pipeline.");
 
 			return DeferredUnique<PipelineHandle>({pipeline});
+		}
+
+		DeferredUnique<TextureHandle> makeTexture(TextureInfo const& info) override
+		{
+			return DeferredUnique<TextureHandle>({});
 		}
 
 		void submitCopyCommands(std::span<CommandListHandle> commandLists) override
