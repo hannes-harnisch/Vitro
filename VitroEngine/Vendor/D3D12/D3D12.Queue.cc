@@ -1,6 +1,6 @@
 module;
+#include "Core/Macros.hh"
 #include "D3D12.API.hh"
-#include "Trace/Assert.hh"
 
 #include <span>
 export module Vitro.D3D12.Queue;

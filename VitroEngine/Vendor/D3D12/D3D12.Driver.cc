@@ -1,6 +1,6 @@
 module;
+#include "Core/Macros.hh"
 #include "D3D12.API.hh"
-#include "Trace/Assert.hh"
 
 #include <array>
 #include <vector>

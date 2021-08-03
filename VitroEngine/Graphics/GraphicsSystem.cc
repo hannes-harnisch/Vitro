@@ -1,5 +1,5 @@
 module;
-#include "Trace/Assert.hh"
+#include "Core/Macros.hh"
 
 #include <algorithm>
 export module Vitro.Graphics.GraphicsSystem;

@@ -1,6 +1,8 @@
 module;
+#include "Core/Macros.hh"
 #include "D3D12.API.hh"
-#include "Trace/Assert.hh"
+
+#include <utility>
 export module Vitro.D3D12.SwapChain;
 
 import Vitro.Core.Array;

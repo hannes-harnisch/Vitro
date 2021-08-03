@@ -1,5 +1,5 @@
-﻿module;
-#include "Trace/Assert.hh"
+module;
+#include "Core/Macros.hh"
 
 #include <cmath>
 #include <limits>
@@ -23,7 +23,7 @@ namespace vt
 	export Float4x4 projectPerspective(float fovInRadians, unsigned width, unsigned height, float nearZ, float farZ)
 	{
 		float aspect = width / static_cast<float>(height);
-		vtAssert(std::abs(aspect - std::numeric_limits<float>::epsilon()) > 0, "Bad aspect ratio.");
+		vtAssertPure(std::abs(aspect - std::numeric_limits<float>::epsilon()) > 0, "Bad aspect ratio.");
 		float fovTan = std::tan(fovInRadians / 2);
 		return {{
 			{1 / (aspect * fovTan), 0, 0, 0},

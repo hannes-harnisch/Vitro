@@ -101,10 +101,10 @@ project 'VitroTests'
 group 'Dependencies'
 
 	project 'D3D12MemoryAllocator'
-		location		'Dependencies/%{prj.name}'
+		location		'Dependencies'
 		kind			'StaticLib'
 		files			{
-							'%{prj.location}/src/D3D12MemAlloc.cpp',
-							'%{prj.location}/src/D3D12MemAlloc.h'
+							'Dependencies/%{prj.name}/**/D3D12MemAlloc.cpp',
+							'Dependencies/%{prj.name}/**/D3D12MemAlloc.h'
 						}
 		warnings		'Off'

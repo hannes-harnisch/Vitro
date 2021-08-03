@@ -1,7 +1,7 @@
-﻿module;
-#include "Trace/Assert.hh"
+module;
+#include "Core/Macros.hh"
 
-#define HH_ASSERT(condition, message) vtAssert(condition, message)
+#define HH_ASSERT(condition, message) vtAssertPure(condition, message)
 #include <Array/Include/Array.hpp>
 export module Vitro.Core.Array;
 

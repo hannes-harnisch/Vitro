@@ -1,5 +1,5 @@
 module;
-#include "Trace/Assert.hh"
+#include "Core/Macros.hh"
 
 #include <string>
 #include <thread>

@@ -1,5 +1,5 @@
-﻿module;
-#include "Trace/Assert.hh"
+module;
+#include "Core/Macros.hh"
 #include "Windows.API.hh"
 export module Vitro.Windows.AppContext;
 

@@ -16,7 +16,8 @@ namespace vt::windows
 	export class Window : public WindowBase
 	{
 	public:
-		static constexpr auto	   WindowClassName = TEXT(VT_ENGINE_NAME);
+		static constexpr auto WindowClassName = TEXT(VT_ENGINE_NAME);
+
 		static constexpr Rectangle DefaultRect {
 			.x		= CW_USEDEFAULT,
 			.y		= CW_USEDEFAULT,

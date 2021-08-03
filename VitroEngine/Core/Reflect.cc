@@ -1,5 +1,5 @@
-﻿module;
-#include "Core/Intrinsics.hh"
+module;
+#include "Core/Macros.hh"
 
 #include <algorithm>
 #include <string_view>

@@ -1,3 +1,5 @@
+module;
+#include <optional>
 export module Vitro.Graphics.RenderPassBase;
 
 import Vitro.Graphics.TextureInfo;
@@ -24,7 +26,7 @@ namespace vt
 		Ignore,
 	};
 
-	struct AttachmentInfo
+	export struct AttachmentInfo
 	{
 		ImageFormat				 format		 = {};
 		unsigned char			 sampleCount = 1;
@@ -33,32 +35,32 @@ namespace vt
 		ImageLayout				 startLayout = {};
 		ImageLayout				 endLayout	 = {};
 	};
-	
-	struct AttachmentTransition
+
+	export struct AttachmentTransition
 	{
 		unsigned char attachmentIndex = 0;
 		ImageLayout	  targetLayout	  = {};
 	};
 
-	struct SubpassInfo
+	export struct Subpass
 	{
 		static constexpr unsigned MaxAttachmentsInGroup = RenderPassBase::MaxColorAttachments - 1;
-		
-		ImageLayout			 depthStencilLayout	  = {};
-		unsigned char		 inputAttachmentCount = 0;
-		AttachmentTransition inputAttachments[MaxAttachmentsInGroup];
-		unsigned char		 nonInputAttachmentCount = 0;
-		AttachmentTransition nonInputAttachments[MaxAttachmentsInGroup];
+
+		AttachmentTransition	   inputTransitions[MaxAttachmentsInGroup];
+		unsigned char			   inputTransitionCount = 0;
+		AttachmentTransition	   nonInputTransitions[MaxAttachmentsInGroup];
+		unsigned char			   nonInputTransitionCount = 0;
+		std::optional<ImageLayout> depthStencilLayout;
 	};
 
 	export struct RenderPassInfo
 	{
-		unsigned char			 colorAttachmentCount = 0;
 		AttachmentInfo			 colorAttachments[RenderPassBase::MaxColorAttachments];
-		AttachmentInfo			 depthAttachment;
+		unsigned char			 colorAttachmentCount = 0;
+		AttachmentInfo			 depthStencilAttachment;
 		AttachmentLoadOperation	 stencilLoadOp	= {};
 		AttachmentStoreOperation stencilStoreOp = {};
+		Subpass					 subpasses[RenderPassBase::MaxSubpasses];
 		unsigned char			 subpassCount = 0;
-		SubpassInfo				 subpasses[RenderPassBase::MaxSubpasses];
 	};
 }

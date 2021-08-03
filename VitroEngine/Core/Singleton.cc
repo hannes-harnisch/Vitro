@@ -1,5 +1,5 @@
-﻿module;
-#include "Trace/Assert.hh"
+module;
+#include "Core/Macros.hh"
 export module Vitro.Core.Singleton;
 
 namespace vt

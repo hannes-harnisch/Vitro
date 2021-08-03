@@ -1,5 +1,5 @@
-﻿module;
-#include "Core/Intrinsics.hh"
+module;
+#include "Core/Macros.hh"
 export module Vitro.Trace.LogLevel;
 
 namespace vt

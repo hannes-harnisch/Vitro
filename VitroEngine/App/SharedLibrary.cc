@@ -1,5 +1,5 @@
-﻿module;
-#include "Trace/Assert.hh"
+module;
+#include "Core/Macros.hh"
 
 #include <string_view>
 export module Vitro.App.SharedLibrary;
