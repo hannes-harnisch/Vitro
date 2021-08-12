@@ -1,4 +1,6 @@
 module;
+#include "Core/Macros.hh"
+
 #include <string_view>
 export module Vitro.App.Window;
 
@@ -17,6 +19,7 @@ namespace vt
 		Window(std::string_view title, Rectangle rect = Base::DefaultRect) : Base(title, rect)
 		{
 			ensureCallIsOnMainThread();
+			vtEnsure(handle(), "Could not create window.");
 
 			AppContextBase::get().notifyWindowMapping(handle(), *this);
 			GraphicsSystem::get().notifyWindowConstruction(*this, handle());

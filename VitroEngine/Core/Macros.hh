@@ -10,24 +10,24 @@
 
 #if VT_COMPILER_CLANG
 
-	#define VT_DLLEXPORT __declspec(dllexport)
-	#define VT_INLINE	 __attribute__((always_inline))
+	#define VT_DLLEXPORT	 __declspec(dllexport)
+	#define VT_ALWAYS_INLINE __attribute__((always_inline))
 
 	#define vtDebugBreak()		  __builtin_debugtrap()
 	#define vtAssumeUnreachable() __builtin_unreachable()
 
 #elif VT_COMPILER_MSVC
 
-	#define VT_DLLEXPORT __declspec(dllexport)
-	#define VT_INLINE	 __forceinline
+	#define VT_DLLEXPORT	 __declspec(dllexport)
+	#define VT_ALWAYS_INLINE __forceinline
 
 	#define vtDebugBreak()		  __debugbreak()
 	#define vtAssumeUnreachable() __assume(0)
 
 #elif VT_COMPILER_GCC
 
-	#define VT_DLLEXPORT __attribute__((dllexport))
-	#define VT_INLINE	 __attribute__((always_inline)) inline
+	#define VT_DLLEXPORT	 __attribute__((dllexport))
+	#define VT_ALWAYS_INLINE __attribute__((always_inline)) inline
 
 	#include <csignal>
 	#define vtDebugBreak()		  std::raise(SIGTRAP)

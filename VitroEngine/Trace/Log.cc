@@ -16,6 +16,8 @@ import Vitro.Core.Enum;
 import Vitro.Core.Singleton;
 import Vitro.Trace.LogLevel;
 
+namespace stdc = std::chrono;
+
 namespace vt
 {
 	export enum class LogChannel : unsigned char {
@@ -83,10 +85,10 @@ namespace vt
 	private:
 		struct Entry
 		{
-			LogLevel							level;
-			LogChannel							channel;
-			std::chrono::system_clock::duration time;
-			std::string							message;
+			LogLevel					 level;
+			LogChannel					 channel;
+			stdc::system_clock::duration time;
+			std::string					 message;
 		};
 
 		ConcurrentQueue<Entry>				  queue;
@@ -138,10 +140,9 @@ namespace vt
 			return str;
 		}
 
-		static std::string makeTimestamp(std::chrono::system_clock::duration now)
+		static std::string makeTimestamp(stdc::system_clock::duration now)
 		{
-			using namespace std::chrono;
-			int64_t secs = duration_cast<seconds>(now).count();
+			int64_t secs = stdc::duration_cast<stdc::seconds>(now).count();
 			std::tm calendarTime;
 			localtime_s(&calendarTime, &secs);
 
@@ -160,7 +161,7 @@ namespace vt
 		{
 			thread_local ProducerToken const proToken(queue);
 
-			auto now = std::chrono::system_clock::now().time_since_epoch();
+			auto now = stdc::system_clock::now().time_since_epoch();
 			queue.enqueue(proToken, {level, channel, now, std::move(message)});
 			condition.notify_one();
 		}
@@ -217,9 +218,8 @@ namespace vt
 			auto level	 = enum_name(entry.level);
 			auto channel = enum_name(entry.channel);
 
-			using namespace std::chrono;
 			auto	timestamp = makeTimestamp(entry.time);
-			int64_t millisecs = duration_cast<milliseconds>(entry.time).count() % 1000;
+			int64_t millisecs = stdc::duration_cast<stdc::milliseconds>(entry.time).count() % 1000;
 
 			auto escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
 			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ] %s\n", escCodeParams, timestamp.data(), millisecs, level.data(),

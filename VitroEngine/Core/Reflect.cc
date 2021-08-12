@@ -10,7 +10,7 @@ module;
 #endif
 export module Vitro.Core.Reflect;
 
-import Vitro.Core.StringUtils;
+import Vitro.Core.Algorithm;
 
 namespace vt
 {

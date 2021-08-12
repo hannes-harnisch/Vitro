@@ -1,6 +1,8 @@
 module;
 #include "Core/Macros.hh"
 #include "Windows.API.hh"
+
+#include <new>
 export module Vitro.Windows.AppContext;
 
 import Vitro.App.AppContextBase;

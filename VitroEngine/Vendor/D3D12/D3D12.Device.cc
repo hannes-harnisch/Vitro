@@ -6,6 +6,7 @@ module;
 #include <span>
 export module Vitro.D3D12.Device;
 
+import Vitro.Core.Algorithm;
 import Vitro.D3D12.Pipeline;
 import Vitro.D3D12.Queue;
 import Vitro.D3D12.Texture;
@@ -42,11 +43,13 @@ namespace vt::d3d12
 
 		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineInfo const& info) override
 		{
-			D3D12_INPUT_ELEMENT_DESC inputElementDescs[RenderPipelineInfo::MaxVertexAttributes];
-			for(unsigned i = 0; i < info.vertexAttributeCount; ++i)
-				inputElementDescs[i] = convertVertexAttribute(info.vertexAttributes[i]);
+			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> inputElementDescs;
+			for(auto attrib : info.vertexAttributes)
+				inputElementDescs.emplace_back(convertVertexAttribute(attrib));
 
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC const desc {
+			auto& pass = info.renderPass.d3d12;
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC desc {
 				.pRootSignature = info.rootSignature.d3d12(),
 				.VS {
 					.pShaderBytecode = info.vertexShaderBytecode.data(),
@@ -59,16 +62,6 @@ namespace vt::d3d12
 				.BlendState {
 					.AlphaToCoverageEnable	= info.multisample.enableAlphaToCoverage,
 					.IndependentBlendEnable = true,
-					.RenderTarget {
-						convertColorAttachmentBlendState(info.blend, 0),
-						convertColorAttachmentBlendState(info.blend, 1),
-						convertColorAttachmentBlendState(info.blend, 2),
-						convertColorAttachmentBlendState(info.blend, 3),
-						convertColorAttachmentBlendState(info.blend, 4),
-						convertColorAttachmentBlendState(info.blend, 5),
-						convertColorAttachmentBlendState(info.blend, 6),
-						convertColorAttachmentBlendState(info.blend, 7),
-					},
 				},
 				.SampleMask = info.multisample.sampleMask,
 				.RasterizerState {
@@ -93,17 +86,23 @@ namespace vt::d3d12
 					.BackFace		  = convertStencilOpState(info.depthStencil.back),
 				},
 				.InputLayout {
-					.pInputElementDescs = inputElementDescs,
-					.NumElements		= info.vertexAttributeCount,
+					.pInputElementDescs = inputElementDescs.data(),
+					.NumElements		= count(inputElementDescs),
 				},
 				.IBStripCutValue	   = info.enablePrimitiveRestart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
 																	 : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
 				.PrimitiveTopologyType = categorizePrimitiveTopology(info.primitiveTopology),
-				.NumRenderTargets	   = info.blend.attachmentCount,
-				.RTVFormats			   =,
-				.DSVFormat			   =,
+				.NumRenderTargets	   = info.blend.attachmentStates.count(),
+				.DSVFormat			   = pass.usesDepthStencil ? pass.attachments.back().format : DXGI_FORMAT_UNKNOWN,
 				.SampleDesc			   = {.Count = info.multisample.sampleCount},
 			};
+			unsigned i = 0;
+			for(auto state : info.blend.attachmentStates)
+				desc.BlendState.RenderTarget[i++] = convertColorAttachmentBlendState(info.blend, state);
+
+			i = 0;
+			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
+				desc.RTVFormats[i++] = attachment.format;
 
 			ID3D12PipelineState* pipeline;
 
@@ -124,7 +123,7 @@ namespace vt::d3d12
 			for(auto list : commandLists)
 			{
 				bool isRightType = list.d3d12()->GetType() == D3D12_COMMAND_LIST_TYPE_COPY;
-				vtAssertPure(isRightType, "All command lists for this submission must be copy command lists.");
+				vtAssert(isRightType, "All command lists for this submission must be copy command lists.");
 			}
 #endif
 
@@ -137,7 +136,7 @@ namespace vt::d3d12
 			for(auto list : commandLists)
 			{
 				bool isRightType = list.d3d12()->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE;
-				vtAssertPure(isRightType, "All command lists for this submission must be compute command lists.");
+				vtAssert(isRightType, "All command lists for this submission must be compute command lists.");
 			}
 #endif
 
@@ -150,7 +149,7 @@ namespace vt::d3d12
 			for(auto list : commandLists)
 			{
 				bool isRightType = list.d3d12()->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT;
-				vtAssertPure(isRightType, "All command lists for this submission must be render command lists.");
+				vtAssert(isRightType, "All command lists for this submission must be render command lists.");
 			}
 #endif
 

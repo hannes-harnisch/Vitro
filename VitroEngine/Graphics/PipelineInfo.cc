@@ -1,7 +1,8 @@
 export module Vitro.Graphics.PipelineInfo;
 
 import Vitro.Core.Array;
-import Vitro.Core.Flags;
+import Vitro.Core.Enum;
+import Vitro.Core.FixedList;
 import Vitro.Graphics.Handle;
 import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderPassBase;
@@ -211,8 +212,9 @@ namespace vt
 		Alpha = bit(3),
 		All	  = Red | Green | Blue | Alpha,
 	};
+	export template<> constexpr bool EnableFlagsFor<ColorComponent> = true;
 
-	struct ColorAttachmentBlendState
+	export struct ColorAttachmentBlendState
 	{
 		bool		   enableBlend	  = false;
 		BlendFactor	   srcColorFactor = BlendFactor::SrcAlpha;
@@ -226,27 +228,25 @@ namespace vt
 
 	export struct BlendState
 	{
-		ColorAttachmentBlendState attachmentStates[RenderPassBase::MaxColorAttachments];
-		unsigned char			  attachmentCount = 0;
-		bool					  enableLogicOp	  = false;
-		LogicOperation			  logicOp		  = {};
+		FixedList<ColorAttachmentBlendState, MaxColorAttachments> attachmentStates;
+		bool													  enableLogicOp = false;
+		LogicOperation											  logicOp		= {};
 	};
+
+	export constexpr unsigned MaxVertexAttributes = 16;
 
 	export struct RenderPipelineInfo
 	{
-		static constexpr unsigned MaxVertexAttributes = 16;
-
-		RootSignatureHandle rootSignature;
-		RenderPass const&	renderPass;
-		Array<char> const&	vertexShaderBytecode;
-		Array<char> const&	fragmentShaderBytecode;
-		VertexAttribute		vertexAttributes[MaxVertexAttributes];
-		unsigned char		vertexAttributeCount   = 0;
-		PrimitiveTopology	primitiveTopology	   = {};
-		bool				enablePrimitiveRestart = false;
-		RasterizerState		rasterizer;
-		DepthStencilState	depthStencil;
-		MultisampleState	multisample;
-		BlendState			blend;
+		RootSignatureHandle								rootSignature;
+		RenderPass const&								renderPass;
+		Array<char> const&								vertexShaderBytecode;
+		Array<char> const&								fragmentShaderBytecode;
+		FixedList<VertexAttribute, MaxVertexAttributes> vertexAttributes;
+		PrimitiveTopology								primitiveTopology	   = {};
+		bool											enablePrimitiveRestart = false;
+		RasterizerState									rasterizer;
+		DepthStencilState								depthStencil;
+		MultisampleState								multisample;
+		BlendState										blend;
 	};
 }

@@ -3,12 +3,24 @@ module;
 #include <bitset>
 #include <climits>
 #include <concepts>
+#include <string>
+#include <type_traits>
+#include <utility>
 
 #define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::string_view;
 #define MAGIC_ENUM_RANGE_MIN			   (INT16_MIN + 1)
 #define MAGIC_ENUM_RANGE_MAX			   (INT16_MAX - 1)
 #include <magic_enum/include/magic_enum.hpp>
 export module Vitro.Core.Enum;
+
+// TODO: remove when this is supported in preview
+namespace std
+{
+	template<typename T> [[nodiscard]] constexpr underlying_type_t<T> to_underlying(T val) noexcept
+	{
+		return static_cast<underlying_type_t<T>>(val);
+	}
+}
 
 namespace vt
 {
@@ -46,7 +58,59 @@ namespace vt
 			bitset.set(static_cast<size_t>(position), value);
 		}
 
+		std::string toString() const
+		{
+			return bitset.to_string();
+		}
+
 	private:
 		std::bitset<sizeFromEnumMax<T>()> bitset;
 	};
+
+	export constexpr auto bit(auto position)
+	{
+		return 1 << position;
+	}
+
+	export template<typename T>
+	requires std::is_enum_v<T>
+	constexpr bool EnableFlagsFor = false;
+
+	template<typename T>
+	concept EnablesFlags = EnableFlagsFor<T>;
+
+	export template<EnablesFlags T> constexpr T operator&(T left, T right)
+	{
+		return static_cast<T>(std::to_underlying(left) & std::to_underlying(right));
+	}
+
+	export template<EnablesFlags T> constexpr T operator|(T left, T right)
+	{
+		return static_cast<T>(std::to_underlying(left) | std::to_underlying(right));
+	}
+
+	export template<EnablesFlags T> constexpr T operator^(T left, T right)
+	{
+		return static_cast<T>(std::to_underlying(left) ^ std::to_underlying(right));
+	}
+
+	export template<EnablesFlags T> constexpr T operator~(T value)
+	{
+		return static_cast<T>(~std::to_underlying(value));
+	}
+
+	export template<EnablesFlags T> constexpr T& operator&=(T& left, T right)
+	{
+		return left = left & right;
+	}
+
+	export template<EnablesFlags T> constexpr T& operator|=(T& left, T right)
+	{
+		return left = left | right;
+	}
+
+	export template<EnablesFlags T> constexpr T& operator^=(T& left, T right)
+	{
+		return left = left ^ right;
+	}
 }

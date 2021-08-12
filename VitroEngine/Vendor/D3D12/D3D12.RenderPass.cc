@@ -3,11 +3,14 @@ module;
 #include "D3D12.API.hh"
 
 #include <optional>
+#include <ranges>
 export module Vitro.D3D12.RenderPass;
 
+import Vitro.Core.FixedList;
 import Vitro.D3D12.Texture;
 import Vitro.Graphics.Handle;
 import Vitro.Graphics.RenderPassBase;
+import Vitro.Trace.Log;
 
 namespace vt::d3d12
 {
@@ -37,91 +40,83 @@ namespace vt::d3d12
 		DXGI_FORMAT								format;
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE beginAccess;
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	endAccess;
-		D3D12_RESOURCE_STATES					startLayout;
-		D3D12_RESOURCE_STATES					endLayout;
+
+		AttachmentInfo(vt::AttachmentInfo info) :
+			format(convertImageFormat(info.format)),
+			beginAccess(convertAttachmentLoadOperation(info.loadOp)),
+			endAccess(convertAttachmentStoreOperation(info.storeOp))
+		{}
 	};
 
-	constexpr AttachmentInfo convertAttachmentInfo(vt::AttachmentInfo info)
+	export struct AttachmentTransition
 	{
-		return {
-			.format		 = convertImageFormat(info.format),
-			.beginAccess = convertAttachmentLoadOperation(info.loadOp),
-			.endAccess	 = convertAttachmentStoreOperation(info.storeOp),
-			.startLayout = convertImageLayout(info.startLayout),
-			.endLayout	 = convertImageLayout(info.endLayout),
-		};
-	}
-
-	struct AttachmentTransition
-	{
-		unsigned			  attachmentIndex;
-		D3D12_RESOURCE_STATES targetLayout;
+		unsigned			  index;
+		D3D12_RESOURCE_STATES oldLayout;
+		D3D12_RESOURCE_STATES newLayout;
 	};
 
-	struct Subpass
-	{
-		AttachmentTransition				 colorTransitions[vt::Subpass::MaxAttachmentsInGroup];
-		unsigned							 transitionCount;
-		std::optional<D3D12_RESOURCE_STATES> depthStencilLayout;
-	};
-
-	constexpr AttachmentTransition convertAttachmentTransition(vt::AttachmentTransition transition)
-	{
-		return {
-			.attachmentIndex = transition.attachmentIndex,
-			.targetLayout	 = convertImageLayout(transition.targetLayout),
-		};
-	}
-
-	constexpr Subpass convertSubpass(vt::Subpass subpass)
-	{
-		Subpass converted;
-		if(subpass.depthStencilLayout.has_value())
-			converted.depthStencilLayout = convertImageLayout(*subpass.depthStencilLayout);
-
-		converted.transitionCount = subpass.inputTransitionCount + subpass.nonInputTransitionCount;
-
-		for(unsigned i = 0; i < subpass.inputTransitionCount; ++i)
-			converted.colorTransitions[i] = convertAttachmentTransition(subpass.inputTransitions[i]);
-
-		for(unsigned i = subpass.inputTransitionCount; i < converted.transitionCount; ++i)
-			converted.colorTransitions[i] = convertAttachmentTransition(subpass.nonInputTransitions[i]);
-
-		return converted;
-	}
+	export using TransitionList = FixedList<AttachmentTransition, MaxAttachments>;
 
 	export class RenderPass : public RenderPassBase
 	{
 	public:
+		FixedList<AttachmentInfo, MaxAttachments> attachments;
+		bool									  usesDepthStencil;
+		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE	  stencilBeginAccess;
+		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	  stencilEndAccess;
+		FixedList<TransitionList, MaxSubpasses>	  subpasses;
+		TransitionList							  finalTransitions;
+
 		RenderPass(DeviceHandle, RenderPassInfo const& info) :
-			colorAttachmentCount(info.colorAttachmentCount),
-			depthStencilAttachment(convertAttachmentInfo(info.depthStencilAttachment)),
+			attachments(info.attachments.begin(), info.attachments.end()),
+			usesDepthStencil(containsDepthStencilAttachment(info.attachments)),
 			stencilBeginAccess(convertAttachmentLoadOperation(info.stencilLoadOp)),
-			stencilEndAccess(convertAttachmentStoreOperation(info.stencilStoreOp)),
-			subpassCount(info.subpassCount)
+			stencilEndAccess(convertAttachmentStoreOperation(info.stencilStoreOp))
 		{
-			vtAssertPure(colorAttachmentCount <= RenderPassBase::MaxColorAttachments,
-						 "Too many color attachments specified for the render pass.");
+			FixedList<D3D12_RESOURCE_STATES, MaxAttachments> prevLayouts;
+			for(auto attachment : info.attachments)
+				prevLayouts.emplace_back(convertImageLayout(attachment.initialLayout));
 
-			for(unsigned i = 0; i < colorAttachmentCount; ++i)
-				colorAttachments[i] = convertAttachmentInfo(info.colorAttachments[i]);
-
-			for(unsigned i = 0; i < subpassCount; ++i)
+			for(auto& subpass : info.subpasses)
 			{
-				int totalAttachments = info.subpasses[i].inputTransitionCount + info.subpasses[i].nonInputTransitionCount;
-				vtAssertPure(totalAttachments <= RenderPassBase::MaxColorAttachments,
-							 "This subpass specified too many attachments.");
+				TransitionList transitions;
+				for(auto ref : subpass.refs)
+				{
+					auto oldLayout = prevLayouts[ref.index];
+					auto newLayout = convertImageLayout(ref.usedLayout);
+					if(oldLayout == newLayout)
+						continue;
 
-				subpasses[i] = convertSubpass(info.subpasses[i]);
+					transitions.emplace_back(ref.index, oldLayout, newLayout);
+					prevLayouts[ref.index] = newLayout;
+				}
+				subpasses.emplace_back(transitions);
+			}
+
+			for(unsigned i = 0; i < info.attachments.size(); ++i)
+			{
+				auto prev  = prevLayouts[i];
+				auto final = convertImageLayout(info.attachments[i].finalLayout);
+				if(prev == final)
+					continue;
+
+				finalTransitions.emplace_back(i, prev, final);
 			}
 		}
 
-		AttachmentInfo							colorAttachments[RenderPassBase::MaxColorAttachments];
-		unsigned char							colorAttachmentCount;
-		AttachmentInfo							depthStencilAttachment;
-		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE stencilBeginAccess;
-		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	stencilEndAccess;
-		Subpass									subpasses[RenderPassBase::MaxSubpasses];
-		unsigned char							subpassCount;
+	private:
+		static bool containsDepthStencilAttachment(auto& attachments)
+		{
+			auto usesDepthStencilLayout = [](auto attachment) {
+				return attachment.finalLayout == ImageLayout::DepthStencilAttachment ||
+					   attachment.finalLayout == ImageLayout::DepthStencilReadOnly;
+			};
+			auto it = std::find_if(attachments.begin(), attachments.end(), usesDepthStencilLayout);
+
+			auto second = std::find_if(it, attachments.end(), usesDepthStencilLayout);
+			vtAssert(second == attachments.end(), "Multiple depth stencil attachments are unsupported.");
+
+			return it != attachments.end();
+		}
 	};
 }

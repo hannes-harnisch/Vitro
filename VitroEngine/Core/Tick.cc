@@ -1,8 +1,10 @@
-﻿module;
+module;
 #include <chrono>
 #include <cstdint>
 #include <format>
 export module Vitro.Core.Tick;
+
+namespace stdc = std::chrono;
 
 namespace vt
 {
@@ -11,9 +13,8 @@ namespace vt
 	public:
 		static uint64_t measureTime()
 		{
-			using namespace std::chrono;
-			auto now = steady_clock::now().time_since_epoch();
-			return duration_cast<microseconds>(now).count();
+			auto now = stdc::steady_clock::now().time_since_epoch();
+			return stdc::duration_cast<stdc::microseconds>(now).count();
 		}
 
 		Tick() = default;

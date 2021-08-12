@@ -1,17 +1,17 @@
-module;
-#include <optional>
 export module Vitro.Graphics.RenderPassBase;
 
+import Vitro.Core.FixedList;
 import Vitro.Graphics.TextureInfo;
 
 namespace vt
 {
+	export constexpr unsigned MaxColorAttachments = 8;						 // limit imposed by D3D12 for pipelines
+	export constexpr unsigned MaxAttachments	  = MaxColorAttachments + 1; // All color attachments + 1 depth attachment
+	export constexpr unsigned MaxSubpasses		  = 5;						 // arbitrary limit, can be changed later
+
 	export class RenderPassBase
 	{
 	public:
-		static constexpr unsigned MaxColorAttachments = 8; // limit imposed by D3D12 for pipelines
-		static constexpr unsigned MaxSubpasses		  = 5; // arbitrary limit, can be changed later
-
 		virtual ~RenderPassBase() = default;
 	};
 
@@ -28,39 +28,30 @@ namespace vt
 
 	export struct AttachmentInfo
 	{
-		ImageFormat				 format		 = {};
-		unsigned char			 sampleCount = 1;
-		AttachmentLoadOperation	 loadOp		 = {};
-		AttachmentStoreOperation storeOp	 = {};
-		ImageLayout				 startLayout = {};
-		ImageLayout				 endLayout	 = {};
+		ImageFormat				 format		   = {};
+		unsigned char			 sampleCount   = 1;
+		AttachmentLoadOperation	 loadOp		   = {};
+		AttachmentStoreOperation storeOp	   = {};
+		ImageLayout				 initialLayout = {};
+		ImageLayout				 finalLayout   = {};
 	};
 
-	export struct AttachmentTransition
+	export struct AttachmentReference
 	{
-		unsigned char attachmentIndex = 0;
-		ImageLayout	  targetLayout	  = {};
+		unsigned char index		 = 0;
+		ImageLayout	  usedLayout = {};
 	};
 
 	export struct Subpass
 	{
-		static constexpr unsigned MaxAttachmentsInGroup = RenderPassBase::MaxColorAttachments - 1;
-
-		AttachmentTransition	   inputTransitions[MaxAttachmentsInGroup];
-		unsigned char			   inputTransitionCount = 0;
-		AttachmentTransition	   nonInputTransitions[MaxAttachmentsInGroup];
-		unsigned char			   nonInputTransitionCount = 0;
-		std::optional<ImageLayout> depthStencilLayout;
+		FixedList<AttachmentReference, MaxColorAttachments> refs;
 	};
 
 	export struct RenderPassInfo
 	{
-		AttachmentInfo			 colorAttachments[RenderPassBase::MaxColorAttachments];
-		unsigned char			 colorAttachmentCount = 0;
-		AttachmentInfo			 depthStencilAttachment;
-		AttachmentLoadOperation	 stencilLoadOp	= {};
-		AttachmentStoreOperation stencilStoreOp = {};
-		Subpass					 subpasses[RenderPassBase::MaxSubpasses];
-		unsigned char			 subpassCount = 0;
+		FixedList<AttachmentInfo, MaxAttachments> attachments;
+		AttachmentLoadOperation					  stencilLoadOp	 = {};
+		AttachmentStoreOperation				  stencilStoreOp = {};
+		FixedList<Subpass, MaxSubpasses>		  subpasses;
 	};
 }

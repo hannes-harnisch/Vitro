@@ -2,6 +2,7 @@ module;
 #include "Core/Macros.hh"
 
 #include <algorithm>
+#include <ranges>
 export module Vitro.Graphics.GraphicsSystem;
 
 import Vitro.Core.HashMap;
@@ -40,7 +41,7 @@ namespace vt
 
 		void update()
 		{
-			for(auto& [window, swapChain] : swapChains)
+			for(auto& swapChain : std::views::values(swapChains))
 				renderer.draw(swapChain);
 		}
 

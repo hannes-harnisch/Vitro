@@ -2,10 +2,15 @@ module;
 #include <string>
 #include <string_view>
 #include <vector>
-export module Vitro.Core.StringUtils;
+export module Vitro.Core.Algorithm;
 
 namespace vt
 {
+	export constexpr unsigned count(auto const& container) noexcept
+	{
+		return static_cast<unsigned>(std::size(container));
+	}
+
 	export constexpr void removeFirstOf(std::string& str, std::string_view pattern)
 	{
 		size_t i = str.find(pattern);

@@ -5,9 +5,12 @@ module;
 #include <ranges>
 export module Vitro.D3D12.CommandList;
 
+import Vitro.Core.Algorithm;
+import Vitro.Core.FixedList;
 import Vitro.Core.Rectangle;
 import Vitro.D3D12.Pipeline;
 import Vitro.D3D12.RenderPass;
+import Vitro.D3D12.RenderTarget;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
@@ -164,129 +167,54 @@ namespace vt::d3d12
 			this->activeRenderPass	 = &renderPass.d3d12;
 			this->activeRenderTarget = &renderTarget.d3d12;
 
-			auto& pass	  = *this->activeRenderPass;
-			auto& target  = *this->activeRenderTarget;
-			auto& subpass = pass.subpasses[0];
+			auto& pass	 = *this->activeRenderPass;
+			auto& target = *this->activeRenderTarget;
+			insertRenderPassBarriers(pass.subpasses[0]);
 
-			D3D12_RESOURCE_BARRIER barriers[RenderPassBase::MaxColorAttachments + 1];
+			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MaxColorAttachments> rtDescs;
 
-			unsigned barrierCount = 0;
-			if(subpass.depthStencilLayout.has_value())
+			unsigned i = 0;
+			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
 			{
-				barriers[0] = {
-					.Transition {
-						.pResource	 = target.depthStencilAttachment.get(),
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = pass.depthStencilAttachment.startLayout,
-						.StateAfter	 = subpass.depthStencilLayout,
-					},
-				};
-				barrierCount++;
-			}
-
-			for(auto transition : std::views::take(subpass.colorTransitions, subpass.transitionCount))
-			{
-				unsigned attachmentIndex = transition.attachmentIndex;
-				barriers[barrierCount++] = {
-					.Transition {
-						.pResource	 = target.colorAttachments[attachmentIndex].get(),
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = pass.colorAttachments[attachmentIndex].startLayout,
-						.StateAfter	 = transition.targetLayout,
-					},
-				};
-			}
-			cmd->ResourceBarrier(barrierCount, barriers);
-
-			D3D12_RENDER_PASS_RENDER_TARGET_DESC rtDescs[RenderPassBase::MaxColorAttachments];
-			for(unsigned i = 0; i < pass.colorAttachmentCount; ++i)
-			{
-				rtDescs[i] = {
-					.cpuDescriptor	 = target.colorAttachmentViews[i],
-					.BeginningAccess = pass.colorAttachments[i].beginAccess,
-					.EndingAccess	 = pass.colorAttachments[i].endAccess,
-				};
+				rtDescs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
+					.cpuDescriptor	 = target.getView(i++),
+					.BeginningAccess = {.Type = attachment.beginAccess},
+					.EndingAccess	 = {.Type = attachment.endAccess},
+				});
 			};
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC const dsDesc {
-				.cpuDescriptor			= target.depthStencilView,
-				.DepthBeginningAccess	= pass.depthStencilAttachment.beginAccess,
-				.StencilBeginningAccess = pass.stencilBeginAccess,
-				.DepthEndingAccess		= pass.depthStencilAttachment.endAccess,
-				.StencilEndingAccess	= pass.stencilEndAccess,
-			};
-			cmd->BeginRenderPass(pass.colorAttachmentCount, rtDescs, &dsDesc, 0);
+
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC  dsDesc;
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsDescPtr;
+			if(pass.usesDepthStencil)
+			{
+				dsDesc = {
+					.cpuDescriptor			= target.depthStencilView(),
+					.DepthBeginningAccess	= {.Type = pass.attachments.back().beginAccess},
+					.StencilBeginningAccess = {.Type = pass.stencilBeginAccess},
+					.DepthEndingAccess		= {.Type = pass.attachments.back().endAccess},
+					.StencilEndingAccess	= {.Type = pass.stencilEndAccess},
+				};
+				dsDescPtr = &dsDesc;
+			}
+			else
+				dsDescPtr = nullptr;
+
+			cmd->BeginRenderPass(count(rtDescs), rtDescs.data(), dsDescPtr, D3D12_RENDER_PASS_FLAG_NONE);
 			this->subpassIndex = 1;
 		}
 
 		void transitionToNextSubpass() override
 		{
-			vtAssertPure(this->subpassIndex < this->activeRenderPass->subpassCount - 1,
-						 "All subpasses of this render pass have already been transitioned through.");
+			vtAssert(this->subpassIndex < this->activeRenderPass->subpasses.size() - 1,
+					 "All subpasses of this render pass have already been transitioned through.");
 
-			auto& subpass = this->activeRenderPass->subpasses[this->subpassIndex++];
-
-			D3D12_RESOURCE_BARRIER barriers[RenderPassBase::MaxColorAttachments + 1];
-			// TODO: rework render passes to deduce previous layout during creation
-			unsigned barrierCount = 0;
-			if(subpass.depthStencilLayout.has_value())
-			{
-				barriers[0] = {
-					.Transition {
-						.pResource	 = target.depthStencilAttachment.get(),
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = pass.depthStencilAttachment.startLayout,
-						.StateAfter	 = subpass.depthStencilLayout,
-					},
-				};
-				barrierCount++;
-			}
-
-			for(auto transition : std::views::take(subpass.colorTransitions, subpass.transitionCount))
-			{
-				unsigned attachmentIndex = transition.attachmentIndex;
-				barriers[barrierCount++] = {
-					.Transition {
-						.pResource	 = target.colorAttachments[attachmentIndex].get(),
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = pass.colorAttachments[attachmentIndex].startLayout,
-						.StateAfter	 = transition.targetLayout,
-					},
-				};
-			}
-			cmd->ResourceBarrier(barrierCount, barriers);
+			insertRenderPassBarriers(this->activeRenderPass->subpasses[this->subpassIndex++]);
 		}
 
 		void endRenderPass() override
 		{
 			cmd->EndRenderPass();
-
-			auto& pass = *this->activeRenderPass;
-
-			D3D12_RESOURCE_BARRIER barriers[RenderPassBase::MaxColorAttachments + 1];
-			barriers[0] = {
-				.Transition {
-					.pResource	 = target.depthStencilAttachment.get(),
-					.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-					.StateBefore = {}, // TODO: deduce
-					.StateAfter	 = pass.depthStencilAttachment.endLayout,
-				},
-			};
-
-			unsigned barrierCount = 1, attachmentIndex = 0;
-			for(auto& colorAttachments : std::views::take(pass.colorAttachments, pass.colorAttachmentCount))
-			{
-				barriers[barrierCount++] = {
-					.Transition {
-						.pResource	 = target.colorAttachments[attachmentIndex].get(),
-						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = {}, // TODO: deduce
-						.StateAfter	 = pass.colorAttachments[attachmentIndex].endLayout,
-					},
-				};
-				++attachmentIndex;
-			}
-			cmd->ResourceBarrier(barrierCount, barriers);
-
+			insertRenderPassBarriers(this->activeRenderPass->finalTransitions);
 #if VT_DEBUG
 			this->activeRenderPass = nullptr;
 #endif
@@ -362,6 +290,23 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 
 			return list;
+		}
+
+		void insertRenderPassBarriers(FixedList<AttachmentTransition, MaxAttachments> const& transitions)
+		{
+			FixedList<D3D12_RESOURCE_BARRIER, MaxAttachments> barriers;
+			for(auto transition : transitions)
+			{
+				barriers.emplace_back(D3D12_RESOURCE_BARRIER {
+					.Transition {
+						.pResource	 = this->activeRenderTarget->getAttachment(transition.index),
+						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+						.StateBefore = transition.oldLayout,
+						.StateAfter	 = transition.newLayout,
+					},
+				});
+			}
+			cmd->ResourceBarrier(count(barriers), barriers.data());
 		}
 	};
 }

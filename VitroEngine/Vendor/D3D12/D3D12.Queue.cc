@@ -5,6 +5,7 @@ module;
 #include <span>
 export module Vitro.D3D12.Queue;
 
+import Vitro.Core.Algorithm;
 import Vitro.Core.Unique;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.Handle;
@@ -18,11 +19,10 @@ namespace vt::d3d12
 			queue(makeQueue(device, commandType)), fence(makeFence(device)), fenceEvent(makeEvent())
 		{}
 
-		void submit(std::span<CommandListHandle const> commandLists)
+		void submit(std::span<CommandListHandle> commandLists)
 		{
-			UINT count = static_cast<UINT>(commandLists.size());
-			auto data  = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
-			queue->ExecuteCommandLists(count, data);
+			auto data = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
+			queue->ExecuteCommandLists(count(commandLists), data);
 		}
 
 		uint64_t signal()

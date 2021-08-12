@@ -10,3 +10,6 @@
 [submodule "Dependencies/D3D12MemoryAllocator"]
 	path = Dependencies/D3D12MemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator
+[submodule "Dependencies/FixedList"]
+	path = Dependencies/FixedList
+	url = https://github.com/hannes-harnisch/FixedList

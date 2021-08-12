@@ -228,19 +228,20 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_RENDER_TARGET_BLEND_DESC convertColorAttachmentBlendState(BlendState const& state, size_t index)
+	export D3D12_RENDER_TARGET_BLEND_DESC convertColorAttachmentBlendState(BlendState const&		 blend,
+																		   ColorAttachmentBlendState state)
 	{
 		return {
-			.BlendEnable		   = state.attachmentStates[index].enableBlend,
-			.LogicOpEnable		   = state.enableLogicOp,
-			.SrcBlend			   = convertBlendFactor(state.attachmentStates[index].srcColorFactor),
-			.DestBlend			   = convertBlendFactor(state.attachmentStates[index].dstColorFactor),
-			.BlendOp			   = convertBlendOp(state.attachmentStates[index].colorOp),
-			.SrcBlendAlpha		   = convertBlendFactor(state.attachmentStates[index].srcAlphaFactor),
-			.DestBlendAlpha		   = convertBlendFactor(state.attachmentStates[index].dstAlphaFactor),
-			.BlendOpAlpha		   = convertBlendOp(state.attachmentStates[index].alphaOp),
-			.LogicOp			   = convertLogicOp(state.logicOp),
-			.RenderTargetWriteMask = static_cast<UINT8>(state.attachmentStates[index].writeMask),
+			.BlendEnable		   = state.enableBlend,
+			.LogicOpEnable		   = blend.enableLogicOp,
+			.SrcBlend			   = convertBlendFactor(state.srcColorFactor),
+			.DestBlend			   = convertBlendFactor(state.dstColorFactor),
+			.BlendOp			   = convertBlendOp(state.colorOp),
+			.SrcBlendAlpha		   = convertBlendFactor(state.srcAlphaFactor),
+			.DestBlendAlpha		   = convertBlendFactor(state.dstAlphaFactor),
+			.BlendOpAlpha		   = convertBlendOp(state.alphaOp),
+			.LogicOp			   = convertLogicOp(blend.logicOp),
+			.RenderTargetWriteMask = static_cast<UINT8>(state.writeMask),
 		};
 	}
 }
