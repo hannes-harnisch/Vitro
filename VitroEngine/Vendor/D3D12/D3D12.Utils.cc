@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <memory>
 export module Vitro.D3D12.Utils;
 
@@ -12,5 +12,5 @@ namespace vt::d3d12
 		}
 	};
 
-	export template<typename T> using UniqueInterface = std::unique_ptr<T, InterfaceDeleter<T>>;
+	export template<typename T> using ComUnique = std::unique_ptr<T, InterfaceDeleter<T>>;
 }

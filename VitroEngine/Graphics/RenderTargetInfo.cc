@@ -1,4 +1,4 @@
-export module Vitro.Graphics.RenderTargetBase;
+export module Vitro.Graphics.RenderTargetInfo;
 
 namespace vt
 {

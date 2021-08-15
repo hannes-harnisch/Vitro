@@ -9,7 +9,7 @@ export module Vitro.D3D12.RenderPass;
 import Vitro.Core.FixedList;
 import Vitro.D3D12.Texture;
 import Vitro.Graphics.Handle;
-import Vitro.Graphics.RenderPassBase;
+import Vitro.Graphics.RenderPassInfo;
 import Vitro.Trace.Log;
 
 namespace vt::d3d12
@@ -80,7 +80,7 @@ namespace vt::d3d12
 			for(auto& subpass : info.subpasses)
 			{
 				TransitionList transitions;
-				for(auto ref : subpass.refs)
+				for(auto ref : subpass.outputRefs)
 				{
 					auto oldLayout = prevLayouts[ref.index];
 					auto newLayout = convertImageLayout(ref.usedLayout);

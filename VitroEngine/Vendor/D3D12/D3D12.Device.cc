@@ -157,10 +157,10 @@ namespace vt::d3d12
 		}
 
 	private:
-		UniqueInterface<ID3D12Device1> device;
-		Queue						   renderQueue;
-		Queue						   computeQueue;
-		Queue						   copyQueue;
+		ComUnique<ID3D12Device1> device;
+		Queue					 renderQueue;
+		Queue					 computeQueue;
+		Queue					 copyQueue;
 
 		static ID3D12Device1* makeDevice(vt::Driver& driver, vt::Adapter& adapter)
 		{

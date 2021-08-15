@@ -5,7 +5,6 @@ export module Vitro.App.WindowEvent;
 import Vitro.App.Event;
 import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
-import Vitro.App.Window;
 import Vitro.Core.Enum;
 import Vitro.Core.Rectangle;
 import Vitro.Core.Vector;
@@ -15,11 +14,11 @@ namespace vt
 	class WindowEvent : public Event
 	{
 	public:
-		Window& window;
+		class Window& window;
 
 		std::string toString() const override
 		{
-			return std::format("{}: Window({})", Event::toString(), window.handle());
+			return std::format("{}: Window({})", Event::toString(), static_cast<void*>(&window));
 		}
 
 	protected:
@@ -38,6 +37,13 @@ namespace vt
 	{
 	public:
 		WindowCloseEvent(Window& window) : WindowEvent(window)
+		{}
+	};
+
+	export class WindowPaintEvent final : public WindowEvent
+	{
+	public:
+		WindowPaintEvent(Window& window) : WindowEvent(window)
 		{}
 	};
 

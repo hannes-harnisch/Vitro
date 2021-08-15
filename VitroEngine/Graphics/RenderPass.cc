@@ -1,7 +1,7 @@
-﻿export module Vitro.Graphics.RenderPass;
+export module Vitro.Graphics.RenderPass;
 
 import Vitro.Graphics.InterfaceVariant;
-import Vitro.Graphics.RenderPassBase;
+import Vitro.Graphics.RenderPassInfo;
 
 #if VT_DYNAMIC_GPU_API
 import Vitro.VT_GPU_API_MODULE_PRIMARY.RenderPass;

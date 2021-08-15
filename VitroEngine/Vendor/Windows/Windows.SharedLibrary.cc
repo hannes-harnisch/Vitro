@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Windows.API.hh"
 
 #include <string_view>

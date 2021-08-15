@@ -2,7 +2,7 @@
 
 export import Vitro.App.App;
 export import Vitro.App.Event;
-export import Vitro.App.EventBinding;
+export import Vitro.App.EventListener;
 export import Vitro.App.EventSystem;
 export import Vitro.App.Input;
 export import Vitro.App.KeyCode;

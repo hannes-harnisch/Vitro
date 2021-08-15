@@ -2,6 +2,7 @@ module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
+#include <cstdlib>
 #include <ranges>
 export module Vitro.D3D12.CommandList;
 
@@ -17,7 +18,7 @@ import Vitro.Graphics.Device;
 import Vitro.Graphics.Handle;
 import Vitro.Graphics.PipelineInfo;
 import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderPassBase;
+import Vitro.Graphics.RenderPassInfo;
 import Vitro.Graphics.RenderTarget;
 
 namespace vt::d3d12
@@ -123,6 +124,9 @@ namespace vt::d3d12
 		{
 			auto result = allocator->Reset();
 			vtAssertResult(result, "Failed to reset D3D12 command allocator.");
+
+			result = cmd->Reset(allocator.get(), nullptr);
+			vtAssertResult(result, "Failed to reset D3D12 command list.");
 		}
 
 		void end() override
@@ -269,8 +273,8 @@ namespace vt::d3d12
 	private:
 		static constexpr D3D12_COMMAND_LIST_TYPE CommandListType = convertCommandType(Type);
 
-		UniqueInterface<ID3D12CommandAllocator>		allocator;
-		UniqueInterface<ID3D12GraphicsCommandList4> cmd;
+		ComUnique<ID3D12CommandAllocator>	  allocator;
+		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
 		static ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
 		{
@@ -288,6 +292,9 @@ namespace vt::d3d12
 
 			auto result = device->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
+
+			result = list->Close();
+			vtAssertResult(result, "Failed to initially close D3D12 command list.");
 
 			return list;
 		}

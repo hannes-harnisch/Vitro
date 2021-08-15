@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
@@ -61,10 +61,10 @@ namespace vt::d3d12
 		}
 
 	private:
-		uint64_t							fenceValue = 0;
-		UniqueInterface<ID3D12CommandQueue> queue;
-		UniqueInterface<ID3D12Fence>		fence;
-		Unique<HANDLE, ::CloseHandle>		fenceEvent;
+		uint64_t					  fenceValue = 0;
+		ComUnique<ID3D12CommandQueue> queue;
+		ComUnique<ID3D12Fence>		  fence;
+		Unique<HANDLE, ::CloseHandle> fenceEvent;
 
 		static ID3D12CommandQueue* makeQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType)
 		{

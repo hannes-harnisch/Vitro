@@ -15,17 +15,17 @@ namespace vt
 
 		std::thread::id mainThreadId()
 		{
-			return get().mainThread;
+			return mainThread;
 		}
 
 		void notifyWindowMapping(void* nativeHandle, class Window& window)
 		{
-			get().nativeWindowToEngineWindow[nativeHandle] = &window;
+			nativeWindowToEngineWindow[nativeHandle] = &window;
 		}
 
 		void notifyWindowDestruction(void* nativeHandle)
 		{
-			get().nativeWindowToEngineWindow.erase(nativeHandle);
+			nativeWindowToEngineWindow.erase(nativeHandle);
 		}
 
 	protected:

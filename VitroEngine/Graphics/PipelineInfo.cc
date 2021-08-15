@@ -5,7 +5,7 @@ import Vitro.Core.Enum;
 import Vitro.Core.FixedList;
 import Vitro.Graphics.Handle;
 import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderPassBase;
+import Vitro.Graphics.RenderPassInfo;
 
 namespace vt
 {

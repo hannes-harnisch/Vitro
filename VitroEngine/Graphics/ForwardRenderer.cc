@@ -1,10 +1,11 @@
-﻿module;
+module;
 #include <new>
 export module Vitro.Graphics.ForwardRenderer;
 
 import Vitro.Graphics.CommandList;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.DeferredDeleter;
+import Vitro.Graphics.FrameContext;
 import Vitro.Graphics.SwapChain;
 import Vitro.Trace.Log;
 
@@ -13,22 +14,20 @@ namespace vt
 	export class ForwardRenderer
 	{
 	public:
-		ForwardRenderer(Device& device) : cmd(device)
+		ForwardRenderer(Device& device) : device(device), cmd(device)
 		{}
 
-		void draw(SwapChain&)
+		void draw(SwapChain& swapChain)
 		{
-			// Log().info(swapChain->getNextRenderTargetIndex());
-			//	swapChain->present();
+			auto& renderTarget = swapChain->acquireRenderTarget();
+			cmd->begin();
 
-			frameResourceIndex = (frameResourceIndex + 1) % MaxFramesInFlight;
+			cmd->end();
 		}
 
 	private:
-		static constexpr unsigned MaxFramesInFlight = 2;
-
+		Device&			  device;
 		DeferredDeleter	  deferredDeleter;
 		RenderCommandList cmd;
-		unsigned		  frameResourceIndex = 0;
 	};
 }

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
@@ -39,7 +39,7 @@ namespace vt::d3d12
 				auto result = factory->EnumAdapters1(index, &adapterPtr);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
-				UniqueInterface<IDXGIAdapter1> adapter(adapterPtr);
+				ComUnique<IDXGIAdapter1> adapter(adapterPtr);
 
 				DXGI_ADAPTER_DESC1 desc;
 				result = adapter->GetDesc1(&desc);
@@ -78,8 +78,8 @@ namespace vt::d3d12
 		PFN_D3D12_GET_DEBUG_INTERFACE	d3d12GetDebugInterface;
 		decltype(::CreateDXGIFactory2)* createDXGIFactory2;
 		PFN_D3D12_CREATE_DEVICE			d3d12CreateDevice;
-		UniqueInterface<ID3D12Debug>	debug;
-		UniqueInterface<IDXGIFactory5>	factory;
+		ComUnique<ID3D12Debug>			debug;
+		ComUnique<IDXGIFactory5>		factory;
 
 		ID3D12Debug* makeDebugInterface()
 		{

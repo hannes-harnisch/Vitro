@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <array>
 #include <cmath>
 #include <format>
@@ -17,9 +17,11 @@ namespace vt
 	{};
 	template<typename T, int R, int C> struct IsScalar<Matrix<T, R, C>> : std::false_type
 	{};
-	export template<typename T> concept Scalar = IsScalar<T>::value;
+	export template<typename T>
+	concept Scalar = IsScalar<T>::value;
 
-	export template<typename TFrom, typename TTo> concept LosslesslyConvertibleTo = requires(TFrom from)
+	export template<typename TFrom, typename TTo>
+	concept LosslesslyConvertibleTo = requires(TFrom from)
 	{
 		TTo {from};
 	};
@@ -292,7 +294,7 @@ namespace vt
 		return cast;
 	}
 
-	export template<typename T, int D> constexpr auto apply(Vector<T, D> vec, auto func)
+	export template<typename T, int D> constexpr auto apply(Vector<T, D> vec, auto func) noexcept(noexcept(func(vec[0])))
 	{
 		Vector<decltype(func(vec[0])), D> result;
 		for(unsigned i = 0; i < D; ++i)

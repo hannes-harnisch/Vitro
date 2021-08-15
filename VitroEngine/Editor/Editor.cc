@@ -1,8 +1,7 @@
-﻿module;
+module;
 #include <new>
 export module Vitro.Editor.Editor;
 
-import Vitro.App.EventBinding;
 import Vitro.App.KeyCode;
 import Vitro.App.Window;
 import Vitro.App.WindowEvent;

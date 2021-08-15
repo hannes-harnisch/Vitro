@@ -2,9 +2,10 @@ module;
 #include "Core/Macros.hh"
 
 #include <algorithm>
-#include <ranges>
 export module Vitro.Graphics.GraphicsSystem;
 
+import Vitro.App.EventListener;
+import Vitro.App.WindowEvent;
 import Vitro.Core.HashMap;
 import Vitro.Core.Singleton;
 import Vitro.Graphics.Adapter;
@@ -16,9 +17,14 @@ import Vitro.Graphics.SwapChain;
 
 namespace vt
 {
-	export class GraphicsSystem : public Singleton<GraphicsSystem>
+	export class GraphicsSystem : public Singleton<GraphicsSystem>, public EventListener
 	{
 	public:
+		GraphicsSystem() : device(driver, selectAdapter()), renderer(device)
+		{
+			registerEventHandlers<&GraphicsSystem::update>();
+		}
+
 		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
 			swapChains.try_emplace(&window, device->handle(), device->presentationQueueHandle(), nativeWindowHandle);
@@ -36,13 +42,10 @@ namespace vt
 			swapChains.erase(&window);
 		}
 
-		GraphicsSystem() : device(driver, selectAdapter()), renderer(device)
-		{}
-
-		void update()
+		void update(WindowPaintEvent& e)
 		{
-			for(auto& swapChain : std::views::values(swapChains))
-				renderer.draw(swapChain);
+			auto& swapChain = swapChains.at(&e.window);
+			renderer.draw(swapChain);
 		}
 
 	private:

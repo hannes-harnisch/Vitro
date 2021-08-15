@@ -1,8 +1,8 @@
-module;
+﻿module;
 #include <new>
 export module Vitro.App.Input;
 
-import Vitro.App.EventBinding;
+import Vitro.App.EventListener;
 import Vitro.App.KeyCode;
 import Vitro.App.MouseCode;
 import Vitro.App.WindowEvent;
@@ -12,7 +12,7 @@ import Vitro.Core.Vector;
 
 namespace vt
 {
-	export class Input : public Singleton<Input>
+	export class Input : public Singleton<Input>, public EventListener
 	{
 		friend class AppSystem;
 
@@ -36,11 +36,12 @@ namespace vt
 		EnumBitArray<KeyCode>	keyDownStates;
 		EnumBitArray<MouseCode> mouseDownStates;
 		Int2					mousePos;
-		EventBinding			eventBinding;
 
-		Input() :
-			eventBinding(this, &Input::onKeyDown, &Input::onKeyUp, &Input::onMouseDown, &Input::onMouseUp, &Input::onMouseMove)
-		{}
+		Input()
+		{
+			registerEventHandlers<&Input::onKeyDown, &Input::onKeyUp, &Input::onMouseDown, &Input::onMouseUp,
+								  &Input::onMouseMove>();
+		}
 
 		void onKeyDown(KeyDownEvent& e)
 		{

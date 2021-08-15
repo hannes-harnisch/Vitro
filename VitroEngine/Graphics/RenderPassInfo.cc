@@ -1,4 +1,4 @@
-export module Vitro.Graphics.RenderPassBase;
+export module Vitro.Graphics.RenderPassInfo;
 
 import Vitro.Core.FixedList;
 import Vitro.Graphics.TextureInfo;
@@ -44,7 +44,7 @@ namespace vt
 
 	export struct Subpass
 	{
-		FixedList<AttachmentReference, MaxColorAttachments> refs;
+		FixedList<AttachmentReference, MaxColorAttachments> outputRefs;
 	};
 
 	export struct RenderPassInfo

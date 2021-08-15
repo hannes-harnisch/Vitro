@@ -75,6 +75,7 @@ namespace vt::windows
 				case WM_ACTIVATE: get().restoreWindowCursorState(hwnd, wParam); return 0;
 				case WM_SETFOCUS: get().onWindowEvent<WindowFocusEvent>(hwnd); return 0;
 				case WM_KILLFOCUS: get().onWindowEvent<WindowUnfocusEvent>(hwnd); return 0;
+				case WM_PAINT: get().onWindowEvent<WindowPaintEvent>(hwnd); return 0;
 				case WM_CLOSE: get().onWindowClose(hwnd); return 0;
 				case WM_SHOWWINDOW: get().onWindowShow(hwnd, wParam); return 0;
 				case WM_INPUT: get().onRawInput(hwnd, lParam); break;

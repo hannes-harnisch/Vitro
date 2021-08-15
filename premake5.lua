@@ -51,10 +51,12 @@ workspace 'Vitro'
 		optimize		'Speed'
 		runtime			'Debug'
 		defines			'VT_DEBUG'
+		flags			'LinkTimeOptimization'
 
 	filter 'configurations:Release'
 		optimize		'Speed'
 		runtime			'Release'
+		flags			'LinkTimeOptimization'
 
 project 'VitroEngine'
 	location			'%{prj.name}'

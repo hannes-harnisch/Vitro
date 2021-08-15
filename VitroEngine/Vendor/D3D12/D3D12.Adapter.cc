@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
@@ -14,7 +14,7 @@ namespace vt::d3d12
 	export class Adapter final : public AdapterBase
 	{
 	public:
-		Adapter(UniqueInterface<IDXGIAdapter1> adapterHandle) : adapter(std::move(adapterHandle))
+		Adapter(ComUnique<IDXGIAdapter1> adapterHandle) : adapter(std::move(adapterHandle))
 		{
 			DXGI_ADAPTER_DESC1 desc;
 
@@ -31,6 +31,6 @@ namespace vt::d3d12
 		}
 
 	private:
-		UniqueInterface<IDXGIAdapter1> adapter;
+		ComUnique<IDXGIAdapter1> adapter;
 	};
 }

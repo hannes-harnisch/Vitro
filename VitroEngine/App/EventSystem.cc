@@ -1,20 +1,14 @@
-﻿module;
+module;
+#include <algorithm>
 #include <atomic>
-#include <condition_variable>
-#include <functional>
 #include <memory>
-#include <mutex>
-#include <queue>
 #include <ranges>
-#include <source_location>
-#include <thread>
 #include <typeindex>
 #include <utility>
 #include <vector>
 export module Vitro.App.EventSystem;
 
 import Vitro.App.Event;
-import Vitro.App.EventHandler;
 import Vitro.Core.Singleton;
 import Vitro.Trace.Log;
 
@@ -23,93 +17,65 @@ namespace vt
 	export class EventSystem : public Singleton<EventSystem>
 	{
 		friend class AppSystem;
+		friend class EventListener;
 
 	public:
 		static void notify(std::unique_ptr<Event> event)
 		{
-			get().emplaceEvent(std::move(event));
+			get().dispatchEvent(std::move(event));
 		}
 
 		template<typename TEvent, typename... Ts> static void notify(Ts&&... ts)
 		{
-			get().emplaceEvent(std::make_unique<TEvent>(std::forward<Ts>(ts)...));
-		}
-
-		template<typename... Ts> static void submitHandler(Ts&&... ts)
-		{
-			std::lock_guard lock(get().mutex);
-			get().handlers.emplace_back(std::forward<Ts>(ts)...);
-		}
-
-		static void removeHandlersByTarget(void* target)
-		{
-			std::erase_if(get().handlers, [=](EventHandler const& handler) {
-				return handler.callTarget == target;
-			});
+			notify(std::make_unique<TEvent>(std::forward<Ts>(ts)...));
 		}
 
 	private:
-		std::queue<std::unique_ptr<Event>> events;
-		std::vector<EventHandler>		   handlers;
-		std::mutex						   mutex;
-		std::condition_variable			   condition;
-		std::atomic_bool				   isAcceptingEvents = true;
-		std::jthread					   eventWorker;
-
-		EventSystem() : eventWorker(&EventSystem::runEventProcessing, this)
-		{}
-
-		~EventSystem()
+		struct EventHandler
 		{
-			isAcceptingEvents = false;
-			condition.notify_all();
-		}
+			void (*function)(class EventListener&, Event&);
+			EventListener*	listener;
+			std::type_index eventType;
+		};
+		std::vector<EventHandler> handlers;
 
-		void emplaceEvent(std::unique_ptr<Event> event)
+		EventSystem() = default;
+
+		void dispatchEvent(std::unique_ptr<Event> event)
 		{
-			{
-				std::lock_guard lock(mutex);
-				events.emplace(std::move(event));
-			}
-			condition.notify_one();
-		}
-
-		void runEventProcessing()
-		{
-			while(isAcceptingEvents)
-				processQueue();
-		}
-
-		void processQueue()
-		{
-			std::unique_lock lock(mutex);
-			condition.wait(lock, [&] {
-				return !events.empty() || !isAcceptingEvents;
-			});
-			if(!isAcceptingEvents)
-				return;
-
-			auto event = std::move(events.front());
-			events.pop();
-			lock.unlock();
-
-			processEvent(std::move(event));
-		}
-
-		void processEvent(std::unique_ptr<Event> event)
-		{
-			std::type_index eventType(typeid(*event));
+			std::type_index eventType = typeid(*event);
 
 			for(auto&& handler : std::views::reverse(handlers))
-			{
 				if(handler.eventType == eventType)
-				{
-					bool consumed = handler.function(*event);
-					if(consumed)
-						break;
-				}
-			}
+					handler.function(*handler.listener, *event);
+
 			Log().verbose(event);
+		}
+
+		template<typename... Ts> void submitHandler(Ts&&... ts)
+		{
+			handlers.emplace_back(std::forward<Ts>(ts)...);
+		}
+
+		void duplicateHandlersWithListener(EventListener& newListener, EventListener const& oldListener)
+		{
+			for(auto i = handlers.begin(); i != handlers.end(); ++i)
+				if(i->listener == &oldListener)
+					i = handlers.emplace(i + 1, i->function, &newListener, i->eventType);
+		}
+
+		void replaceListener(EventListener& newListener, EventListener& oldListener)
+		{
+			for(auto& handler : handlers)
+				if(handler.listener == &oldListener)
+					handler.listener = &newListener;
+		}
+
+		void removeHandlersWithListener(EventListener& listener)
+		{
+			std::erase_if(handlers, [&](auto handler) {
+				return handler.listener == &listener;
+			});
 		}
 	};
 }
