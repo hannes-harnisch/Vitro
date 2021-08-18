@@ -8,9 +8,13 @@ export module Vitro.D3D12.RenderPass;
 
 import Vitro.Core.FixedList;
 import Vitro.D3D12.Texture;
-import Vitro.Graphics.Handle;
 import Vitro.Graphics.RenderPassInfo;
 import Vitro.Trace.Log;
+
+namespace vt
+{
+	class Device;
+}
 
 namespace vt::d3d12
 {
@@ -67,7 +71,7 @@ namespace vt::d3d12
 		FixedList<TransitionList, MaxSubpasses>	  subpasses;
 		TransitionList							  finalTransitions;
 
-		RenderPass(DeviceHandle, RenderPassInfo const& info) :
+		RenderPass(vt::Device&, RenderPassInfo const& info) :
 			attachments(info.attachments.begin(), info.attachments.end()),
 			usesDepthStencil(containsDepthStencilAttachment(info.attachments)),
 			stencilBeginAccess(convertAttachmentLoadOperation(info.stencilLoadOp)),

@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
@@ -9,6 +9,7 @@ import Vitro.Core.Algorithm;
 import Vitro.Core.Unique;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.Handle;
+import Vitro.Trace.Log;
 
 namespace vt::d3d12
 {
@@ -21,8 +22,8 @@ namespace vt::d3d12
 
 		void submit(std::span<CommandListHandle> commandLists)
 		{
-			auto data = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
-			queue->ExecuteCommandLists(count(commandLists), data);
+			auto lists = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
+			queue->ExecuteCommandLists(count(commandLists), lists);
 		}
 
 		uint64_t signal()

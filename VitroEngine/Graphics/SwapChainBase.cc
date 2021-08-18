@@ -9,11 +9,11 @@ namespace vt
 	public:
 		virtual ~SwapChainBase() = default;
 
-		virtual RenderTarget& acquireRenderTarget() = 0;
-		virtual void		  present()				= 0;
-		virtual void		  resize()				= 0;
-		virtual void		  enableVSync()			= 0;
-		virtual void		  disableVSync()		= 0;
+		virtual RenderTarget& acquireRenderTarget(unsigned frameIndex) = 0;
+		virtual void		  present()								   = 0;
+		virtual void		  resize()								   = 0;
+		virtual void		  enableVSync()							   = 0;
+		virtual void		  disableVSync()						   = 0;
 
 		bool vSyncEnabled() const
 		{

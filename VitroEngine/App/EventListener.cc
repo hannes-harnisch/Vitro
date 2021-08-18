@@ -1,3 +1,5 @@
+module;
+#include <type_traits>
 export module Vitro.App.EventListener;
 
 import Vitro.App.EventSystem;
@@ -47,21 +49,30 @@ namespace vt
 
 	private:
 		template<typename> struct FunctionTraits;
-		template<typename C, typename P> struct FunctionTraits<void (C::*)(P)>
+		template<typename R, typename C, typename P> struct FunctionTraits<R (C::*)(P)>
 		{
-			using Class = C;
-			using Param = P;
+			using Return = R;
+			using Class	 = C;
+			using Param	 = P;
 		};
 
 		template<auto Handler> void registerHandler()
 		{
-			using TClass = typename FunctionTraits<decltype(Handler)>::Class;
-			using TEvent = typename FunctionTraits<decltype(Handler)>::Param;
+			using HandlerTraits = FunctionTraits<decltype(Handler)>;
+			using TReturn		= HandlerTraits::Return;
+			using TClass		= HandlerTraits::Class;
+			using TEvent		= HandlerTraits::Param;
 
 			auto func = +[](EventListener& listener, Event& e) {
 				auto& event	 = static_cast<TEvent&>(e);
 				auto& object = static_cast<TClass&>(listener);
-				(object.*Handler)(event);
+				if constexpr(std::is_same_v<TReturn, void>)
+				{
+					(object.*Handler)(event);
+					return false;
+				}
+				else
+					return (object.*Handler)(event);
 			};
 			EventSystem::get().submitHandler(func, this, typeid(TEvent));
 		}

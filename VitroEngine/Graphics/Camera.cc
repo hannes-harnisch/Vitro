@@ -80,9 +80,9 @@ namespace vt
 		}
 
 	private:
-		static constexpr Float3 DefaultRight {1, 0, 0};
-		static constexpr Float3 DefaultUp {0, 1, 0};
-		static constexpr Float3 DefaultForward {0, 0, 1};
+		static constexpr Float3 DefaultRight   = {1, 0, 0};
+		static constexpr Float3 DefaultUp	   = {0, 1, 0};
+		static constexpr Float3 DefaultForward = {0, 0, 1};
 
 		Float4x4 projection		= {};
 		Float4x4 viewProjection = {};

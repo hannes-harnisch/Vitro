@@ -36,7 +36,8 @@ namespace vt
 		Vulkan,
 	};
 
-	template<typename T> concept IndirectlyConvertibleToString = requires(T t)
+	template<typename T>
+	concept IndirectlyConvertibleToString = requires(T t)
 	{
 		t->toString();
 	};
@@ -112,7 +113,7 @@ namespace vt
 
 		template<typename TEnum> static std::string_view prepareArgument(TEnum arg) requires std::is_enum_v<TEnum>
 		{
-			return getEnumName(arg);
+			return enum_name(arg);
 		}
 
 		template<typename T>
@@ -135,8 +136,9 @@ namespace vt
 
 		template<typename... Ts> static std::string makeMessage(Ts&&... ts)
 		{
+			// TODO: switch to stringstream after linker fix
 			std::string str;
-			((str += prepareArgument(std::forward<Ts>(ts))), ...);
+			(((str += ' ') += prepareArgument(std::forward<Ts>(ts))), ...);
 			return str;
 		}
 
@@ -222,13 +224,15 @@ namespace vt
 			int64_t millisecs = stdc::duration_cast<stdc::milliseconds>(entry.time).count() % 1000;
 
 			auto escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
-			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ] %s\n", escCodeParams, timestamp.data(), millisecs, level.data(),
+			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ]%s\n", escCodeParams, timestamp.data(), millisecs, level.data(),
 						channel.data(), entry.message.data());
 		}
 	};
 
-	consteval LogChannel extractChannelFromPath(std::string_view path)
+	consteval LogChannel extractChannelFromPath(std::source_location src)
 	{
+		std::string_view path = src.file_name();
+
 		size_t dirBegin		= path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
 		auto   pathAfterDir = path.substr(dirBegin);
 		size_t dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
@@ -247,8 +251,8 @@ namespace vt
 	{
 	public:
 		// TODO false compiler error because of consteval
-		Log(/*LogChannel channel = extractChannelFromPath(std::source_location::current().file_name())*/) :
-			channel(extractChannelFromPath(std::source_location::current().file_name()))
+		Log(/*LogChannel channel = extractChannelFromPath(std::source_location::current())*/) :
+			channel(extractChannelFromPath(std::source_location::current()))
 		{}
 
 		template<typename... Ts> void verbose(Ts&&... ts) const
@@ -266,7 +270,7 @@ namespace vt
 			log(LogLevel::Info, std::forward<Ts>(ts)...);
 		}
 
-		template<typename... Ts> void warning(Ts&&... ts) const
+		template<typename... Ts> void warn(Ts&&... ts) const
 		{
 			log(LogLevel::Warning, std::forward<Ts>(ts)...);
 		}

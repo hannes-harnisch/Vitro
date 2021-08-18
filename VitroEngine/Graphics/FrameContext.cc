@@ -1,18 +1,44 @@
+module;
+#include <utility>
 export module Vitro.Graphics.FrameContext;
+
+import Vitro.Core.FixedList;
 
 namespace vt
 {
-	export class FrameContext
+	export constexpr unsigned MaxFramesInFlight = 2;
+
+	export template<typename T> class FrameContext
 	{
 	public:
-		static constexpr unsigned MaxInFlight = 2;
-
-		void changeIndex()
+		template<typename... Ts> FrameContext(unsigned framesInFlight, Ts&&... ts)
 		{
-			currentIndex = (currentIndex + 1) % MaxInFlight;
+			for(unsigned i = 0; i < framesInFlight; ++i)
+				frameResources.emplace_back(std::forward<Ts>(ts)...);
+		}
+
+		T* operator->()
+		{
+			return &frameResources[index];
+		}
+
+		T const* operator->() const
+		{
+			return &frameResources[index];
+		}
+
+		unsigned currentIndex() const
+		{
+			return index;
+		}
+
+		void moveToNextFrame()
+		{
+			index = (index + 1) % MaxFramesInFlight;
 		}
 
 	private:
-		unsigned currentIndex = 0;
+		FixedList<T, MaxFramesInFlight> frameResources;
+		unsigned						index = 0;
 	};
 }

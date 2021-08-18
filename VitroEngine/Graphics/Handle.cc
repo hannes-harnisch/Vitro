@@ -43,10 +43,8 @@ namespace vt
 
 	EXPORT_HANDLE(Buffer);
 	EXPORT_HANDLE(CommandList);
-	EXPORT_HANDLE(Device);
 	EXPORT_HANDLE(Pipeline);
 	EXPORT_HANDLE(QueryPool);
-	EXPORT_HANDLE(Queue);
 	EXPORT_HANDLE(RootSignature);
 	EXPORT_HANDLE(Sampler);
 	EXPORT_HANDLE(Texture);

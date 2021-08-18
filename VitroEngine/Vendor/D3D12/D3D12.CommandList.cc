@@ -112,7 +112,7 @@ namespace vt::d3d12
 	{
 	public:
 		CommandList(vt::Device& device) :
-			allocator(makeAllocator(device->handle().d3d12())), cmd(makeCommandList(device->handle().d3d12()))
+			allocator(makeAllocator(device.d3d12.handle())), cmd(makeCommandList(device.d3d12.handle()))
 		{}
 
 		CommandListHandle handle() override

@@ -1,4 +1,5 @@
 module;
+#include <array>
 #include <new>
 export module Vitro.Graphics.ForwardRenderer;
 
@@ -14,20 +15,35 @@ namespace vt
 	export class ForwardRenderer
 	{
 	public:
-		ForwardRenderer(Device& device) : device(device), cmd(device)
+		ForwardRenderer(Device& device) : device(device), context(2, device)
 		{}
 
 		void draw(SwapChain& swapChain)
 		{
-			auto& renderTarget = swapChain->acquireRenderTarget();
-			cmd->begin();
+			static unsigned i	  = 0;
+			auto&			cmd	  = context->cmd;
+			unsigned		index = context.currentIndex();
 
+			auto& renderTarget = swapChain->acquireRenderTarget(index);
+			cmd->begin();
+			Log().verbose(i++);
 			cmd->end();
+
+			std::array cmdLists {cmd->handle()};
+			device->submitRenderCommands(cmdLists, index);
+			swapChain->present();
+
+			context.moveToNextFrame();
 		}
 
 	private:
-		Device&			  device;
-		DeferredDeleter	  deferredDeleter;
-		RenderCommandList cmd;
+		struct FrameResources
+		{
+			RenderCommandList cmd;
+		};
+
+		Device&						 device;
+		DeferredDeleter				 deferredDeleter;
+		FrameContext<FrameResources> context;
 	};
 }

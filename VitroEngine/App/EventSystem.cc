@@ -33,7 +33,7 @@ namespace vt
 	private:
 		struct EventHandler
 		{
-			void (*function)(class EventListener&, Event&);
+			bool (*function)(class EventListener&, Event&);
 			EventListener*	listener;
 			std::type_index eventType;
 		};
@@ -45,11 +45,15 @@ namespace vt
 		{
 			std::type_index eventType = typeid(*event);
 
-			for(auto&& handler : std::views::reverse(handlers))
+			for(auto handler : std::views::reverse(handlers))
+			{
 				if(handler.eventType == eventType)
-					handler.function(*handler.listener, *event);
-
-			Log().verbose(event);
+				{
+					bool consumed = handler.function(*handler.listener, *event);
+					if(consumed)
+						break;
+				}
+			}
 		}
 
 		template<typename... Ts> void submitHandler(Ts&&... ts)

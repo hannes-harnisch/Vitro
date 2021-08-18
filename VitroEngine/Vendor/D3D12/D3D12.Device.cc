@@ -7,6 +7,7 @@ module;
 export module Vitro.D3D12.Device;
 
 import Vitro.Core.Algorithm;
+import Vitro.Core.FixedList;
 import Vitro.D3D12.Pipeline;
 import Vitro.D3D12.Queue;
 import Vitro.D3D12.Texture;
@@ -15,9 +16,11 @@ import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DeferredUnique;
 import Vitro.Graphics.DeviceBase;
 import Vitro.Graphics.Driver;
+import Vitro.Graphics.FrameContext;
 import Vitro.Graphics.Handle;
 import Vitro.Graphics.PipelineInfo;
 import Vitro.Graphics.TextureInfo;
+import Vitro.Trace.Log;
 
 namespace vt::d3d12
 {
@@ -30,16 +33,6 @@ namespace vt::d3d12
 			computeQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
 			copyQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
-
-		DeviceHandle handle() override
-		{
-			return {device.get()};
-		}
-
-		QueueHandle presentationQueueHandle() override
-		{
-			return {renderQueue.handle()};
-		}
 
 		DeferredUnique<PipelineHandle> makeRenderPipeline(RenderPipelineInfo const& info) override
 		{
@@ -117,43 +110,53 @@ namespace vt::d3d12
 			return DeferredUnique<TextureHandle>({});
 		}
 
-		void submitCopyCommands(std::span<CommandListHandle> commandLists) override
+		void submitRenderCommands(std::span<CommandListHandle> commandLists, unsigned frameIndex) override
 		{
-#if VT_DEBUG
-			for(auto list : commandLists)
-			{
-				bool isRightType = list.d3d12()->GetType() == D3D12_COMMAND_LIST_TYPE_COPY;
-				vtAssert(isRightType, "All command lists for this submission must be copy command lists.");
-			}
-#endif
+			validateCommandLists<D3D12_COMMAND_LIST_TYPE_DIRECT>(commandLists);
 
-			copyQueue.submit(commandLists);
+			renderQueue.submit(commandLists);
+			renderFenceValues[frameIndex] = renderQueue.signal();
 		}
 
 		void submitComputeCommands(std::span<CommandListHandle> commandLists) override
 		{
-#if VT_DEBUG
-			for(auto list : commandLists)
-			{
-				bool isRightType = list.d3d12()->GetType() == D3D12_COMMAND_LIST_TYPE_COMPUTE;
-				vtAssert(isRightType, "All command lists for this submission must be compute command lists.");
-			}
-#endif
+			validateCommandLists<D3D12_COMMAND_LIST_TYPE_COMPUTE>(commandLists);
 
 			computeQueue.submit(commandLists);
+			computeQueue.signal();
 		}
 
-		void submitRenderCommands(std::span<CommandListHandle> commandLists) override
+		void submitCopyCommands(std::span<CommandListHandle> commandLists) override
 		{
-#if VT_DEBUG
-			for(auto list : commandLists)
-			{
-				bool isRightType = list.d3d12()->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT;
-				vtAssert(isRightType, "All command lists for this submission must be render command lists.");
-			}
-#endif
+			validateCommandLists<D3D12_COMMAND_LIST_TYPE_COPY>(commandLists);
 
-			renderQueue.submit(commandLists);
+			copyQueue.submit(commandLists);
+			copyQueue.signal();
+		}
+
+		void awaitFenceValueByIndex(unsigned frameIndex)
+		{
+			renderQueue.awaitFenceValue(frameIndex);
+		}
+
+		ID3D12Device1* handle()
+		{
+			return device.get();
+		}
+
+		ID3D12CommandQueue* renderQueueHandle()
+		{
+			return renderQueue.handle();
+		}
+
+		ID3D12CommandQueue* computeQueueHandle()
+		{
+			return computeQueue.handle();
+		}
+
+		ID3D12CommandQueue* copyQueueHandle()
+		{
+			return copyQueue.handle();
 		}
 
 	private:
@@ -161,15 +164,29 @@ namespace vt::d3d12
 		Queue					 renderQueue;
 		Queue					 computeQueue;
 		Queue					 copyQueue;
+		uint64_t				 renderFenceValues[MaxFramesInFlight] = {};
 
 		static ID3D12Device1* makeDevice(vt::Driver& driver, vt::Adapter& adapter)
 		{
 			auto d3d12CreateDevice = driver.d3d12.deviceCreationFunction();
 
 			ID3D12Device1* device;
-			vtEnsureResult(d3d12CreateDevice(adapter.d3d12.handle(), Driver::FeatureLevel, IID_PPV_ARGS(&device)),
-						   "Failed to create D3D12 device.");
+
+			auto result = d3d12CreateDevice(adapter.d3d12.handle(), Driver::FeatureLevel, IID_PPV_ARGS(&device));
+			vtEnsureResult(result, "Failed to create D3D12 device.");
+
 			return device;
+		}
+
+		template<D3D12_COMMAND_LIST_TYPE Type> static void validateCommandLists(std::span<CommandListHandle> commandLists)
+		{
+#if VT_DEBUG
+			for(auto list : commandLists)
+			{
+				bool isRightType = list.d3d12()->GetType() == Type;
+				vtAssert(isRightType, "The type of this command list does not match the type of queue it was submitted to.");
+			}
+#endif
 		}
 	};
 }

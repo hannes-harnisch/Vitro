@@ -13,6 +13,7 @@ import Vitro.Graphics.Device;
 import Vitro.Graphics.Driver;
 import Vitro.Graphics.DynamicGpuApi;
 import Vitro.Graphics.ForwardRenderer;
+import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.SwapChain;
 
 namespace vt
@@ -27,7 +28,7 @@ namespace vt
 
 		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, device->handle(), device->presentationQueueHandle(), nativeWindowHandle);
+			swapChains.try_emplace(&window, device, nativeWindowHandle);
 		}
 
 		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
@@ -42,18 +43,13 @@ namespace vt
 			swapChains.erase(&window);
 		}
 
-		void update(WindowPaintEvent& e)
-		{
-			auto& swapChain = swapChains.at(&e.window);
-			renderer.draw(swapChain);
-		}
-
 	private:
 		DynamicGpuApi					  dynamicGpuApi;
 		Driver							  driver;
 		Device							  device;
 		HashMap<Window const*, SwapChain> swapChains;
-		ForwardRenderer					  renderer;
+		// RenderPass						  presentPass;
+		ForwardRenderer renderer;
 
 		Adapter selectAdapter()
 		{
@@ -63,6 +59,12 @@ namespace vt
 			});
 			vtEnsure(selected != adapters.end(), "No suitable GPUs found.");
 			return std::move(*selected);
+		}
+
+		void update(WindowPaintEvent& e)
+		{
+			auto& swapChain = swapChains.at(&e.window);
+			renderer.draw(swapChain);
 		}
 	};
 }
