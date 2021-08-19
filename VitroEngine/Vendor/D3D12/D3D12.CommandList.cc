@@ -9,17 +9,16 @@ export module Vitro.D3D12.CommandList;
 import Vitro.Core.Algorithm;
 import Vitro.Core.FixedList;
 import Vitro.Core.Rectangle;
-import Vitro.D3D12.Pipeline;
 import Vitro.D3D12.RenderPass;
 import Vitro.D3D12.RenderTarget;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.CommandListBase;
 import Vitro.Graphics.Device;
-import Vitro.Graphics.Handle;
 import Vitro.Graphics.PipelineInfo;
 import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderPassInfo;
 import Vitro.Graphics.RenderTarget;
+import Vitro.Graphics.Resource;
+import Vitro.Graphics.RootSignature;
 
 namespace vt::d3d12
 {
@@ -111,21 +110,25 @@ namespace vt::d3d12
 	export template<CommandType Type> class CommandList final : public RenderCommandListBase, public CommandListData<Type>
 	{
 	public:
-		CommandList(vt::Device& device) :
-			allocator(makeAllocator(device.d3d12.handle())), cmd(makeCommandList(device.d3d12.handle()))
+		CommandList(vt::Device const& device) : device(device.d3d12), allocator(makeAllocator()), cmd(makeCommandList())
 		{}
 
-		CommandListHandle handle() override
+		void* handle() override
 		{
-			return {cmd.get()};
+			return static_cast<ID3D12CommandList*>(cmd.get());
+		}
+
+		void reset() override
+		{
+			device.waitForFrameFence();
+
+			auto result = allocator->Reset();
+			vtAssertResult(result, "Failed to reset D3D12 command allocator.");
 		}
 
 		void begin() override
 		{
-			auto result = allocator->Reset();
-			vtAssertResult(result, "Failed to reset D3D12 command allocator.");
-
-			result = cmd->Reset(allocator.get(), nullptr);
+			auto result = cmd->Reset(allocator.get(), nullptr);
 			vtAssertResult(result, "Failed to reset D3D12 command list.");
 		}
 
@@ -135,18 +138,18 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to end D3D12 command list.");
 		}
 
-		void bindPipeline(PipelineHandle pipeline) override
+		void bindPipeline(vt::Pipeline const& pipeline) override
 		{
-			auto pipelineState = pipeline.d3d12();
+			auto pipelineState = pipeline.d3d12.get();
 			cmd->SetPipelineState(pipelineState);
 		}
 
-		void bindRootSignature(RootSignatureHandle rootSignature) override
+		void bindRootSignature(vt::RootSignature const& rootSignature) override
 		{
 			if constexpr(Type == CommandType::Render)
-				cmd->SetGraphicsRootSignature(rootSignature.d3d12());
+				cmd->SetGraphicsRootSignature(rootSignature.d3d12.get());
 			else if constexpr(Type == CommandType::Compute)
-				cmd->SetComputeRootSignature(rootSignature.d3d12());
+				cmd->SetComputeRootSignature(rootSignature.d3d12.get());
 			else
 				static_assert(false, "This command is not supported on copy command lists.");
 		}
@@ -224,10 +227,10 @@ namespace vt::d3d12
 #endif
 		}
 
-		void bindIndexBuffer(BufferHandle buffer, IndexFormat format) override
+		void bindIndexBuffer(vt::Buffer const& buffer, IndexFormat format) override
 		{
 			D3D12_INDEX_BUFFER_VIEW const view {
-				.BufferLocation = buffer.d3d12()->GetGPUVirtualAddress(),
+				.BufferLocation = buffer.d3d12.get()->GetGPUVirtualAddress(),
 				.SizeInBytes	= 0, // TODO?
 				.Format			= convertIndexFormat(format),
 			};
@@ -273,24 +276,25 @@ namespace vt::d3d12
 	private:
 		static constexpr D3D12_COMMAND_LIST_TYPE CommandListType = convertCommandType(Type);
 
+		Device const&						  device;
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		static ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
+		ID3D12CommandAllocator* makeAllocator()
 		{
-			ID3D12CommandAllocator* allocator;
+			ID3D12CommandAllocator* alloc;
 
-			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&allocator));
+			auto result = device.get()->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&alloc));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 
-			return allocator;
+			return alloc;
 		}
 
-		ID3D12GraphicsCommandList4* makeCommandList(ID3D12Device1* device)
+		ID3D12GraphicsCommandList4* makeCommandList()
 		{
 			ID3D12GraphicsCommandList4* list;
 
-			auto result = device->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
+			auto result = device.get()->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 
 			result = list->Close();

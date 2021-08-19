@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.RenderTarget;
 
@@ -9,7 +9,7 @@ import Vitro.Graphics.RenderTargetInfo;
 
 namespace vt::d3d12
 {
-	export class RenderTarget : public RenderTargetBase
+	export class RenderTarget
 	{
 	public:
 		RenderTarget(ComUnique<ID3D12Resource> resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)

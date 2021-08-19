@@ -1,30 +1,24 @@
 export module Vitro.Graphics.Resource;
 
-import Vitro.Graphics.DeferredUnique;
-import Vitro.Graphics.Device;
-import Vitro.Graphics.Handle;
-import Vitro.Graphics.PipelineInfo;
-import Vitro.Graphics.TextureInfo;
+import Vitro.Graphics.ResourceVariant;
+
+#if VT_DYNAMIC_GPU_API
+import Vitro.VT_GPU_API_MODULE_PRIMARY.Buffer;
+import Vitro.VT_GPU_API_MODULE_PRIMARY.Pipeline;
+#else
+import Vitro.VT_GPU_API_MODULE.Buffer;
+import Vitro.VT_GPU_API_MODULE.Pipeline;
+#endif
 
 namespace vt
 {
-	export class RenderPipeline
-	{
-	public:
-		RenderPipeline(Device& device, RenderPipelineInfo const& info) : pipeline(device->makeRenderPipeline(info))
-		{}
+#if VT_DYNAMIC_GPU_API
+	#define EXPORT_RESOURCE_VARIANT(resource)                                                                                  \
+		export using resource = ResourceVariant<VT_GPU_API_NAME_PRIMARY::resource, VT_GPU_API_NAME::resource>
+#else
+	#define EXPORT_RESOURCE_VARIANT(resource) export using resource = ResourceVariant<VT_GPU_API_NAME::resource>
+#endif
 
-	private:
-		DeferredUnique<PipelineHandle> pipeline;
-	};
-
-	export class Texture
-	{
-	public:
-		Texture(Device& device, TextureInfo const& info) : pipeline(device->makeTexture(info))
-		{}
-
-	private:
-		DeferredUnique<TextureHandle> pipeline;
-	};
+	EXPORT_RESOURCE_VARIANT(Buffer);
+	EXPORT_RESOURCE_VARIANT(Pipeline);
 }

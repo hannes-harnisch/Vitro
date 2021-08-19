@@ -28,7 +28,7 @@ namespace vt
 
 		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, device, nativeWindowHandle);
+			swapChains.try_emplace(&window, driver, device, nativeWindowHandle);
 		}
 
 		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
@@ -40,6 +40,7 @@ namespace vt
 
 		void notifyWindowDestruction(Window const& window)
 		{
+			device->waitForIdle();
 			swapChains.erase(&window);
 		}
 

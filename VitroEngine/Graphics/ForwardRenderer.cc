@@ -5,7 +5,6 @@ export module Vitro.Graphics.ForwardRenderer;
 
 import Vitro.Graphics.CommandList;
 import Vitro.Graphics.Device;
-import Vitro.Graphics.DeferredDeleter;
 import Vitro.Graphics.FrameContext;
 import Vitro.Graphics.SwapChain;
 import Vitro.Trace.Log;
@@ -20,17 +19,16 @@ namespace vt
 
 		void draw(SwapChain& swapChain)
 		{
-			static unsigned i	  = 0;
-			auto&			cmd	  = context->cmd;
-			unsigned		index = context.currentIndex();
+			auto& cmd = context->cmd;
 
-			auto& renderTarget = swapChain->acquireRenderTarget(index);
+			auto& renderTarget = swapChain->acquireRenderTarget();
+			cmd->reset();
+
 			cmd->begin();
-			Log().verbose(i++);
 			cmd->end();
 
 			std::array cmdLists {cmd->handle()};
-			device->submitRenderCommands(cmdLists, index);
+			device->submitRenderCommands(cmdLists);
 			swapChain->present();
 
 			context.moveToNextFrame();
@@ -43,7 +41,6 @@ namespace vt
 		};
 
 		Device&						 device;
-		DeferredDeleter				 deferredDeleter;
 		FrameContext<FrameResources> context;
 	};
 }

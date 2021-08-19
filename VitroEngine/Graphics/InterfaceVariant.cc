@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -10,13 +10,10 @@ namespace vt
 {
 #if VT_DYNAMIC_GPU_API
 
-	export template<typename TInterface, typename TImpl1, typename TImpl2> struct InterfaceVariant
+	export template<typename TInterface, typename TImpl1, typename TImpl2> union InterfaceVariant
 	{
-		union
-		{
-			TImpl1 VT_GPU_API_NAME_PRIMARY;
-			TImpl2 VT_GPU_API_NAME;
-		};
+		TImpl1 VT_GPU_API_NAME_PRIMARY;
+		TImpl2 VT_GPU_API_NAME;
 
 		template<typename... Ts> InterfaceVariant(Ts&&... ts)
 		{

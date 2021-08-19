@@ -3,6 +3,8 @@ module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.Texture;
 
+import Vitro.D3D12.Utils;
+import Vitro.Graphics.Device;
 import Vitro.Graphics.TextureInfo;
 
 namespace vt::d3d12
@@ -105,4 +107,16 @@ namespace vt::d3d12
 		}
 		vtUnreachable();
 	}
+
+	export class Texture
+	{
+	public:
+		ID3D12Resource* get() const
+		{
+			return texture.get();
+		}
+
+	private:
+		ComUnique<ID3D12Resource> texture;
+	};
 }

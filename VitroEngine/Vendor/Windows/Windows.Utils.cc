@@ -2,7 +2,7 @@ module;
 #include "Windows.API.hh"
 
 #include <string_view>
-export module Vitro.Windows.StringUtils;
+export module Vitro.Windows.Utils;
 
 namespace vt::windows
 {

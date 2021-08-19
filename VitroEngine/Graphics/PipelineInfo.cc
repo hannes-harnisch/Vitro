@@ -3,9 +3,9 @@ export module Vitro.Graphics.PipelineInfo;
 import Vitro.Core.Array;
 import Vitro.Core.Enum;
 import Vitro.Core.FixedList;
-import Vitro.Graphics.Handle;
 import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderPassInfo;
+import Vitro.Graphics.RootSignature;
 
 namespace vt
 {
@@ -237,7 +237,7 @@ namespace vt
 
 	export struct RenderPipelineInfo
 	{
-		RootSignatureHandle								rootSignature;
+		RootSignature const&							rootSignature;
 		RenderPass const&								renderPass;
 		Array<char> const&								vertexShaderBytecode;
 		Array<char> const&								fragmentShaderBytecode;

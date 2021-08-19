@@ -6,7 +6,7 @@ export module Vitro.Windows.SharedLibrary;
 
 import Vitro.App.SharedLibraryBase;
 import Vitro.Core.Unique;
-import Vitro.Windows.StringUtils;
+import Vitro.Windows.Utils;
 
 namespace vt::windows
 {

@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <vector>
 export module Vitro.Graphics.DriverBase;
 
@@ -11,6 +11,6 @@ namespace vt
 	public:
 		virtual ~DriverBase() = default;
 
-		virtual std::vector<Adapter> enumerateAdapters() = 0;
+		virtual std::vector<Adapter> enumerateAdapters() const = 0;
 	};
 }

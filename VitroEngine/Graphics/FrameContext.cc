@@ -6,7 +6,7 @@ import Vitro.Core.FixedList;
 
 namespace vt
 {
-	export constexpr unsigned MaxFramesInFlight = 2;
+	export constexpr unsigned MaxFramesInFlight = 3;
 
 	export template<typename T> class FrameContext
 	{
@@ -17,24 +17,24 @@ namespace vt
 				frameResources.emplace_back(std::forward<Ts>(ts)...);
 		}
 
-		T* operator->()
+		T* operator->() noexcept
 		{
 			return &frameResources[index];
 		}
 
-		T const* operator->() const
+		T const* operator->() const noexcept
 		{
 			return &frameResources[index];
 		}
 
-		unsigned currentIndex() const
+		unsigned currentIndex() const noexcept
 		{
 			return index;
 		}
 
-		void moveToNextFrame()
+		void moveToNextFrame() noexcept
 		{
-			index = (index + 1) % MaxFramesInFlight;
+			index = (index + 1) % frameResources.size();
 		}
 
 	private:

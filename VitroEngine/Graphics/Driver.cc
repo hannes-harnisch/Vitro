@@ -1,6 +1,5 @@
-﻿export module Vitro.Graphics.Driver;
+export module Vitro.Graphics.Driver;
 
-import Vitro.Core.Singleton;
 import Vitro.Graphics.DriverBase;
 import Vitro.Graphics.InterfaceVariant;
 
@@ -11,18 +10,9 @@ import Vitro.VT_GPU_API_MODULE.Driver;
 
 namespace vt
 {
-	export struct Driver :
-		InterfaceVariant<DriverBase,
+	export using Driver = InterfaceVariant<DriverBase,
 #if VT_DYNAMIC_GPU_API
-						 VT_GPU_API_NAME_PRIMARY::Driver,
+										   VT_GPU_API_NAME_PRIMARY::Driver,
 #endif
-						 VT_GPU_API_NAME::Driver>,
-		Singleton<Driver>
-	{
-		using InterfaceVariant<DriverBase,
-#if VT_DYNAMIC_GPU_API
-							   VT_GPU_API_NAME_PRIMARY::Driver,
-#endif
-							   VT_GPU_API_NAME::Driver>::InterfaceVariant;
-	};
+										   VT_GPU_API_NAME::Driver>;
 }

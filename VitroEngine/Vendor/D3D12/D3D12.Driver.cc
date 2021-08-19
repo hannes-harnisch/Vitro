@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
@@ -10,7 +10,7 @@ import Vitro.App.SharedLibrary;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DriverBase;
-import Vitro.Windows.StringUtils;
+import Vitro.Windows.Utils;
 
 namespace vt::d3d12
 {
@@ -29,7 +29,7 @@ namespace vt::d3d12
 			factory(makeFactory())
 		{}
 
-		std::vector<vt::Adapter> enumerateAdapters() override
+		std::vector<vt::Adapter> enumerateAdapters() const override
 		{
 			std::vector<vt::Adapter> adapters;
 			for(UINT index = 0;; ++index)
@@ -54,17 +54,17 @@ namespace vt::d3d12
 			return adapters;
 		}
 
-		PFN_D3D12_CREATE_DEVICE deviceCreationFunction()
+		PFN_D3D12_CREATE_DEVICE getDeviceCreationFunction() const
 		{
 			return d3d12CreateDevice;
 		}
 
-		IDXGIFactory5* handle()
+		IDXGIFactory5* get() const
 		{
 			return factory.get();
 		}
 
-		bool swapChainTearingAvailable()
+		bool swapChainTearingAvailable() const
 		{
 			BOOL available;
 			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &available, sizeof available);

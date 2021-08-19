@@ -14,7 +14,7 @@ import Vitro.App.WindowEvent;
 import Vitro.Core.Array;
 import Vitro.Core.Rectangle;
 import Vitro.Core.Vector;
-import Vitro.Windows.StringUtils;
+import Vitro.Windows.Utils;
 
 namespace vt::windows
 {

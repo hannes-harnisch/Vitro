@@ -9,7 +9,7 @@ import Vitro.App.WindowBase;
 import Vitro.Core.Rectangle;
 import Vitro.Core.Unique;
 import Vitro.Core.Vector;
-import Vitro.Windows.StringUtils;
+import Vitro.Windows.Utils;
 
 namespace vt::windows
 {

@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
@@ -7,7 +7,7 @@ export module Vitro.D3D12.Adapter;
 
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.AdapterBase;
-import Vitro.Windows.StringUtils;
+import Vitro.Windows.Utils;
 
 namespace vt::d3d12
 {
@@ -25,7 +25,7 @@ namespace vt::d3d12
 			vram = desc.DedicatedVideoMemory;
 		}
 
-		IDXGIAdapter1* handle()
+		IDXGIAdapter1* get()
 		{
 			return adapter.get();
 		}

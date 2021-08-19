@@ -9,12 +9,6 @@ namespace vt
 	export constexpr unsigned MaxAttachments	  = MaxColorAttachments + 1; // All color attachments + 1 depth attachment
 	export constexpr unsigned MaxSubpasses		  = 5;						 // arbitrary limit, can be changed later
 
-	export class RenderPassBase
-	{
-	public:
-		virtual ~RenderPassBase() = default;
-	};
-
 	export enum class AttachmentLoadOperation : unsigned char {
 		Load,
 		Clear,

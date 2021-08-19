@@ -1,10 +1,10 @@
-﻿export module Vitro.Graphics.CommandListBase;
+export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Core.Rectangle;
-import Vitro.Graphics.Handle;
-import Vitro.Graphics.PipelineInfo;
 import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderTarget;
+import Vitro.Graphics.Resource;
+import Vitro.Graphics.RootSignature;
 
 namespace vt
 {
@@ -24,16 +24,17 @@ namespace vt
 	public:
 		virtual ~CopyCommandListBase() = default;
 
-		virtual CommandListHandle handle() = 0;
-		virtual void			  begin()  = 0;
-		virtual void			  end()	   = 0;
+		virtual void* handle() = 0;
+		virtual void  reset()  = 0;
+		virtual void  begin()  = 0;
+		virtual void  end()	   = 0;
 	};
 
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
-		virtual void bindPipeline(PipelineHandle pipeline)							 = 0;
-		virtual void bindRootSignature(RootSignatureHandle rootSignature)			 = 0;
+		virtual void bindPipeline(Pipeline const& pipeline)							 = 0;
+		virtual void bindRootSignature(RootSignature const& rootSignature)			 = 0;
 		virtual void pushConstants(void const* data, unsigned size, unsigned offset) = 0;
 		virtual void dispatch(unsigned xCount, unsigned yCount, unsigned zCount)	 = 0;
 	};
@@ -44,7 +45,7 @@ namespace vt
 		virtual void beginRenderPass(RenderPass const& renderPass, RenderTarget const& renderTarget)				  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
-		virtual void bindIndexBuffer(BufferHandle buffer, IndexFormat format)										  = 0;
+		virtual void bindIndexBuffer(Buffer const& buffer, IndexFormat format)										  = 0;
 		virtual void bindPrimitiveTopology(PrimitiveTopology topology)												  = 0;
 		virtual void bindViewport(Viewport viewport)																  = 0;
 		virtual void bindScissor(Rectangle scissor)																	  = 0;

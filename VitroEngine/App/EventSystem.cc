@@ -44,7 +44,6 @@ namespace vt
 		void dispatchEvent(std::unique_ptr<Event> event)
 		{
 			std::type_index eventType = typeid(*event);
-
 			for(auto handler : std::views::reverse(handlers))
 			{
 				if(handler.eventType == eventType)
@@ -54,6 +53,7 @@ namespace vt
 						break;
 				}
 			}
+			Log().verbose(event);
 		}
 
 		template<typename... Ts> void submitHandler(Ts&&... ts)

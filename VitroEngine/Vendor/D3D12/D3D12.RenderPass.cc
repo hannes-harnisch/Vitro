@@ -8,13 +8,8 @@ export module Vitro.D3D12.RenderPass;
 
 import Vitro.Core.FixedList;
 import Vitro.D3D12.Texture;
+import Vitro.Graphics.Device;
 import Vitro.Graphics.RenderPassInfo;
-import Vitro.Trace.Log;
-
-namespace vt
-{
-	class Device;
-}
 
 namespace vt::d3d12
 {
@@ -61,7 +56,7 @@ namespace vt::d3d12
 
 	export using TransitionList = FixedList<AttachmentTransition, MaxAttachments>;
 
-	export class RenderPass : public RenderPassBase
+	export class RenderPass
 	{
 	public:
 		FixedList<AttachmentInfo, MaxAttachments> attachments;

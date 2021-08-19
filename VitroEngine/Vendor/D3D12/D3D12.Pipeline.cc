@@ -3,11 +3,15 @@ module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.Pipeline;
 
+import Vitro.Core.Algorithm;
+import Vitro.Core.FixedList;
+import Vitro.D3D12.Utils;
+import Vitro.Graphics.Device;
 import Vitro.Graphics.PipelineInfo;
 
 namespace vt::d3d12
 {
-	export constexpr DXGI_FORMAT convertVertexDataType(VertexDataType type)
+	constexpr DXGI_FORMAT convertVertexDataType(VertexDataType type)
 	{
 		using enum VertexDataType;
 		switch(type)
@@ -29,7 +33,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_INPUT_CLASSIFICATION convertAttributeInputRate(AttributeInputRate rate)
+	constexpr D3D12_INPUT_CLASSIFICATION convertAttributeInputRate(AttributeInputRate rate)
 	{
 		switch(rate)
 		{
@@ -39,7 +43,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_INPUT_ELEMENT_DESC convertVertexAttribute(VertexAttribute attrib)
+	constexpr D3D12_INPUT_ELEMENT_DESC convertVertexAttribute(VertexAttribute attrib)
 	{
 		return {
 			.Format				  = convertVertexDataType(attrib.dataType),
@@ -50,7 +54,7 @@ namespace vt::d3d12
 		};
 	}
 
-	export constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE categorizePrimitiveTopology(PrimitiveTopology topology)
+	constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE categorizePrimitiveTopology(PrimitiveTopology topology)
 	{
 		using enum PrimitiveTopology;
 		switch(topology)
@@ -100,7 +104,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_FILL_MODE convertFillMode(PolygonFillMode mode)
+	constexpr D3D12_FILL_MODE convertFillMode(PolygonFillMode mode)
 	{
 		switch(mode)
 		{
@@ -110,7 +114,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_CULL_MODE convertCullMode(CullMode mode)
+	constexpr D3D12_CULL_MODE convertCullMode(CullMode mode)
 	{
 		switch(mode)
 		{
@@ -121,7 +125,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_COMPARISON_FUNC convertComparisonOp(ComparisonOperation op)
+	constexpr D3D12_COMPARISON_FUNC convertComparisonOp(ComparisonOperation op)
 	{
 		using enum ComparisonOperation;
 		switch(op)
@@ -138,7 +142,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_STENCIL_OP convertStencilOp(StencilOperation op)
+	constexpr D3D12_STENCIL_OP convertStencilOp(StencilOperation op)
 	{
 		using enum StencilOperation;
 		switch(op)
@@ -155,7 +159,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_DEPTH_STENCILOP_DESC convertStencilOpState(StencilOperationState opState)
+	constexpr D3D12_DEPTH_STENCILOP_DESC convertStencilOpState(StencilOperationState opState)
 	{
 		return {
 			.StencilFailOp		= convertStencilOp(opState.failOp),
@@ -165,7 +169,7 @@ namespace vt::d3d12
 		};
 	}
 
-	export constexpr D3D12_LOGIC_OP convertLogicOp(LogicOperation op)
+	constexpr D3D12_LOGIC_OP convertLogicOp(LogicOperation op)
 	{
 		using enum LogicOperation;
 		switch(op)
@@ -190,7 +194,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_BLEND convertBlendFactor(BlendFactor factor)
+	constexpr D3D12_BLEND convertBlendFactor(BlendFactor factor)
 	{
 		using enum BlendFactor;
 		switch(factor)
@@ -214,7 +218,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export constexpr D3D12_BLEND_OP convertBlendOp(BlendOperation op)
+	constexpr D3D12_BLEND_OP convertBlendOp(BlendOperation op)
 	{
 		using enum BlendOperation;
 		switch(op)
@@ -228,8 +232,7 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	export D3D12_RENDER_TARGET_BLEND_DESC convertColorAttachmentBlendState(BlendState const&		 blend,
-																		   ColorAttachmentBlendState state)
+	D3D12_RENDER_TARGET_BLEND_DESC convertColorAttachmentBlendState(BlendState const& blend, ColorAttachmentBlendState state)
 	{
 		return {
 			.BlendEnable		   = state.enableBlend,
@@ -244,4 +247,90 @@ namespace vt::d3d12
 			.RenderTargetWriteMask = static_cast<UINT8>(state.writeMask),
 		};
 	}
+
+	export class Pipeline
+	{
+	public:
+		Pipeline(vt::Device& device, RenderPipelineInfo const& info) : pipeline(makeRenderPipeline(device.d3d12.get(), info))
+		{}
+
+		ID3D12PipelineState* get() const
+		{
+			return pipeline.get();
+		}
+
+	private:
+		ComUnique<ID3D12PipelineState> pipeline;
+
+		static ID3D12PipelineState* makeRenderPipeline(ID3D12Device1* device, RenderPipelineInfo const& info)
+		{
+			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> inputElementDescs;
+			for(auto attrib : info.vertexAttributes)
+				inputElementDescs.emplace_back(convertVertexAttribute(attrib));
+
+			auto& pass = info.renderPass.d3d12;
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC desc {
+				.pRootSignature = info.rootSignature.d3d12.get(),
+				.VS {
+					.pShaderBytecode = info.vertexShaderBytecode.data(),
+					.BytecodeLength	 = info.vertexShaderBytecode.size(),
+				},
+				.PS {
+					.pShaderBytecode = info.fragmentShaderBytecode.data(),
+					.BytecodeLength	 = info.fragmentShaderBytecode.size(),
+				},
+				.BlendState {
+					.AlphaToCoverageEnable	= info.multisample.enableAlphaToCoverage,
+					.IndependentBlendEnable = true,
+				},
+				.SampleMask = info.multisample.sampleMask,
+				.RasterizerState {
+					.FillMode			   = convertFillMode(info.rasterizer.fillMode),
+					.CullMode			   = convertCullMode(info.rasterizer.cullMode),
+					.FrontCounterClockwise = info.rasterizer.frontFace == FrontFace::CounterClockwise,
+					.DepthBias			   = info.rasterizer.depthBias,
+					.DepthBiasClamp		   = info.rasterizer.depthBiasClamp,
+					.SlopeScaledDepthBias  = info.rasterizer.depthBiasSlope,
+					.DepthClipEnable	   = info.rasterizer.enableDepthClip,
+					.ForcedSampleCount	   = info.multisample.rasterizerSampleCount,
+				},
+				.DepthStencilState {
+					.DepthEnable	  = info.depthStencil.enableDepthTest,
+					.DepthWriteMask	  = info.depthStencil.enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL
+																		   : D3D12_DEPTH_WRITE_MASK_ZERO,
+					.DepthFunc		  = convertComparisonOp(info.depthStencil.depthComparisonOp),
+					.StencilEnable	  = info.depthStencil.enableStencilTest,
+					.StencilReadMask  = info.depthStencil.stencilReadMask,
+					.StencilWriteMask = info.depthStencil.stencilWriteMask,
+					.FrontFace		  = convertStencilOpState(info.depthStencil.front),
+					.BackFace		  = convertStencilOpState(info.depthStencil.back),
+				},
+				.InputLayout {
+					.pInputElementDescs = inputElementDescs.data(),
+					.NumElements		= count(inputElementDescs),
+				},
+				.IBStripCutValue	   = info.enablePrimitiveRestart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
+																	 : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
+				.PrimitiveTopologyType = categorizePrimitiveTopology(info.primitiveTopology),
+				.NumRenderTargets	   = info.blend.attachmentStates.count(),
+				.DSVFormat			   = pass.usesDepthStencil ? pass.attachments.back().format : DXGI_FORMAT_UNKNOWN,
+				.SampleDesc			   = {.Count = info.multisample.sampleCount},
+			};
+			unsigned i = 0;
+			for(auto state : info.blend.attachmentStates)
+				desc.BlendState.RenderTarget[i++] = convertColorAttachmentBlendState(info.blend, state);
+
+			i = 0;
+			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
+				desc.RTVFormats[i++] = attachment.format;
+
+			ID3D12PipelineState* pipeline;
+
+			auto result = device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipeline));
+			vtAssertResult(result, "Failed to create render pipeline.");
+
+			return pipeline;
+		}
+	};
 }
