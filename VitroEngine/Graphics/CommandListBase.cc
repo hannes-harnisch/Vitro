@@ -1,4 +1,4 @@
-export module Vitro.Graphics.CommandListBase;
+﻿export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Core.Rectangle;
 import Vitro.Graphics.RenderPass;

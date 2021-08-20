@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <cmath>
 export module Vitro.Graphics.Camera;
 

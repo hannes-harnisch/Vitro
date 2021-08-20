@@ -1,4 +1,4 @@
-export module Vitro.Graphics.Resource;
+﻿export module Vitro.Graphics.Resource;
 
 import Vitro.Graphics.ResourceVariant;
 

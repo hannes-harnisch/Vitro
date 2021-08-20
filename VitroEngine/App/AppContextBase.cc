@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <thread>
 export module Vitro.App.AppContextBase;
 

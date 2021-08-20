@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <atomic>
 #include <vector>
 export module Vitro.App.AppContext;

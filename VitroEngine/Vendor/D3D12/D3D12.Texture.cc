@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 export module Vitro.D3D12.Texture;

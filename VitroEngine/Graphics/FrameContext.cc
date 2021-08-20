@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <utility>
 export module Vitro.Graphics.FrameContext;
 
@@ -17,22 +17,22 @@ namespace vt
 				frameResources.emplace_back(std::forward<Ts>(ts)...);
 		}
 
-		T* operator->() noexcept
+		T* operator->()
 		{
 			return &frameResources[index];
 		}
 
-		T const* operator->() const noexcept
+		T const* operator->() const
 		{
 			return &frameResources[index];
 		}
 
-		unsigned currentIndex() const noexcept
+		unsigned currentIndex() const
 		{
 			return index;
 		}
 
-		void moveToNextFrame() noexcept
+		void moveToNextFrame()
 		{
 			index = (index + 1) % frameResources.size();
 		}

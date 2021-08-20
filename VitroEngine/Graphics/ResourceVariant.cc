@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <utility>
 export module Vitro.Graphics.ResourceVariant;
 

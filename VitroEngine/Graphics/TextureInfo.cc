@@ -1,4 +1,4 @@
-export module Vitro.Graphics.TextureInfo;
+﻿export module Vitro.Graphics.TextureInfo;
 
 namespace vt
 {

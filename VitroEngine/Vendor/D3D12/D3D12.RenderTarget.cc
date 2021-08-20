@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "D3D12.API.hh"
 export module Vitro.D3D12.RenderTarget;
 

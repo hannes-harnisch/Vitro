@@ -1,4 +1,4 @@
-export module Vitro.Graphics.PipelineInfo;
+﻿export module Vitro.Graphics.PipelineInfo;
 
 import Vitro.Core.Array;
 import Vitro.Core.Enum;

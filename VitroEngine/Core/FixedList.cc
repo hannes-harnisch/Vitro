@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 
 #define HH_ASSERT(condition, message) vtAssertPure(condition, message)

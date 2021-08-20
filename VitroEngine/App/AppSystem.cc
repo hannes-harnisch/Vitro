@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <atomic>
 export module Vitro.App.AppSystem;
 

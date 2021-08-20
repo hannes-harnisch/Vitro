@@ -1,4 +1,4 @@
-export module Vitro.Graphics.RenderPassInfo;
+﻿export module Vitro.Graphics.RenderPassInfo;
 
 import Vitro.Core.FixedList;
 import Vitro.Graphics.TextureInfo;

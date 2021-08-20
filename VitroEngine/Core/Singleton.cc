@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 export module Vitro.Core.Singleton;
 

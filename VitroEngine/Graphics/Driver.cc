@@ -1,4 +1,4 @@
-export module Vitro.Graphics.Driver;
+﻿export module Vitro.Graphics.Driver;
 
 import Vitro.Graphics.DriverBase;
 import Vitro.Graphics.InterfaceVariant;

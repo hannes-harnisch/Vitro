@@ -1,4 +1,4 @@
-export module Vitro.Graphics.RootSignature;
+﻿export module Vitro.Graphics.RootSignature;
 
 import Vitro.Graphics.ResourceVariant;
 

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <array>
 #include <cmath>
 #include <format>
@@ -9,7 +9,7 @@ export module Vitro.Core.Vector;
 namespace vt
 {
 	template<typename, int> union Vector;
-	template<typename, int, int> union Matrix;
+	template<typename, int, int> struct Matrix;
 
 	template<typename> struct IsScalar : std::true_type
 	{};

@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <array>
 #include <new>
 export module Vitro.Graphics.ForwardRenderer;

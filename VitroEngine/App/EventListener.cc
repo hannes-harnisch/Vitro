@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include <type_traits>
 export module Vitro.App.EventListener;
 
@@ -24,19 +24,19 @@ namespace vt
 
 		~EventListener()
 		{
-			EventSystem::get().removeHandlersWithListener(*this);
+			unregisterEventHandlers();
 		}
 
 		EventListener& operator=(EventListener const& that)
 		{
-			EventSystem::get().removeHandlersWithListener(*this);
+			unregisterEventHandlers();
 			EventSystem::get().duplicateHandlersWithListener(*this, that);
 			return *this;
 		}
 
 		EventListener& operator=(EventListener&& that) noexcept
 		{
-			EventSystem::get().removeHandlersWithListener(*this);
+			unregisterEventHandlers();
 			EventSystem::get().replaceListener(*this, that);
 			return *this;
 		}
@@ -45,6 +45,11 @@ namespace vt
 		template<auto... Handlers> void registerEventHandlers()
 		{
 			(registerHandler<Handlers>(), ...);
+		}
+
+		void unregisterEventHandlers()
+		{
+			EventSystem::get().removeHandlersWithListener(*this);
 		}
 
 	private:

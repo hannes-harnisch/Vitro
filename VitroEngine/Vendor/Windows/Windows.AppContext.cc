@@ -1,4 +1,4 @@
-module;
+﻿module;
 #include "Core/Macros.hh"
 #include "Windows.API.hh"
 
