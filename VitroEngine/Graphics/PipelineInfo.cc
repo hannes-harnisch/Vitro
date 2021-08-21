@@ -109,7 +109,7 @@ namespace vt
 		float			depthBiasSlope	= 0;
 	};
 
-	export enum class ComparisonOperation : unsigned char {
+	export enum class CompareOp : unsigned char {
 		Never,
 		Less,
 		Equal,
@@ -120,7 +120,7 @@ namespace vt
 		Always,
 	};
 
-	export enum class StencilOperation : unsigned char {
+	export enum class StencilOp : unsigned char {
 		Keep,
 		Zero,
 		Replace,
@@ -131,24 +131,24 @@ namespace vt
 		DecrementWrap,
 	};
 
-	export struct StencilOperationState
+	export struct StencilOpState
 	{
-		StencilOperation	failOp		= {};
-		StencilOperation	passOp		= {};
-		StencilOperation	depthFailOp = {};
-		ComparisonOperation compareOp	= {};
+		StencilOp failOp	  = {};
+		StencilOp passOp	  = {};
+		StencilOp depthFailOp = {};
+		CompareOp compareOp	  = {};
 	};
 
 	struct DepthStencilState
 	{
-		bool				  enableDepthTest	= false;
-		bool				  enableDepthWrite	= false;
-		ComparisonOperation	  depthComparisonOp = {};
-		bool				  enableStencilTest = false;
-		unsigned char		  stencilReadMask	= 0;
-		unsigned char		  stencilWriteMask	= 0;
-		StencilOperationState front;
-		StencilOperationState back;
+		bool		   enableDepthTest	 = false;
+		bool		   enableDepthWrite	 = false;
+		CompareOp	   depthCompareOp	 = {};
+		bool		   enableStencilTest = false;
+		unsigned char  stencilReadMask	 = 0;
+		unsigned char  stencilWriteMask	 = 0;
+		StencilOpState front;
+		StencilOpState back;
 	};
 
 	struct MultisampleState
@@ -159,7 +159,7 @@ namespace vt
 		bool		  enableAlphaToCoverage = {};
 	};
 
-	export enum class LogicOperation : unsigned char {
+	export enum class LogicOp : unsigned char {
 		Clear,
 		Set,
 		Copy,
@@ -196,7 +196,7 @@ namespace vt
 		Src1AlphaInv,
 	};
 
-	export enum class BlendOperation : unsigned char {
+	export enum class BlendOp : unsigned char {
 		Add,
 		Subtract,
 		ReverseSubtract,
@@ -219,10 +219,10 @@ namespace vt
 		bool		   enableBlend	  = false;
 		BlendFactor	   srcColorFactor = BlendFactor::SrcAlpha;
 		BlendFactor	   dstColorFactor = BlendFactor::SrcAlphaInv;
-		BlendOperation colorOp		  = BlendOperation::Add;
+		BlendOp		   colorOp		  = BlendOp::Add;
 		BlendFactor	   srcAlphaFactor = BlendFactor::One;
 		BlendFactor	   dstAlphaFactor = BlendFactor::One;
-		BlendOperation alphaOp		  = BlendOperation::Add;
+		BlendOp		   alphaOp		  = BlendOp::Add;
 		ColorComponent writeMask	  = ColorComponent::All;
 	};
 
@@ -230,7 +230,7 @@ namespace vt
 	{
 		FixedList<ColorAttachmentBlendState, MaxColorAttachments> attachmentStates;
 		bool													  enableLogicOp = false;
-		LogicOperation											  logicOp		= {};
+		LogicOp													  logicOp		= {};
 	};
 
 	export constexpr unsigned MaxVertexAttributes = 16;

@@ -64,12 +64,12 @@ namespace vt::d3d12
 			return factory.get();
 		}
 
-		bool swapChainTearingAvailable() const
+		bool swapChainTearingSupported() const
 		{
-			BOOL available;
-			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &available, sizeof available);
+			BOOL supported;
+			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &supported, sizeof supported);
 			vtEnsureResult(result, "Failed to check for swap chain tearing support.");
-			return available;
+			return supported;
 		}
 
 	private:

@@ -13,23 +13,23 @@ import Vitro.Graphics.RenderPassInfo;
 
 namespace vt::d3d12
 {
-	constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE convertAttachmentLoadOperation(AttachmentLoadOperation op)
+	constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE convertImageLoadOp(ImageLoadOp op)
 	{
 		switch(op)
 		{
-			case AttachmentLoadOperation::Load: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-			case AttachmentLoadOperation::Clear: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-			case AttachmentLoadOperation::Ignore: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+			case ImageLoadOp::Load: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+			case ImageLoadOp::Clear: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+			case ImageLoadOp::Ignore: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
 		}
 		vtUnreachable();
 	}
 
-	constexpr D3D12_RENDER_PASS_ENDING_ACCESS_TYPE convertAttachmentStoreOperation(AttachmentStoreOperation op)
+	constexpr D3D12_RENDER_PASS_ENDING_ACCESS_TYPE convertImageStoreOp(ImageStoreOp op)
 	{
 		switch(op)
 		{
-			case AttachmentStoreOperation::Store: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-			case AttachmentStoreOperation::Ignore: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+			case ImageStoreOp::Store: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+			case ImageStoreOp::Ignore: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
 		}
 		vtUnreachable();
 	}
@@ -42,8 +42,8 @@ namespace vt::d3d12
 
 		AttachmentInfo(vt::AttachmentInfo info) :
 			format(convertImageFormat(info.format)),
-			beginAccess(convertAttachmentLoadOperation(info.loadOp)),
-			endAccess(convertAttachmentStoreOperation(info.storeOp))
+			beginAccess(convertImageLoadOp(info.loadOp)),
+			endAccess(convertImageStoreOp(info.storeOp))
 		{}
 	};
 
@@ -69,8 +69,8 @@ namespace vt::d3d12
 		RenderPass(vt::Device&, RenderPassInfo const& info) :
 			attachments(info.attachments.begin(), info.attachments.end()),
 			usesDepthStencil(containsDepthStencilAttachment(info.attachments)),
-			stencilBeginAccess(convertAttachmentLoadOperation(info.stencilLoadOp)),
-			stencilEndAccess(convertAttachmentStoreOperation(info.stencilStoreOp))
+			stencilBeginAccess(convertImageLoadOp(info.stencilLoadOp)),
+			stencilEndAccess(convertImageStoreOp(info.stencilStoreOp))
 		{
 			FixedList<D3D12_RESOURCE_STATES, MaxAttachments> prevLayouts;
 			for(auto attachment : info.attachments)

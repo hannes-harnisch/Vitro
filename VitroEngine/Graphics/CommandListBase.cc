@@ -1,6 +1,9 @@
-﻿export module Vitro.Graphics.CommandListBase;
+﻿module;
+#include <span>
+export module Vitro.Graphics.CommandListBase;
 
 import Vitro.Core.Rectangle;
+import Vitro.Core.Vector;
 import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderTarget;
 import Vitro.Graphics.Resource;
@@ -12,6 +15,16 @@ namespace vt
 		Copy,
 		Compute,
 		Render,
+	};
+
+	export union ClearValue
+	{
+		Float4 color = {};
+		struct
+		{
+			float		  depth;
+			unsigned char stencil;
+		};
 	};
 
 	export enum class IndexFormat {
@@ -42,7 +55,9 @@ namespace vt
 	export class RenderCommandListBase : public ComputeCommandListBase
 	{
 	public:
-		virtual void beginRenderPass(RenderPass const& renderPass, RenderTarget const& renderTarget)				  = 0;
+		virtual void beginRenderPass(RenderPass const&	   renderPass,
+									 RenderTarget const&   renderTarget,
+									 std::span<ClearValue> clearValues)												  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
 		virtual void bindIndexBuffer(Buffer const& buffer, IndexFormat format)										  = 0;

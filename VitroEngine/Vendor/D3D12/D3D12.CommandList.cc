@@ -2,8 +2,10 @@
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
 
+#include <chrono>
 #include <cstdlib>
 #include <ranges>
+#include <thread>
 export module Vitro.D3D12.CommandList;
 
 import Vitro.Core.Algorithm;
@@ -19,6 +21,8 @@ import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderTarget;
 import Vitro.Graphics.Resource;
 import Vitro.Graphics.RootSignature;
+
+using namespace std::chrono_literals;
 
 namespace vt::d3d12
 {
@@ -110,7 +114,8 @@ namespace vt::d3d12
 	export template<CommandType Type> class CommandList final : public RenderCommandListBase, public CommandListData<Type>
 	{
 	public:
-		CommandList(vt::Device const& device) : device(device.d3d12), allocator(makeAllocator()), cmd(makeCommandList())
+		CommandList(vt::Device const& device) :
+			allocator(makeAllocator(device.d3d12.get())), cmd(makeCommandList(device.d3d12.get()))
 		{}
 
 		void* handle() override
@@ -120,8 +125,6 @@ namespace vt::d3d12
 
 		void reset() override
 		{
-			device.waitForFrameFence();
-
 			auto result = allocator->Reset();
 			vtAssertResult(result, "Failed to reset D3D12 command allocator.");
 		}
@@ -169,7 +172,9 @@ namespace vt::d3d12
 			cmd->Dispatch(xCount, yCount, zCount);
 		}
 
-		void beginRenderPass(vt::RenderPass const& renderPass, vt::RenderTarget const& renderTarget) override
+		void beginRenderPass(vt::RenderPass const&	 renderPass,
+							 vt::RenderTarget const& renderTarget,
+							 std::span<ClearValue>	 clearValues) override
 		{
 			this->activeRenderPass	 = &renderPass.d3d12;
 			this->activeRenderTarget = &renderTarget.d3d12;
@@ -184,10 +189,24 @@ namespace vt::d3d12
 			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
 			{
 				rtDescs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
-					.cpuDescriptor	 = target.getView(i++),
-					.BeginningAccess = {.Type = attachment.beginAccess},
-					.EndingAccess	 = {.Type = attachment.endAccess},
+					.cpuDescriptor = target.getView(i),
+					.BeginningAccess {
+						.Type = attachment.beginAccess,
+						.Clear {
+							.ClearValue {
+								.Format = attachment.format,
+								.Color {
+									clearValues[i].color.r,
+									clearValues[i].color.g,
+									clearValues[i].color.b,
+									clearValues[i].color.a,
+								},
+							},
+						},
+					},
+					.EndingAccess {.Type = attachment.endAccess},
 				});
+				++i;
 			};
 
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC  dsDesc;
@@ -195,11 +214,27 @@ namespace vt::d3d12
 			if(pass.usesDepthStencil)
 			{
 				dsDesc = {
-					.cpuDescriptor			= target.depthStencilView(),
-					.DepthBeginningAccess	= {.Type = pass.attachments.back().beginAccess},
-					.StencilBeginningAccess = {.Type = pass.stencilBeginAccess},
-					.DepthEndingAccess		= {.Type = pass.attachments.back().endAccess},
-					.StencilEndingAccess	= {.Type = pass.stencilEndAccess},
+					.cpuDescriptor = target.depthStencilView(),
+					.DepthBeginningAccess {
+						.Type = pass.attachments.back().beginAccess,
+						.Clear {
+							.ClearValue {
+								.Format = pass.attachments.back().format,
+								.DepthStencil {.Depth = clearValues.back().depth},
+							},
+						},
+					},
+					.StencilBeginningAccess {
+						.Type = pass.stencilBeginAccess,
+						.Clear {
+							.ClearValue {
+								.Format = pass.attachments.back().format,
+								.DepthStencil {.Stencil = clearValues.back().stencil},
+							},
+						},
+					},
+					.DepthEndingAccess	 = {.Type = pass.attachments.back().endAccess},
+					.StencilEndingAccess = {.Type = pass.stencilEndAccess},
 				};
 				dsDescPtr = &dsDesc;
 			}
@@ -230,7 +265,7 @@ namespace vt::d3d12
 		void bindIndexBuffer(vt::Buffer const& buffer, IndexFormat format) override
 		{
 			D3D12_INDEX_BUFFER_VIEW const view {
-				.BufferLocation = buffer.d3d12.get()->GetGPUVirtualAddress(),
+				.BufferLocation = buffer.d3d12.gpuVirtualAddress(),
 				.SizeInBytes	= 0, // TODO?
 				.Format			= convertIndexFormat(format),
 			};
@@ -276,25 +311,24 @@ namespace vt::d3d12
 	private:
 		static constexpr D3D12_COMMAND_LIST_TYPE CommandListType = convertCommandType(Type);
 
-		Device const&						  device;
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		ID3D12CommandAllocator* makeAllocator()
+		ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
 		{
 			ID3D12CommandAllocator* alloc;
 
-			auto result = device.get()->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&alloc));
+			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&alloc));
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 
 			return alloc;
 		}
 
-		ID3D12GraphicsCommandList4* makeCommandList()
+		ID3D12GraphicsCommandList4* makeCommandList(ID3D12Device1* device)
 		{
 			ID3D12GraphicsCommandList4* list;
 
-			auto result = device.get()->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
+			auto result = device->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 
 			result = list->Close();

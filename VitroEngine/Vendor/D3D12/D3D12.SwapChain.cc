@@ -9,6 +9,7 @@ import Vitro.Core.FixedList;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.Device;
 import Vitro.Graphics.Driver;
+import Vitro.Graphics.RenderPass;
 import Vitro.Graphics.RenderTarget;
 import Vitro.Graphics.SwapChainBase;
 
@@ -17,15 +18,17 @@ namespace vt::d3d12
 	export class SwapChain final : public SwapChainBase
 	{
 	public:
-		SwapChain(vt::Driver const& driver,
-				  vt::Device const& inDevice,
-				  void*				nativeWindow,
-				  unsigned			bufferCount = DefaultBufferCount) :
-			presentFlags(driver.d3d12.swapChainTearingAvailable() ? DXGI_PRESENT_ALLOW_TEARING : 0),
-			swapChain(makeSwapChain(driver.d3d12.get(), inDevice.d3d12.renderQueueHandle(), nativeWindow, bufferCount)),
-			renderTargetHeap(makeRenderTargetHeap(inDevice.d3d12.get(), bufferCount))
+		SwapChain(vt::Driver const&		driver,
+				  vt::Device const&		dev,
+				  vt::RenderPass const& renderPass,
+				  void*					nativeWindow,
+				  unsigned				bufferCount = DefaultBufferCount) :
+			tearingSupported(driver.d3d12.swapChainTearingSupported()),
+			presentFlags(tearingSupported ? DXGI_PRESENT_ALLOW_TEARING : 0),
+			swapChain(makeSwapChain(driver.d3d12.get(), dev.d3d12.renderQueueHandle(), renderPass, nativeWindow, bufferCount)),
+			renderTargetHeap(makeRenderTargetHeap(dev.d3d12.get(), bufferCount))
 		{
-			auto device = inDevice.d3d12.get();
+			auto device = dev.d3d12.get();
 			UINT size	= device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			auto handle = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
 			for(unsigned i = 0; i < bufferCount; ++i)
@@ -63,33 +66,36 @@ namespace vt::d3d12
 		void enableVSync() override
 		{
 			isVSyncEnabled = true;
+			presentFlags   = 0;
 		}
 
 		void disableVSync() override
 		{
 			isVSyncEnabled = false;
+			if(tearingSupported)
+				presentFlags = DXGI_PRESENT_ALLOW_TEARING;
 		}
 
 	private:
+		bool									tearingSupported;
 		UINT									presentFlags;
 		ComUnique<IDXGISwapChain3>				swapChain;
 		ComUnique<ID3D12DescriptorHeap>			renderTargetHeap;
 		FixedList<vt::RenderTarget, MaxBuffers> renderTargets;
 
-		IDXGISwapChain3* makeSwapChain(IDXGIFactory5*	   factory,
-									   ID3D12CommandQueue* queue,
-									   void*			   nativeWindow,
-									   unsigned			   bufferCount)
+		IDXGISwapChain3* makeSwapChain(IDXGIFactory5*		 factory,
+									   ID3D12CommandQueue*	 queue,
+									   vt::RenderPass const& renderPass,
+									   void*				 nativeWindow,
+									   unsigned				 bufferCount)
 		{
-			UINT flags = presentFlags == DXGI_PRESENT_ALLOW_TEARING ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-
 			DXGI_SWAP_CHAIN_DESC1 const desc {
-				.Format		 = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.Format		 = renderPass.d3d12.attachments[0].format,
 				.SampleDesc	 = {1, 0},
 				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
 				.BufferCount = bufferCount,
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
-				.Flags		 = flags,
+				.Flags		 = tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
 			IDXGISwapChain1* swapChainPtr;
 

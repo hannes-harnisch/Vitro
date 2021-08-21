@@ -125,9 +125,9 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	constexpr D3D12_COMPARISON_FUNC convertComparisonOp(ComparisonOperation op)
+	constexpr D3D12_COMPARISON_FUNC convertCompareOp(CompareOp op)
 	{
-		using enum ComparisonOperation;
+		using enum CompareOp;
 		switch(op)
 		{
 			case Never: return D3D12_COMPARISON_FUNC_NEVER;
@@ -142,9 +142,9 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	constexpr D3D12_STENCIL_OP convertStencilOp(StencilOperation op)
+	constexpr D3D12_STENCIL_OP convertStencilOp(StencilOp op)
 	{
-		using enum StencilOperation;
+		using enum StencilOp;
 		switch(op)
 		{
 			case Keep: return D3D12_STENCIL_OP_KEEP;
@@ -159,19 +159,19 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	constexpr D3D12_DEPTH_STENCILOP_DESC convertStencilOpState(StencilOperationState opState)
+	constexpr D3D12_DEPTH_STENCILOP_DESC convertStencilOpState(StencilOpState opState)
 	{
 		return {
 			.StencilFailOp		= convertStencilOp(opState.failOp),
 			.StencilDepthFailOp = convertStencilOp(opState.depthFailOp),
 			.StencilPassOp		= convertStencilOp(opState.passOp),
-			.StencilFunc		= convertComparisonOp(opState.compareOp),
+			.StencilFunc		= convertCompareOp(opState.compareOp),
 		};
 	}
 
-	constexpr D3D12_LOGIC_OP convertLogicOp(LogicOperation op)
+	constexpr D3D12_LOGIC_OP convertLogicOp(LogicOp op)
 	{
-		using enum LogicOperation;
+		using enum LogicOp;
 		switch(op)
 		{
 			case Clear: return D3D12_LOGIC_OP_CLEAR;
@@ -218,9 +218,9 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	constexpr D3D12_BLEND_OP convertBlendOp(BlendOperation op)
+	constexpr D3D12_BLEND_OP convertBlendOp(BlendOp op)
 	{
-		using enum BlendOperation;
+		using enum BlendOp;
 		switch(op)
 		{
 			case Add: return D3D12_BLEND_OP_ADD;
@@ -299,7 +299,7 @@ namespace vt::d3d12
 					.DepthEnable	  = info.depthStencil.enableDepthTest,
 					.DepthWriteMask	  = info.depthStencil.enableDepthWrite ? D3D12_DEPTH_WRITE_MASK_ALL
 																		   : D3D12_DEPTH_WRITE_MASK_ZERO,
-					.DepthFunc		  = convertComparisonOp(info.depthStencil.depthComparisonOp),
+					.DepthFunc		  = convertCompareOp(info.depthStencil.depthCompareOp),
 					.StencilEnable	  = info.depthStencil.enableStencilTest,
 					.StencilReadMask  = info.depthStencil.stencilReadMask,
 					.StencilWriteMask = info.depthStencil.stencilWriteMask,

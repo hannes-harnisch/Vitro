@@ -10,9 +10,9 @@ namespace vt::d3d12
 	export class Buffer
 	{
 	public:
-		ID3D12Resource* get() const
+		D3D12_GPU_VIRTUAL_ADDRESS gpuVirtualAddress() const
 		{
-			return buffer.get();
+			return buffer->GetGPUVirtualAddress();
 		}
 
 	private:

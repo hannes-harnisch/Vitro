@@ -9,25 +9,25 @@ namespace vt
 	export constexpr unsigned MaxAttachments	  = MaxColorAttachments + 1; // All color attachments + 1 depth attachment
 	export constexpr unsigned MaxSubpasses		  = 5;						 // arbitrary limit, can be changed later
 
-	export enum class AttachmentLoadOperation : unsigned char {
+	export enum class ImageLoadOp : unsigned char {
 		Load,
 		Clear,
 		Ignore,
 	};
 
-	export enum class AttachmentStoreOperation : unsigned char {
+	export enum class ImageStoreOp : unsigned char {
 		Store,
 		Ignore,
 	};
 
 	export struct AttachmentInfo
 	{
-		ImageFormat				 format		   = {};
-		unsigned char			 sampleCount   = 1;
-		AttachmentLoadOperation	 loadOp		   = {};
-		AttachmentStoreOperation storeOp	   = {};
-		ImageLayout				 initialLayout = {};
-		ImageLayout				 finalLayout   = {};
+		ImageFormat	  format		= {};
+		unsigned char sampleCount	= 1;
+		ImageLoadOp	  loadOp		= {};
+		ImageStoreOp  storeOp		= {};
+		ImageLayout	  initialLayout = {};
+		ImageLayout	  finalLayout	= {};
 	};
 
 	export struct AttachmentReference
@@ -44,8 +44,8 @@ namespace vt
 	export struct RenderPassInfo
 	{
 		FixedList<AttachmentInfo, MaxAttachments> attachments;
-		AttachmentLoadOperation					  stencilLoadOp	 = {};
-		AttachmentStoreOperation				  stencilStoreOp = {};
+		ImageLoadOp								  stencilLoadOp	 = {};
+		ImageStoreOp							  stencilStoreOp = {};
 		FixedList<Subpass, MaxSubpasses>		  subpasses;
 	};
 }

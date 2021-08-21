@@ -14,21 +14,24 @@ import Vitro.Graphics.Driver;
 import Vitro.Graphics.DynamicGpuApi;
 import Vitro.Graphics.ForwardRenderer;
 import Vitro.Graphics.RenderPass;
+import Vitro.Graphics.RenderPassInfo;
 import Vitro.Graphics.SwapChain;
+import Vitro.Graphics.TextureInfo;
 
 namespace vt
 {
 	export class GraphicsSystem : public Singleton<GraphicsSystem>, public EventListener
 	{
 	public:
-		GraphicsSystem() : device(driver, selectAdapter()), renderer(device)
+		GraphicsSystem() :
+			device(driver, selectAdapter()), presentPass(device, fillPresentPassInfo()), renderer(device, presentPass)
 		{
 			registerEventHandlers<&GraphicsSystem::update>();
 		}
 
 		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
 		{
-			swapChains.try_emplace(&window, driver, device, nativeWindowHandle);
+			swapChains.try_emplace(&window, driver, device, presentPass, nativeWindowHandle);
 		}
 
 		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
@@ -40,7 +43,7 @@ namespace vt
 
 		void notifyWindowDestruction(Window const& window)
 		{
-			device->waitForIdle();
+			device->flushRenderQueue();
 			swapChains.erase(&window);
 		}
 
@@ -49,8 +52,23 @@ namespace vt
 		Driver							  driver;
 		Device							  device;
 		HashMap<Window const*, SwapChain> swapChains;
-		// RenderPass						  presentPass;
-		ForwardRenderer renderer;
+		RenderPass						  presentPass;
+		ForwardRenderer					  renderer;
+
+		static RenderPassInfo fillPresentPassInfo()
+		{
+			Subpass subpass {{AttachmentReference {.usedLayout = ImageLayout::ColorAttachment}}};
+			return RenderPassInfo {
+				.attachments {AttachmentInfo {
+					.format		   = ImageFormat::R8_G8_B8_A8_UNorm,
+					.loadOp		   = ImageLoadOp::Clear,
+					.storeOp	   = ImageStoreOp::Store,
+					.initialLayout = ImageLayout::Undefined,
+					.finalLayout   = ImageLayout::Presentable,
+				}},
+				.subpasses {subpass},
+			};
+		}
 
 		Adapter selectAdapter()
 		{

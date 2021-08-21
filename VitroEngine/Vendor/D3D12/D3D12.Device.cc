@@ -6,14 +6,11 @@
 #include <span>
 export module Vitro.D3D12.Device;
 
-import Vitro.Core.FixedList;
 import Vitro.D3D12.Queue;
 import Vitro.D3D12.Utils;
 import Vitro.Graphics.Adapter;
 import Vitro.Graphics.DeviceBase;
 import Vitro.Graphics.Driver;
-import Vitro.Graphics.FrameContext;
-import Vitro.Trace.Log;
 
 namespace vt::d3d12
 {
@@ -27,28 +24,43 @@ namespace vt::d3d12
 			copyQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
 		{}
 
-		void submitRenderCommands(std::span<void*> commandLists) override
+		Receipt submitRenderCommands(std::span<void*> commandLists) override
 		{
+#if VT_DEBUG
 			validateCommandLists<D3D12_COMMAND_LIST_TYPE_DIRECT>(commandLists);
-
-			renderQueue.submit(commandLists);
-			fenceValueToAwait = renderQueue.signal();
+#endif
+			return {renderQueue.submit(commandLists)};
 		}
 
-		void submitComputeCommands(std::span<void*> commandLists) override
+		Receipt submitComputeCommands(std::span<void*> commandLists) override
 		{
+#if VT_DEBUG
 			validateCommandLists<D3D12_COMMAND_LIST_TYPE_COMPUTE>(commandLists);
-
-			computeQueue.submit(commandLists);
-			computeQueue.signal();
+#endif
+			return {computeQueue.submit(commandLists)};
 		}
 
-		void submitCopyCommands(std::span<void*> commandLists) override
+		Receipt submitCopyCommands(std::span<void*> commandLists) override
 		{
+#if VT_DEBUG
 			validateCommandLists<D3D12_COMMAND_LIST_TYPE_COPY>(commandLists);
+#endif
+			return {copyQueue.submit(commandLists)};
+		}
 
-			copyQueue.submit(commandLists);
-			copyQueue.signal();
+		void waitForRenderWorkload(Receipt receipt) override
+		{
+			renderQueue.waitForFenceValue(receipt.value);
+		}
+
+		void waitForComputeWorkload(Receipt receipt) override
+		{
+			computeQueue.waitForFenceValue(receipt.value);
+		}
+
+		void waitForCopyWorkload(Receipt receipt) override
+		{
+			copyQueue.waitForFenceValue(receipt.value);
 		}
 
 		void flushRenderQueue() override
@@ -73,11 +85,6 @@ namespace vt::d3d12
 			copyQueue.waitForIdle();
 		}
 
-		void waitForFrameFence() const
-		{
-			renderQueue.waitForFenceValue(fenceValueToAwait);
-		}
-
 		ID3D12Device1* get() const
 		{
 			return device.get();
@@ -93,7 +100,6 @@ namespace vt::d3d12
 		Queue					 renderQueue;
 		Queue					 computeQueue;
 		Queue					 copyQueue;
-		uint64_t				 fenceValueToAwait = 0;
 
 		static ID3D12Device1* makeDevice(vt::Driver const& driver, vt::Adapter& adapter)
 		{
@@ -109,13 +115,11 @@ namespace vt::d3d12
 
 		template<D3D12_COMMAND_LIST_TYPE Type> static void validateCommandLists(std::span<void*> commandLists)
 		{
-#if VT_DEBUG
 			for(auto list : commandLists)
 			{
 				bool isRightType = static_cast<ID3D12CommandList*>(list)->GetType() == Type;
 				vtAssert(isRightType, "The type of this command list does not match the type of queue it was submitted to.");
 			}
-#endif
 		}
 	};
 }

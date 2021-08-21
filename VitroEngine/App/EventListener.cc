@@ -68,7 +68,7 @@ namespace vt
 			using TClass		= HandlerTraits::Class;
 			using TEvent		= HandlerTraits::Param;
 
-			auto func = +[](EventListener& listener, Event& e) {
+			auto func = [](EventListener& listener, Event& e) {
 				auto& event	 = static_cast<TEvent&>(e);
 				auto& object = static_cast<TClass&>(listener);
 				if constexpr(std::is_same_v<TReturn, void>)

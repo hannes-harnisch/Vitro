@@ -30,23 +30,11 @@ namespace vt::d3d12
 			waitForFenceValue(signal());
 		}
 
-		void submit(std::span<void*> commandLists)
+		uint64_t submit(std::span<void*> commandLists)
 		{
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
 			queue->ExecuteCommandLists(count(commandLists), lists);
-		}
-
-		uint64_t signal()
-		{
-			auto result = queue->Signal(fence.get(), ++fenceValue);
-			vtAssertResult(result, "Failed to signal graphics queue.");
-
-			return fenceValue;
-		}
-
-		bool isFenceComplete(uint64_t value) const
-		{
-			return fence->GetCompletedValue() >= value;
+			return signal();
 		}
 
 		void waitForFenceValue(uint64_t valueToAwait) const
@@ -55,7 +43,7 @@ namespace vt::d3d12
 				return;
 
 			auto result = fence->SetEventOnCompletion(valueToAwait, fenceEvent.get());
-			vtAssertResult(result, "Failed to set event on graphics fence completion.");
+			vtAssertResult(result, "Failed to set OS event for queue workload completion.");
 			::WaitForSingleObject(fenceEvent.get(), INFINITE);
 		}
 
@@ -101,6 +89,19 @@ namespace vt::d3d12
 			auto event = ::CreateEvent(nullptr, false, false, nullptr);
 			vtEnsure(event, "Failed to create Windows event.");
 			return event;
+		}
+
+		uint64_t signal()
+		{
+			auto result = queue->Signal(fence.get(), ++fenceValue);
+			vtAssertResult(result, "Failed to signal command queue.");
+
+			return fenceValue;
+		}
+
+		bool isFenceComplete(uint64_t value) const
+		{
+			return fence->GetCompletedValue() >= value;
 		}
 	};
 }
