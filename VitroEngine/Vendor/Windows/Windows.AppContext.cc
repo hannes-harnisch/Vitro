@@ -34,7 +34,7 @@ namespace vt::windows
 				.hInstance	   = instanceHandle,
 				.lpszClassName = Window::WindowClassName,
 			};
-			ATOM registered = ::RegisterClass(&windowClass);
+			ATOM registered = ::RegisterClassW(&windowClass);
 			vtEnsure(registered, "Failed to register window class.");
 
 			RAWINPUTDEVICE const rawInputDevice {
@@ -48,10 +48,10 @@ namespace vt::windows
 		void pollEvents() const override
 		{
 			MSG message;
-			while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
+			while(::PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE))
 			{
 				::TranslateMessage(&message);
-				::DispatchMessage(&message);
+				::DispatchMessageW(&message);
 			}
 		}
 
@@ -102,7 +102,7 @@ namespace vt::windows
 				case WM_MOUSEWHEEL: get().onVerticalScroll(hwnd, wParam); return 0;
 				case WM_MOUSEHWHEEL: get().onHorizontalScroll(hwnd, wParam); return 0;
 			}
-			return ::DefWindowProc(hwnd, message, wParam, lParam);
+			return ::DefWindowProcW(hwnd, message, wParam, lParam);
 		}
 
 		static MouseCode mapExtraMouseButton(WPARAM wp)

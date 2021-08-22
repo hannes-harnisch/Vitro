@@ -25,4 +25,11 @@ namespace vt::windows
 		::WideCharToMultiByte(CP_UTF8, 0, in.data(), inLength, out.data(), outLength, nullptr, nullptr);
 		return out;
 	}
+
+	export void showErrorMessageBox(std::string_view title, std::string_view message)
+	{
+		auto wideTitle = widenString(title);
+		auto wideMsg   = widenString(message);
+		::MessageBoxW(nullptr, wideMsg.data(), wideTitle.data(), MB_OK | MB_ICONERROR);
+	}
 }

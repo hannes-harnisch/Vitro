@@ -1,6 +1,4 @@
 ﻿module;
-#include "Core/Macros.hh"
-
 #include <string_view>
 export module Vitro.App.SharedLibrary;
 
@@ -11,10 +9,8 @@ namespace vt
 	export class SharedLibrary : public VT_SYSTEM_NAME::SharedLibrary
 	{
 	public:
-		SharedLibrary(std::string_view name) : VT_SYSTEM_NAME::SharedLibrary(name)
-		{
-			vtEnsure(handle(), "Shared library file '{}' not found.", name);
-		}
+		SharedLibrary(std::string_view path) : VT_SYSTEM_NAME::SharedLibrary(path)
+		{}
 
 		template<typename TSymbol> TSymbol* loadSymbol(std::string_view symbol) const
 		{

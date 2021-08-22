@@ -83,12 +83,14 @@ namespace vt::d3d12
 		ComUnique<ID3D12DescriptorHeap>			renderTargetHeap;
 		FixedList<vt::RenderTarget, MaxBuffers> renderTargets;
 
-		IDXGISwapChain3* makeSwapChain(IDXGIFactory5*		 factory,
-									   ID3D12CommandQueue*	 queue,
-									   vt::RenderPass const& renderPass,
-									   void*				 nativeWindow,
-									   unsigned				 bufferCount)
+		decltype(swapChain) makeSwapChain(IDXGIFactory5*		factory,
+										  ID3D12CommandQueue*	queue,
+										  vt::RenderPass const& renderPass,
+										  void*					nativeWindow,
+										  unsigned				bufferCount)
 		{
+			HWND hwnd = static_cast<HWND>(nativeWindow);
+
 			DXGI_SWAP_CHAIN_DESC1 const desc {
 				.Format		 = renderPass.d3d12.attachments[0].format,
 				.SampleDesc	 = {1, 0},
@@ -97,34 +99,35 @@ namespace vt::d3d12
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 				.Flags		 = tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
-			IDXGISwapChain1* swapChainPtr;
-
-			HWND hwnd	= static_cast<HWND>(nativeWindow);
-			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &swapChainPtr);
+			IDXGISwapChain1* rawSwapChainPrototype;
+			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &rawSwapChainPrototype);
+			ComUnique<IDXGISwapChain1> swapChainPrototype(rawSwapChainPrototype);
 			vtEnsureResult(result, "Failed to create D3D12 proxy swap chain.");
-			ComUnique<IDXGISwapChain1> proxySwapChain(swapChainPtr);
 
-			IDXGISwapChain3* mainSwapChain;
-			result = proxySwapChain->QueryInterface(&mainSwapChain);
+			IDXGISwapChain3* rawSwapChain;
+			result = swapChainPrototype->QueryInterface(&rawSwapChain);
+			decltype(swapChain) freshSwapChain(rawSwapChain);
 			vtEnsureResult(result, "Failed to query for D3D12 main swap chain.");
 
 			result = factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 			vtEnsureResult(result, "Failed to disable DXGI auto-fullscreen.");
-			return mainSwapChain;
+			return freshSwapChain;
 		}
 
-		ID3D12DescriptorHeap* makeRenderTargetHeap(ID3D12Device1* device, unsigned bufferCount)
+		decltype(renderTargetHeap) makeRenderTargetHeap(ID3D12Device1* device, unsigned bufferCount)
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
 				.NumDescriptors = bufferCount,
 			};
-			ID3D12DescriptorHeap* heap;
+			ID3D12DescriptorHeap* rawHeap;
 
-			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&heap));
+			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rawHeap));
+
+			decltype(renderTargetHeap) freshHeap(rawHeap);
 			vtEnsureResult(result, "Failed to create D3D12 render target descriptor heap.");
 
-			return heap;
+			return freshHeap;
 		}
 	};
 }

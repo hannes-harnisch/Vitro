@@ -7,7 +7,7 @@ namespace vt
 {
 	export struct Receipt
 	{
-		std::uintptr_t value = 0;
+		std::uintptr_t hostWaitValue = 0;
 	};
 
 	export class DeviceBase

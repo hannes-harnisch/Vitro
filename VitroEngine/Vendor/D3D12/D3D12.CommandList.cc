@@ -97,7 +97,9 @@ namespace vt::d3d12
 		vtUnreachable();
 	}
 
-	template<CommandType Type> class CommandListData
+	template<CommandType Type> class CommandListData;
+
+	template<> class CommandListData<CommandType::Copy>
 	{};
 
 	template<> class CommandListData<CommandType::Compute> : public CommandListData<CommandType::Copy>
@@ -174,7 +176,7 @@ namespace vt::d3d12
 
 		void beginRenderPass(vt::RenderPass const&	 renderPass,
 							 vt::RenderTarget const& renderTarget,
-							 std::span<ClearValue>	 clearValues) override
+							 std::span<ClearValue>	 clearValues = {}) override
 		{
 			this->activeRenderPass	 = &renderPass.d3d12;
 			this->activeRenderTarget = &renderTarget.d3d12;
@@ -185,62 +187,68 @@ namespace vt::d3d12
 
 			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MaxColorAttachments> rtDescs;
 
-			unsigned i = 0;
+			unsigned index = 0;
 			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
 			{
-				rtDescs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
-					.cpuDescriptor = target.getView(i),
-					.BeginningAccess {
-						.Type = attachment.beginAccess,
-						.Clear {
-							.ClearValue {
-								.Format = attachment.format,
-								.Color {
-									clearValues[i].color.r,
-									clearValues[i].color.g,
-									clearValues[i].color.b,
-									clearValues[i].color.a,
-								},
-							},
+				D3D12_CLEAR_VALUE colorClear;
+				if(clearValues.empty())
+					colorClear = {};
+				else
+					colorClear = {
+						.Format = attachment.format,
+						.Color {
+							clearValues[index].color.r,
+							clearValues[index].color.g,
+							clearValues[index].color.b,
+							clearValues[index].color.a,
 						},
-					},
-					.EndingAccess {.Type = attachment.endAccess},
-				});
-				++i;
-			};
+					};
 
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC  dsDesc;
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC* dsDescPtr;
+				rtDescs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
+					.cpuDescriptor = target.getView(index),
+					.BeginningAccess {
+						.Type  = attachment.beginAccess,
+						.Clear = {colorClear},
+					},
+					.EndingAccess = {.Type = attachment.endAccess},
+				});
+				++index;
+			}
+
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsDesc;
 			if(pass.usesDepthStencil)
 			{
+				D3D12_CLEAR_VALUE depthClear, stencilClear;
+				if(clearValues.empty())
+					depthClear = stencilClear = {};
+				else
+				{
+					depthClear = {
+						.Format		  = pass.attachments.back().format,
+						.DepthStencil = {.Depth = clearValues.back().depth},
+					};
+					stencilClear = {
+						.Format		  = pass.attachments.back().format,
+						.DepthStencil = {.Stencil = clearValues.back().stencil},
+					};
+				}
+
 				dsDesc = {
 					.cpuDescriptor = target.depthStencilView(),
 					.DepthBeginningAccess {
-						.Type = pass.attachments.back().beginAccess,
-						.Clear {
-							.ClearValue {
-								.Format = pass.attachments.back().format,
-								.DepthStencil {.Depth = clearValues.back().depth},
-							},
-						},
+						.Type  = pass.attachments.back().beginAccess,
+						.Clear = {depthClear},
 					},
 					.StencilBeginningAccess {
-						.Type = pass.stencilBeginAccess,
-						.Clear {
-							.ClearValue {
-								.Format = pass.attachments.back().format,
-								.DepthStencil {.Stencil = clearValues.back().stencil},
-							},
-						},
+						.Type  = pass.stencilBeginAccess,
+						.Clear = {stencilClear},
 					},
 					.DepthEndingAccess	 = {.Type = pass.attachments.back().endAccess},
 					.StencilEndingAccess = {.Type = pass.stencilEndAccess},
 				};
-				dsDescPtr = &dsDesc;
 			}
-			else
-				dsDescPtr = nullptr;
 
+			auto dsDescPtr = pass.usesDepthStencil ? &dsDesc : nullptr;
 			cmd->BeginRenderPass(count(rtDescs), rtDescs.data(), dsDescPtr, D3D12_RENDER_PASS_FLAG_NONE);
 			this->subpassIndex = 1;
 		}
@@ -314,27 +322,28 @@ namespace vt::d3d12
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		ID3D12CommandAllocator* makeAllocator(ID3D12Device1* device)
+		static decltype(allocator) makeAllocator(ID3D12Device1* device)
 		{
-			ID3D12CommandAllocator* alloc;
+			ID3D12CommandAllocator* rawAllocator;
 
-			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&alloc));
+			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&rawAllocator));
+
+			decltype(allocator) freshAllocator(rawAllocator);
 			vtAssertResult(result, "Failed to create D3D12 command allocator.");
 
-			return alloc;
+			return freshAllocator;
 		}
 
-		ID3D12GraphicsCommandList4* makeCommandList(ID3D12Device1* device)
+		decltype(cmd) makeCommandList(ID3D12Device1* device)
 		{
-			ID3D12GraphicsCommandList4* list;
-
-			auto result = device->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&list));
+			ID3D12GraphicsCommandList4* rawCmd;
+			auto result = device->CreateCommandList(0, CommandListType, allocator.get(), nullptr, IID_PPV_ARGS(&rawCmd));
+			decltype(cmd) freshCmd(rawCmd);
 			vtAssertResult(result, "Failed to create D3D12 command list.");
 
-			result = list->Close();
+			result = freshCmd->Close();
 			vtAssertResult(result, "Failed to initially close D3D12 command list.");
-
-			return list;
+			return freshCmd;
 		}
 
 		void insertRenderPassBarriers(FixedList<AttachmentTransition, MaxAttachments> const& transitions)

@@ -1,4 +1,5 @@
 ﻿module;
+#include "Core/Macros.hh"
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -16,7 +17,7 @@ namespace vt::windows
 	export class Window : public WindowBase
 	{
 	public:
-		static constexpr auto WindowClassName = TEXT(VT_ENGINE_NAME);
+		static constexpr wchar_t const WindowClassName[] = TEXT(VT_ENGINE_NAME);
 
 		static constexpr Rectangle DefaultRect {
 			.x		= CW_USEDEFAULT,
@@ -117,10 +118,10 @@ namespace vt::windows
 		{
 			ensureCallIsOnMainThread();
 
-			int length = ::GetWindowTextLength(window.get());
+			int length = ::GetWindowTextLengthW(window.get());
 
 			std::wstring title(length, L'\0');
-			::GetWindowText(window.get(), title.data(), length + 1);
+			::GetWindowTextW(window.get(), title.data(), length + 1);
 
 			return narrowString(title);
 		}
@@ -130,7 +131,7 @@ namespace vt::windows
 			ensureCallIsOnMainThread();
 
 			auto widenedTitle = widenString(title);
-			::SetWindowText(window.get(), widenedTitle.data());
+			::SetWindowTextW(window.get(), widenedTitle.data());
 		}
 
 		Rectangle clientArea() const final override
@@ -155,12 +156,17 @@ namespace vt::windows
 	private:
 		Unique<HWND, ::DestroyWindow> window;
 
-		static HWND makeWindow(std::string_view title, Rectangle rect)
+		static decltype(window) makeWindow(std::string_view title, Rectangle rect)
 		{
 			auto widenedTitle	= widenString(title);
 			auto instanceHandle = static_cast<HINSTANCE>(AppContextBase::get().handle());
-			return ::CreateWindow(WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width,
-								  rect.height, nullptr, nullptr, instanceHandle, nullptr);
+
+			HWND rawWindow = ::CreateWindowExW(0, WindowClassName, widenedTitle.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
+											   rect.width, rect.height, nullptr, nullptr, instanceHandle, nullptr);
+			decltype(window) freshWindow(rawWindow);
+			vtEnsure(rawWindow, "Failed to create window.");
+
+			return freshWindow;
 		}
 	};
 }

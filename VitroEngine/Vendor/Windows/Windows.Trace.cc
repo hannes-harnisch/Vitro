@@ -4,7 +4,7 @@
 #include <csignal>
 export module Vitro.Windows.Trace;
 
-import Vitro.Trace.SignalHandler;
+import Vitro.Trace.CrashHandler;
 
 namespace vt::windows
 {
@@ -12,14 +12,14 @@ namespace vt::windows
 	{
 		switch(exceptionInfo->ExceptionRecord->ExceptionCode)
 		{
-			case STATUS_ACCESS_VIOLATION: handleAccessViolation(SIGSEGV); break;
-			case STATUS_INTEGER_DIVIDE_BY_ZERO: handleArithmeticException(SIGFPE); break;
-			case STATUS_STACK_OVERFLOW: handleAccessViolation(SIGSEGV); break;
+			case STATUS_ACCESS_VIOLATION: handleAccessViolationSignal(SIGSEGV); break;
+			case STATUS_INTEGER_DIVIDE_BY_ZERO: handleArithmeticSignal(SIGFPE); break;
+			case STATUS_STACK_OVERFLOW: handleAccessViolationSignal(SIGSEGV); break;
 		}
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
-	export void setSystemTracingState()
+	export void initializeSystemSpecificTracing()
 	{
 		::AddVectoredExceptionHandler(true, forwardToStandardSignalHandlers);
 

@@ -16,7 +16,7 @@ namespace vt::d3d12
 	{
 	public:
 		Queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType) :
-			queue(makeQueue(device, commandType)), fence(makeFence(device)), fenceEvent(makeEvent())
+			queue(makeQueue(device, commandType)), fence(makeFence(device)), event(makeEvent())
 		{}
 
 		~Queue()
@@ -39,12 +39,12 @@ namespace vt::d3d12
 
 		void waitForFenceValue(uint64_t valueToAwait) const
 		{
-			if(isFenceComplete(valueToAwait))
+			if(fence->GetCompletedValue() >= valueToAwait)
 				return;
 
-			auto result = fence->SetEventOnCompletion(valueToAwait, fenceEvent.get());
+			auto result = fence->SetEventOnCompletion(valueToAwait, event.get());
 			vtAssertResult(result, "Failed to set OS event for queue workload completion.");
-			::WaitForSingleObject(fenceEvent.get(), INFINITE);
+			::WaitForSingleObject(event.get(), INFINITE);
 		}
 
 		ID3D12CommandQueue* get() const
@@ -53,12 +53,12 @@ namespace vt::d3d12
 		}
 
 	private:
-		uint64_t					  fenceValue = 0;
 		ComUnique<ID3D12CommandQueue> queue;
 		ComUnique<ID3D12Fence>		  fence;
-		Unique<HANDLE, ::CloseHandle> fenceEvent;
+		Unique<HANDLE, ::CloseHandle> event;
+		uint64_t					  fenceValue = 0;
 
-		static ID3D12CommandQueue* makeQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType)
+		static decltype(queue) makeQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType)
 		{
 			D3D12_COMMAND_QUEUE_DESC const desc {
 				.Type	  = commandType,
@@ -66,29 +66,36 @@ namespace vt::d3d12
 				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
 				.NodeMask = 0,
 			};
-			ID3D12CommandQueue* queue;
+			ID3D12CommandQueue* rawQueue;
 
-			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&queue));
+			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&rawQueue));
+
+			decltype(queue) freshQueue(rawQueue);
 			vtEnsureResult(result, "Failed to create D3D12 command queue.");
 
-			return queue;
+			return freshQueue;
 		}
 
-		ID3D12Fence* makeFence(ID3D12Device* device)
+		static decltype(fence) makeFence(ID3D12Device* device)
 		{
-			ID3D12Fence* queueFence;
+			ID3D12Fence* rawFence;
 
-			auto result = device->CreateFence(fenceValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&queueFence));
+			auto result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&rawFence));
+
+			decltype(fence) freshFence(rawFence);
 			vtEnsureResult(result, "Failed to create D3D12 fence.");
 
-			return queueFence;
+			return freshFence;
 		}
 
-		static HANDLE makeEvent()
+		static decltype(event) makeEvent()
 		{
-			auto event = ::CreateEvent(nullptr, false, false, nullptr);
-			vtEnsure(event, "Failed to create Windows event.");
-			return event;
+			auto rawEvent = ::CreateEventW(nullptr, false, false, nullptr);
+
+			decltype(event) freshEvent(rawEvent);
+			vtEnsure(rawEvent, "Failed to create Windows event.");
+
+			return freshEvent;
 		}
 
 		uint64_t signal()
@@ -97,11 +104,6 @@ namespace vt::d3d12
 			vtAssertResult(result, "Failed to signal command queue.");
 
 			return fenceValue;
-		}
-
-		bool isFenceComplete(uint64_t value) const
-		{
-			return fence->GetCompletedValue() >= value;
 		}
 	};
 }

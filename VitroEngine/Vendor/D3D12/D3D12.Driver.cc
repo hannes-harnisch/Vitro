@@ -3,6 +3,8 @@
 #include "D3D12.API.hh"
 
 #include <array>
+#include <string_view>
+#include <type_traits>
 #include <vector>
 export module Vitro.D3D12.Driver;
 
@@ -25,7 +27,9 @@ namespace vt::d3d12
 			d3d12GetDebugInterface(d3d12.loadSymbol<decltype(::D3D12GetDebugInterface)>("D3D12GetDebugInterface")),
 			createDXGIFactory2(dxgi.loadSymbol<decltype(::CreateDXGIFactory2)>("CreateDXGIFactory2")),
 			d3d12CreateDevice(d3d12.loadSymbol<decltype(::D3D12CreateDevice)>("D3D12CreateDevice")),
+#if VT_DEBUG
 			debug(makeDebugInterface()),
+#endif
 			factory(makeFactory())
 		{}
 
@@ -34,12 +38,12 @@ namespace vt::d3d12
 			std::vector<vt::Adapter> adapters;
 			for(UINT index = 0;; ++index)
 			{
-				IDXGIAdapter1* adapterPtr;
+				IDXGIAdapter1* rawAdapter;
 
-				auto result = factory->EnumAdapters1(index, &adapterPtr);
+				auto result = factory->EnumAdapters1(index, &rawAdapter);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
-				ComUnique<IDXGIAdapter1> adapter(adapterPtr);
+				ComUnique<IDXGIAdapter1> adapter(rawAdapter);
 
 				DXGI_ADAPTER_DESC1 desc;
 				result = adapter->GetDesc1(&desc);
@@ -54,9 +58,9 @@ namespace vt::d3d12
 			return adapters;
 		}
 
-		PFN_D3D12_CREATE_DEVICE getDeviceCreationFunction() const
+		template<typename T> T loadD3D12Function(std::string_view name) const
 		{
-			return d3d12CreateDevice;
+			return d3d12.loadSymbol<std::remove_pointer_t<T>>(name);
 		}
 
 		IDXGIFactory5* get() const
@@ -73,37 +77,46 @@ namespace vt::d3d12
 		}
 
 	private:
-		SharedLibrary					d3d12;
-		SharedLibrary					dxgi;
-		PFN_D3D12_GET_DEBUG_INTERFACE	d3d12GetDebugInterface;
-		decltype(::CreateDXGIFactory2)* createDXGIFactory2;
-		PFN_D3D12_CREATE_DEVICE			d3d12CreateDevice;
-		ComUnique<ID3D12Debug>			debug;
-		ComUnique<IDXGIFactory5>		factory;
+		SharedLibrary d3d12;
+		SharedLibrary dxgi;
 
-		ID3D12Debug* makeDebugInterface()
+	public:
+		PFN_D3D12_GET_DEBUG_INTERFACE const	  d3d12GetDebugInterface;
+		decltype(::CreateDXGIFactory2)* const createDXGIFactory2;
+		PFN_D3D12_CREATE_DEVICE const		  d3d12CreateDevice;
+
+	private:
+		ComUnique<ID3D12Debug>	 debug;
+		ComUnique<IDXGIFactory5> factory;
+
+		decltype(debug) makeDebugInterface()
 		{
-			ID3D12Debug* debugInterface;
+			ID3D12Debug* rawDebug;
 
-			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&debugInterface));
-			vtEnsureResult(result, "Failed to get D3D12 debug interface.");
+			auto result = d3d12GetDebugInterface(IID_PPV_ARGS(&rawDebug));
 
-			debugInterface->EnableDebugLayer();
-			return debugInterface;
+			decltype(debug) freshDebug(rawDebug);
+			vtEnsureResult(result, "Failed to create D3D12 debug interface.");
+
+			freshDebug->EnableDebugLayer();
+			return freshDebug;
 		}
 
-		IDXGIFactory5* makeFactory()
+		decltype(factory) makeFactory()
 		{
-			UINT flags = 0;
 #if VT_DEBUG
-			flags = DXGI_CREATE_FACTORY_DEBUG;
+			UINT flags = DXGI_CREATE_FACTORY_DEBUG;
+#else
+			UINT flags = 0;
 #endif
-			IDXGIFactory5* factoryPtr;
+			IDXGIFactory5* rawFactory;
 
-			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&factoryPtr));
-			vtEnsureResult(result, "Failed to get proxy DXGI factory.");
+			auto result = createDXGIFactory2(flags, IID_PPV_ARGS(&rawFactory));
 
-			return factoryPtr;
+			decltype(factory) freshFactory(rawFactory);
+			vtEnsureResult(result, "Failed to create DXGI factory.");
+
+			return freshFactory;
 		}
 	};
 }

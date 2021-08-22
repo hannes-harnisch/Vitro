@@ -35,7 +35,12 @@
 
 #endif
 
+#include <format>
+#include <stdexcept>
+
 #if VT_DEBUG
+
+	#include <cstdlib>
 
 	#define vtUnreachable()                                                                                                    \
 		{                                                                                                                      \
@@ -43,23 +48,36 @@
 			vtAssumeUnreachable();                                                                                             \
 		}
 
+	#define vtAssert(condition, message)                                                                                       \
+		{                                                                                                                      \
+			if(!(condition))                                                                                                   \
+			{                                                                                                                  \
+				vtDebugBreak();                                                                                                \
+				std::exit(EXIT_FAILURE);                                                                                       \
+			}                                                                                                                  \
+		}
+
+	#define vtAssertPure(condition, message)   vtAssert(condition, message)
+	#define vtAssertResult(condition, message) vtAssert(static_cast<int>(condition) >= 0, message)
+
 	#define vtEnsure(condition, message, ...)                                                                                  \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
+			{                                                                                                                  \
 				vtDebugBreak();                                                                                                \
+				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
+			}                                                                                                                  \
 		}
 
-	#define vtAssertPure(condition, message)   vtEnsure(condition, message)
-	#define vtAssert(condition, message)	   vtEnsure(condition, message)
 	#define vtEnsureResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
-	#define vtAssertResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
 
 #else
 
-	#include <format>
-	#include <stdexcept>
-
 	#define vtUnreachable() vtAssumeUnreachable()
+
+	#define vtAssertPure(condition, message)
+	#define vtAssert(condition, message)	   static_cast<void>(condition)
+	#define vtAssertResult(condition, message) static_cast<void>(condition)
 
 	#define vtEnsure(condition, message, ...)                                                                                  \
 		{                                                                                                                      \
@@ -67,9 +85,6 @@
 				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
 		}
 
-	#define vtAssertPure(condition, message)
-	#define vtAssert(condition, message)	   static_cast<void>(condition)
 	#define vtEnsureResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
-	#define vtAssertResult(condition, message) static_cast<void>(condition)
 
 #endif

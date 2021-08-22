@@ -17,7 +17,21 @@ namespace vt::d3d12
 	export class Device final : public DeviceBase
 	{
 	public:
+		PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER const			 d3d12CreateRootSignatureDeserializer;
+		PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER const d3d12CreateVersionedRootSignatureDeserializer;
+		PFN_D3D12_SERIALIZE_ROOT_SIGNATURE const					 d3d12SerializeRootSignature;
+		PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE const			 d3d12SerializeVersionedRootSignature;
+
 		Device(vt::Driver const& driver, vt::Adapter adapter) :
+			d3d12CreateRootSignatureDeserializer(driver.d3d12.loadD3D12Function<PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER>(
+				"D3D12CreateRootSignatureDeserializer")),
+			d3d12CreateVersionedRootSignatureDeserializer(
+				driver.d3d12.loadD3D12Function<PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER>(
+					"D3D12CreateVersionedRootSignatureDeserializer")),
+			d3d12SerializeRootSignature(
+				driver.d3d12.loadD3D12Function<PFN_D3D12_SERIALIZE_ROOT_SIGNATURE>("D3D12SerializeRootSignature")),
+			d3d12SerializeVersionedRootSignature(driver.d3d12.loadD3D12Function<PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE>(
+				"D3D12SerializeVersionedRootSignature")),
 			device(makeDevice(driver, adapter)),
 			renderQueue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
 			computeQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
@@ -50,17 +64,17 @@ namespace vt::d3d12
 
 		void waitForRenderWorkload(Receipt receipt) override
 		{
-			renderQueue.waitForFenceValue(receipt.value);
+			renderQueue.waitForFenceValue(receipt.hostWaitValue);
 		}
 
 		void waitForComputeWorkload(Receipt receipt) override
 		{
-			computeQueue.waitForFenceValue(receipt.value);
+			computeQueue.waitForFenceValue(receipt.hostWaitValue);
 		}
 
 		void waitForCopyWorkload(Receipt receipt) override
 		{
-			copyQueue.waitForFenceValue(receipt.value);
+			copyQueue.waitForFenceValue(receipt.hostWaitValue);
 		}
 
 		void flushRenderQueue() override
@@ -101,16 +115,14 @@ namespace vt::d3d12
 		Queue					 computeQueue;
 		Queue					 copyQueue;
 
-		static ID3D12Device1* makeDevice(vt::Driver const& driver, vt::Adapter& adapter)
+		static decltype(device) makeDevice(vt::Driver const& driver, vt::Adapter& adapter)
 		{
-			auto d3d12CreateDevice = driver.d3d12.getDeviceCreationFunction();
+			ID3D12Device1* rawDevice;
+			auto result = driver.d3d12.d3d12CreateDevice(adapter.d3d12.get(), Driver::FeatureLevel, IID_PPV_ARGS(&rawDevice));
+			decltype(device) freshDevice(rawDevice);
 
-			ID3D12Device1* device;
-
-			auto result = d3d12CreateDevice(adapter.d3d12.get(), Driver::FeatureLevel, IID_PPV_ARGS(&device));
 			vtEnsureResult(result, "Failed to create D3D12 device.");
-
-			return device;
+			return freshDevice;
 		}
 
 		template<D3D12_COMMAND_LIST_TYPE Type> static void validateCommandLists(std::span<void*> commandLists)

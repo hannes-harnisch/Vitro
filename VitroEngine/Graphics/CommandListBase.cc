@@ -57,7 +57,7 @@ namespace vt
 	public:
 		virtual void beginRenderPass(RenderPass const&	   renderPass,
 									 RenderTarget const&   renderTarget,
-									 std::span<ClearValue> clearValues)												  = 0;
+									 std::span<ClearValue> clearValues = {})										  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
 		virtual void bindIndexBuffer(Buffer const& buffer, IndexFormat format)										  = 0;

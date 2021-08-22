@@ -1,4 +1,5 @@
 ﻿module;
+#include "Core/Macros.hh"
 #include "Windows.API.hh"
 
 #include <string_view>
@@ -15,7 +16,7 @@ namespace vt::windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			library.reset(makeLibrary());
+			library = makeLibrary();
 			return library.get() != nullptr;
 		}
 
@@ -25,7 +26,7 @@ namespace vt::windows
 		}
 
 	protected:
-		SharedLibrary(std::string_view name) : name(widenString(name)), library(makeLibrary())
+		SharedLibrary(std::string_view path) : path(widenString(path)), library(makeLibrary())
 		{}
 
 		void* loadSymbolAddress(std::string_view symbol) const final override
@@ -34,12 +35,17 @@ namespace vt::windows
 		}
 
 	private:
-		std::wstring				   name;
+		std::wstring				   path;
 		Unique<HMODULE, ::FreeLibrary> library;
 
-		HMODULE makeLibrary() const
+		decltype(library) makeLibrary() const
 		{
-			return ::LoadLibrary(name.data());
+			auto rawLibrary = ::LoadLibraryW(path.data());
+
+			decltype(library) freshLibrary(rawLibrary);
+			vtEnsure(rawLibrary, "Failed to find shared library '{}'.", narrowString(path));
+
+			return freshLibrary;
 		}
 	};
 }

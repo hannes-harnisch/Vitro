@@ -262,7 +262,7 @@ namespace vt::d3d12
 	private:
 		ComUnique<ID3D12PipelineState> pipeline;
 
-		static ID3D12PipelineState* makeRenderPipeline(ID3D12Device1* device, RenderPipelineInfo const& info)
+		static decltype(pipeline) makeRenderPipeline(ID3D12Device1* device, RenderPipelineInfo const& info)
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> inputElementDescs;
 			for(auto attrib : info.vertexAttributes)
@@ -325,12 +325,14 @@ namespace vt::d3d12
 			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
 				desc.RTVFormats[i++] = attachment.format;
 
-			ID3D12PipelineState* pipeline;
+			ID3D12PipelineState* rawPipeline;
 
-			auto result = device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&pipeline));
+			auto result = device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&rawPipeline));
+
+			decltype(pipeline) freshPipeline(rawPipeline);
 			vtAssertResult(result, "Failed to create render pipeline.");
 
-			return pipeline;
+			return freshPipeline;
 		}
 	};
 }

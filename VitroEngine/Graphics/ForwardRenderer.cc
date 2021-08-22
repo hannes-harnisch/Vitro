@@ -1,6 +1,7 @@
 ﻿module;
 #include <array>
 #include <new>
+#include <span>
 export module Vitro.Graphics.ForwardRenderer;
 
 import Vitro.Graphics.CommandList;
