@@ -16,6 +16,8 @@ import Vitro.Windows.Utils;
 
 namespace vt::d3d12
 {
+	export using CommandListHandle = ID3D12CommandList*;
+
 	export class Driver final : public DriverBase
 	{
 	public:
@@ -36,7 +38,7 @@ namespace vt::d3d12
 		std::vector<vt::Adapter> enumerateAdapters() const override
 		{
 			std::vector<vt::Adapter> adapters;
-			for(UINT index = 0;; ++index)
+			for(unsigned index = 0;; ++index)
 			{
 				IDXGIAdapter1* rawAdapter;
 
@@ -49,11 +51,11 @@ namespace vt::d3d12
 				result = adapter->GetDesc1(&desc);
 				vtEnsureResult(result, "Failed to get D3D12 adapter info.");
 
-				bool cannotMakeDevice = FAILED(d3d12CreateDevice(adapter.get(), FeatureLevel, __uuidof(ID3D12Device), nullptr));
-				if(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE || cannotMakeDevice)
+				bool cantMakeDevice = FAILED(d3d12CreateDevice(adapter.get(), FeatureLevel, __uuidof(ID3D12Device4), nullptr));
+				if(desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE || cantMakeDevice)
 					continue;
 
-				adapters.emplace_back(std::move(adapter));
+				adapters.emplace_back(std::move(adapter), windows::narrowString(desc.Description), desc.DedicatedVideoMemory);
 			}
 			return adapters;
 		}

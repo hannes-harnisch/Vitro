@@ -13,7 +13,7 @@ namespace vt
 	public:
 		template<typename... Ts> FrameContext(unsigned framesInFlight, Ts&&... ts)
 		{
-			for(unsigned i = 0; i < framesInFlight; ++i)
+			for(unsigned i = 0; i != framesInFlight; ++i)
 				frameResources.emplace_back(std::forward<Ts>(ts)...);
 		}
 

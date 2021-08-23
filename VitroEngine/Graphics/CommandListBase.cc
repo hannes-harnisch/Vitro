@@ -2,16 +2,19 @@
 #include <span>
 export module Vitro.Graphics.CommandListBase;
 
+import Vitro.Core.FixedList;
 import Vitro.Core.Rectangle;
 import Vitro.Core.Vector;
+import Vitro.Graphics.Driver;
 import Vitro.Graphics.RenderPass;
+import Vitro.Graphics.RenderPassInfo;
 import Vitro.Graphics.RenderTarget;
 import Vitro.Graphics.Resource;
 import Vitro.Graphics.RootSignature;
 
 namespace vt
 {
-	export enum class CommandType {
+	export enum CommandType : unsigned char {
 		Copy,
 		Compute,
 		Render,
@@ -27,43 +30,44 @@ namespace vt
 		};
 	};
 
-	export enum class IndexFormat {
-		UInt16,
-		UInt32,
-	};
-
 	export class CopyCommandListBase
 	{
 	public:
 		virtual ~CopyCommandListBase() = default;
 
-		virtual void* handle() = 0;
-		virtual void  reset()  = 0;
-		virtual void  begin()  = 0;
-		virtual void  end()	   = 0;
+		virtual CommandListHandle handle() = 0;
+		virtual void			  reset()  = 0;
+		virtual void			  begin()  = 0;
+		virtual void			  end()	   = 0;
 	};
 
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
-		virtual void bindPipeline(Pipeline const& pipeline)							 = 0;
-		virtual void bindRootSignature(RootSignature const& rootSignature)			 = 0;
-		virtual void pushConstants(void const* data, unsigned size, unsigned offset) = 0;
-		virtual void dispatch(unsigned xCount, unsigned yCount, unsigned zCount)	 = 0;
+		virtual void bindComputePipeline(Pipeline const& pipeline)							= 0;
+		virtual void bindComputeRootSignature(RootSignature const& rootSignature)			= 0;
+		virtual void pushComputeConstants(void const* data, unsigned size, unsigned offset) = 0;
+		virtual void dispatch(unsigned xCount, unsigned yCount, unsigned zCount)			= 0;
 	};
 
 	export class RenderCommandListBase : public ComputeCommandListBase
 	{
 	public:
-		virtual void beginRenderPass(RenderPass const&	   renderPass,
-									 RenderTarget const&   renderTarget,
-									 std::span<ClearValue> clearValues = {})										  = 0;
+		virtual void bindRenderPipeline(Pipeline const& pipeline)													  = 0;
+		virtual void bindRenderRootSignature(RootSignature const& rootSignature)									  = 0;
+		virtual void pushRenderConstants(void const* data, unsigned size, unsigned offset)							  = 0;
+		virtual void beginRenderPass(RenderPass const&			 renderPass,
+									 RenderTarget const&		 renderTarget,
+									 std::span<ClearValue const> clearValues = {})									  = 0;
 		virtual void transitionToNextSubpass()																		  = 0;
 		virtual void endRenderPass()																				  = 0;
-		virtual void bindIndexBuffer(Buffer const& buffer, IndexFormat format)										  = 0;
+		virtual void bindVertexBuffers(unsigned					 firstBuffer,
+									   std::span<Buffer const>	 buffers,
+									   std::span<unsigned const> byteOffsets)										  = 0;
+		virtual void bindIndexBuffer(Buffer const& buffer, unsigned byteOffset)										  = 0;
 		virtual void bindPrimitiveTopology(PrimitiveTopology topology)												  = 0;
-		virtual void bindViewport(Viewport viewport)																  = 0;
-		virtual void bindScissor(Rectangle scissor)																	  = 0;
+		virtual void bindViewports(std::span<Viewport const> viewports)												  = 0;
+		virtual void bindScissors(std::span<Rectangle const> scissors)												  = 0;
 		virtual void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance) = 0;
 		virtual void drawIndexed(unsigned indexCount,
 								 unsigned instanceCount,

@@ -19,7 +19,7 @@ namespace vt
 	{
 	public:
 		ForwardRenderer(Device& device, RenderPass const& presentPass) :
-			device(device), presentPass(presentPass), context(FrameBufferCount, device)
+			device(device), presentPass(presentPass), context(FrameBufferCount, device, device)
 		{}
 
 		void draw(SwapChain& swapChain)
@@ -50,6 +50,7 @@ namespace vt
 		struct FrameResources
 		{
 			RenderCommandList cmd;
+			CopyCommandList	  copy;
 			Receipt			  frameFinished;
 		};
 

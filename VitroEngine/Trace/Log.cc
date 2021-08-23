@@ -37,14 +37,15 @@ namespace vt
 	};
 
 	template<typename T>
-	concept IndirectlyConvertibleToString = requires(T t)
+	concept HasToString = requires(T const& t)
 	{
-		t->toString();
+		{
+			t.toString()
+			} -> std::convertible_to<std::string>;
 	};
 
 	template<typename T>
-	concept HasStdToStringOverload = !std::same_as<bool, T> && !std::is_enum_v<T> && !IndirectlyConvertibleToString<T> &&
-									 requires(T t)
+	concept HasStdToStringOverload = !std::same_as<bool, T> && !std::is_enum_v<T> && requires(T t)
 	{
 		std::to_string(t);
 	};
@@ -101,7 +102,12 @@ namespace vt
 		std::atomic_bool					  isAcceptingLogs = true;
 		std::jthread						  logWorker;
 
-		static std::string_view prepareArgument(bool arg)
+		static std::string prepareArgument(HasToString auto&& arg)
+		{
+			return arg.toString();
+		}
+
+		static char const* prepareArgument(bool arg)
 		{
 			return arg ? "true" : "false";
 		}
@@ -111,27 +117,16 @@ namespace vt
 			return std::to_string(arg);
 		}
 
-		template<typename TEnum> static std::string_view prepareArgument(TEnum arg) requires std::is_enum_v<TEnum>
+		template<typename T> static std::string_view prepareArgument(T arg) requires std::is_enum_v<T>
 		{
 			return enum_name(arg);
 		}
 
 		template<typename T>
-		static std::string_view prepareArgument(T&& arg) requires(std::same_as<T, std::string> ||
-																  std::same_as<T, std::string_view> ||
-																  std::convertible_to<T, char const*>)
+		static auto prepareArgument(T arg) requires(std::same_as<T, std::string> || std::same_as<T, std::string_view> ||
+													std::convertible_to<T, char const*>)
 		{
 			return arg;
-		}
-
-		static std::string prepareArgument(IndirectlyConvertibleToString auto&& arg)
-		{
-			return arg->toString();
-		}
-
-		static std::string prepareArgument(auto&& arg)
-		{
-			return arg.toString();
 		}
 
 		template<typename... Ts> static std::string makeMessage(Ts&&... ts)

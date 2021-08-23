@@ -66,7 +66,7 @@ namespace vt::d3d12
 		FixedList<TransitionList, MaxSubpasses>	  subpasses;
 		TransitionList							  finalTransitions;
 
-		RenderPass(vt::Device&, RenderPassInfo const& info) :
+		RenderPass(vt::Device const&, RenderPassInfo const& info) :
 			attachments(info.attachments.begin(), info.attachments.end()),
 			usesDepthStencil(containsDepthStencilAttachment(info.attachments)),
 			stencilBeginAccess(convertImageLoadOp(info.stencilLoadOp)),
@@ -92,7 +92,7 @@ namespace vt::d3d12
 				subpasses.emplace_back(transitions);
 			}
 
-			for(unsigned i = 0; i < info.attachments.size(); ++i)
+			for(unsigned i = 0; i != info.attachments.size(); ++i)
 			{
 				auto prev  = prevLayouts[i];
 				auto final = convertImageLayout(info.attachments[i].finalLayout);

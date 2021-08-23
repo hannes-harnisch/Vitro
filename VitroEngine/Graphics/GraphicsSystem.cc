@@ -74,7 +74,7 @@ namespace vt
 		{
 			auto adapters = driver->enumerateAdapters();
 			auto selected = std::max_element(adapters.begin(), adapters.end(), [](Adapter const& a1, Adapter const& a2) {
-				return a1->getVRAM() < a2->getVRAM();
+				return a1.getVram() < a2.getVram();
 			});
 			vtEnsure(selected != adapters.end(), "No suitable GPUs found.");
 			return std::move(*selected);

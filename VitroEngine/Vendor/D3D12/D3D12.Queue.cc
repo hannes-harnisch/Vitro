@@ -6,17 +6,16 @@
 export module Vitro.D3D12.Queue;
 
 import Vitro.Core.Algorithm;
-import Vitro.Core.Unique;
 import Vitro.D3D12.Utils;
-import Vitro.Trace.Log;
+import Vitro.Graphics.Driver;
 
 namespace vt::d3d12
 {
 	export class Queue
 	{
 	public:
-		Queue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType) :
-			queue(makeQueue(device, commandType)), fence(makeFence(device)), event(makeEvent())
+		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE commandType) :
+			queue(makeQueue(device, commandType)), fence(makeFence(device))
 		{}
 
 		~Queue()
@@ -30,7 +29,7 @@ namespace vt::d3d12
 			waitForFenceValue(signal());
 		}
 
-		uint64_t submit(std::span<void*> commandLists)
+		uint64_t submit(std::span<vt::CommandListHandle> commandLists)
 		{
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
 			queue->ExecuteCommandLists(count(commandLists), lists);
@@ -42,9 +41,8 @@ namespace vt::d3d12
 			if(fence->GetCompletedValue() >= valueToAwait)
 				return;
 
-			auto result = fence->SetEventOnCompletion(valueToAwait, event.get());
-			vtAssertResult(result, "Failed to set OS event for queue workload completion.");
-			::WaitForSingleObject(event.get(), INFINITE);
+			auto result = fence->SetEventOnCompletion(valueToAwait, nullptr);
+			vtAssertResult(result, "Failed to wait for queue workload completion.");
 		}
 
 		ID3D12CommandQueue* get() const
@@ -55,10 +53,9 @@ namespace vt::d3d12
 	private:
 		ComUnique<ID3D12CommandQueue> queue;
 		ComUnique<ID3D12Fence>		  fence;
-		Unique<HANDLE, ::CloseHandle> event;
 		uint64_t					  fenceValue = 0;
 
-		static decltype(queue) makeQueue(ID3D12Device* device, D3D12_COMMAND_LIST_TYPE commandType)
+		static decltype(queue) makeQueue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE commandType)
 		{
 			D3D12_COMMAND_QUEUE_DESC const desc {
 				.Type	  = commandType,
@@ -76,7 +73,7 @@ namespace vt::d3d12
 			return freshQueue;
 		}
 
-		static decltype(fence) makeFence(ID3D12Device* device)
+		static decltype(fence) makeFence(ID3D12Device4* device)
 		{
 			ID3D12Fence* rawFence;
 
@@ -86,16 +83,6 @@ namespace vt::d3d12
 			vtEnsureResult(result, "Failed to create D3D12 fence.");
 
 			return freshFence;
-		}
-
-		static decltype(event) makeEvent()
-		{
-			auto rawEvent = ::CreateEventW(nullptr, false, false, nullptr);
-
-			decltype(event) freshEvent(rawEvent);
-			vtEnsure(rawEvent, "Failed to create Windows event.");
-
-			return freshEvent;
 		}
 
 		uint64_t signal()

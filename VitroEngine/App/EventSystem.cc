@@ -53,7 +53,7 @@ namespace vt
 						break;
 				}
 			}
-			//	Log().verbose(event);
+			Log().verbose(*event);
 		}
 
 		template<typename... Ts> void submitHandler(Ts&&... ts)
@@ -63,7 +63,7 @@ namespace vt
 
 		void duplicateHandlersWithListener(EventListener& newListener, EventListener const& oldListener)
 		{
-			for(size_t i = 0; i < handlers.size(); ++i)
+			for(size_t i = 0; i != handlers.size(); ++i)
 			{
 				auto handler = handlers[i];
 				if(handler.listener == &oldListener)

@@ -74,42 +74,53 @@ namespace vt
 
 	export template<typename T>
 	requires std::is_enum_v<T>
-	constexpr bool EnableFlagsFor = false;
+	constexpr bool EnableBitOperatorsFor = false;
 
-	template<typename T>
-	concept EnablesFlags = EnableFlagsFor<T>;
-
-	export template<EnablesFlags T> constexpr T operator&(T left, T right)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T operator&(T left, T right) noexcept
 	{
 		return static_cast<T>(std::to_underlying(left) & std::to_underlying(right));
 	}
 
-	export template<EnablesFlags T> constexpr T operator|(T left, T right)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T operator|(T left, T right) noexcept
 	{
 		return static_cast<T>(std::to_underlying(left) | std::to_underlying(right));
 	}
 
-	export template<EnablesFlags T> constexpr T operator^(T left, T right)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T operator^(T left, T right) noexcept
 	{
 		return static_cast<T>(std::to_underlying(left) ^ std::to_underlying(right));
 	}
 
-	export template<EnablesFlags T> constexpr T operator~(T value)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T operator~(T value) noexcept
 	{
 		return static_cast<T>(~std::to_underlying(value));
 	}
 
-	export template<EnablesFlags T> constexpr T& operator&=(T& left, T right)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T& operator&=(T& left, T right) noexcept
 	{
 		return left = left & right;
 	}
 
-	export template<EnablesFlags T> constexpr T& operator|=(T& left, T right)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T& operator|=(T& left, T right) noexcept
 	{
 		return left = left | right;
 	}
 
-	export template<EnablesFlags T> constexpr T& operator^=(T& left, T right)
+	export template<typename T>
+	requires EnableBitOperatorsFor<T>
+	constexpr T& operator^=(T& left, T right) noexcept
 	{
 		return left = left ^ right;
 	}

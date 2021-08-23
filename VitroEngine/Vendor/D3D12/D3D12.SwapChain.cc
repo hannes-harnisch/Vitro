@@ -31,7 +31,7 @@ namespace vt::d3d12
 			auto device = dev.d3d12.get();
 			UINT size	= device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			auto handle = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
-			for(unsigned i = 0; i < bufferCount; ++i)
+			for(unsigned i = 0; i != bufferCount; ++i)
 			{
 				ID3D12Resource* renderTargetPtr;
 
@@ -93,10 +93,13 @@ namespace vt::d3d12
 
 			DXGI_SWAP_CHAIN_DESC1 const desc {
 				.Format		 = renderPass.d3d12.attachments[0].format,
+				.Stereo		 = false,
 				.SampleDesc	 = {1, 0},
 				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
 				.BufferCount = bufferCount,
+				.Scaling	 = DXGI_SCALING_STRETCH,
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
+				.AlphaMode	 = DXGI_ALPHA_MODE_UNSPECIFIED,
 				.Flags		 = tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
 			IDXGISwapChain1* rawSwapChainPrototype;
@@ -114,7 +117,7 @@ namespace vt::d3d12
 			return freshSwapChain;
 		}
 
-		decltype(renderTargetHeap) makeRenderTargetHeap(ID3D12Device1* device, unsigned bufferCount)
+		decltype(renderTargetHeap) makeRenderTargetHeap(ID3D12Device4* device, unsigned bufferCount)
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= D3D12_DESCRIPTOR_HEAP_TYPE_RTV,

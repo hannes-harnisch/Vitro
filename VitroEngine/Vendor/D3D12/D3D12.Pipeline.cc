@@ -251,7 +251,8 @@ namespace vt::d3d12
 	export class Pipeline
 	{
 	public:
-		Pipeline(vt::Device& device, RenderPipelineInfo const& info) : pipeline(makeRenderPipeline(device.d3d12.get(), info))
+		Pipeline(vt::Device const& device, RenderPipelineInfo const& info) :
+			pipeline(makeRenderPipeline(device.d3d12.get(), info))
 		{}
 
 		ID3D12PipelineState* get() const
@@ -262,7 +263,7 @@ namespace vt::d3d12
 	private:
 		ComUnique<ID3D12PipelineState> pipeline;
 
-		static decltype(pipeline) makeRenderPipeline(ID3D12Device1* device, RenderPipelineInfo const& info)
+		static decltype(pipeline) makeRenderPipeline(ID3D12Device4* device, RenderPipelineInfo const& info)
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> inputElementDescs;
 			for(auto attrib : info.vertexAttributes)
@@ -282,7 +283,7 @@ namespace vt::d3d12
 				},
 				.BlendState {
 					.AlphaToCoverageEnable	= info.multisample.enableAlphaToCoverage,
-					.IndependentBlendEnable = true,
+					.IndependentBlendEnable = false,
 				},
 				.SampleMask = info.multisample.sampleMask,
 				.RasterizerState {

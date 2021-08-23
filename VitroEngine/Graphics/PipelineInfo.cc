@@ -212,7 +212,7 @@ namespace vt
 		Alpha = bit(3),
 		All	  = Red | Green | Blue | Alpha,
 	};
-	export template<> constexpr bool EnableFlagsFor<ColorComponent> = true;
+	export template<> constexpr bool EnableBitOperatorsFor<ColorComponent> = true;
 
 	export struct ColorAttachmentBlendState
 	{
