@@ -1,7 +1,7 @@
 ﻿export module Vitro.Graphics.Device;
 
 import Vitro.Graphics.DeviceBase;
-import Vitro.Graphics.InterfaceVariant;
+import Vitro.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
 import Vitro.VT_GPU_API_MODULE_PRIMARY.Device;

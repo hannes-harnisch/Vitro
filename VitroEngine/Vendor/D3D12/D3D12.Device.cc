@@ -30,7 +30,16 @@ namespace vt::d3d12
 			renderQueue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
 			computeQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
 			copyQueue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
-		{}
+		{
+			D3D12_FEATURE_DATA_ROOT_SIGNATURE feature {
+				.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1,
+			};
+			auto result = device->CheckFeatureSupport(D3D12_FEATURE_ROOT_SIGNATURE, &feature, sizeof feature);
+			vtEnsureResult(result, "Failed to check for D3D12 root signature feature support.");
+			vtEnsure(feature.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1,
+					 "The DirectX 12 root signature 1.1 feature isn't available. Try updating your Windows version and your "
+					 "graphics drivers. If the problem persists, you may need to update your graphics card.");
+		}
 
 		Receipt submitRenderCommands(std::span<vt::CommandListHandle> commandLists) override
 		{

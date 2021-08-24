@@ -2,7 +2,7 @@
 #include <string_view>
 export module Vitro.Graphics.Adapter;
 
-import Vitro.Graphics.ResourceVariant;
+import Vitro.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
 import Vitro.VT_GPU_API_MODULE_PRIMARY.Adapter;

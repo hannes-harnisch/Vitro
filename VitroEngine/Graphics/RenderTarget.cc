@@ -1,6 +1,6 @@
 ﻿export module Vitro.Graphics.RenderTarget;
 
-import Vitro.Graphics.ResourceVariant;
+import Vitro.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
 import Vitro.VT_GPU_API_MODULE_PRIMARY.RenderTarget;

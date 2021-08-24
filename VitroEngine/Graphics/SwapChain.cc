@@ -1,6 +1,6 @@
 ﻿export module Vitro.Graphics.SwapChain;
 
-import Vitro.Graphics.InterfaceVariant;
+import Vitro.Graphics.DynamicGpuApi;
 import Vitro.Graphics.SwapChainBase;
 
 #if VT_DYNAMIC_GPU_API

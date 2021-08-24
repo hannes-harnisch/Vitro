@@ -33,7 +33,7 @@ namespace vt
 			cmd->begin();
 
 			std::array clearValues {
-				ClearValue {{1, 0.5, 0, 1}},
+				ClearValue {{0.3, 0.5, 0.3, 1}},
 			};
 			cmd->beginRenderPass(presentPass, swapChainRenderTarget, clearValues);
 			cmd->endRenderPass();
