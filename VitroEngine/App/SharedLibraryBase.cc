@@ -1,6 +1,6 @@
 ﻿module;
 #include <string_view>
-export module Vitro.App.SharedLibraryBase;
+export module vt.App.SharedLibraryBase;
 
 namespace vt
 {
@@ -11,6 +11,6 @@ namespace vt
 		virtual void*			   handle() = 0;
 
 	protected:
-		virtual void* loadSymbolAddress(std::string_view symbol) const = 0;
+		virtual void* load_symbol_address(std::string_view symbol) const = 0;
 	};
 }

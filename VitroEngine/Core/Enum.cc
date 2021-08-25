@@ -11,7 +11,7 @@
 #define MAGIC_ENUM_RANGE_MIN			   (INT16_MIN + 1)
 #define MAGIC_ENUM_RANGE_MAX			   (INT16_MAX - 1)
 #include <magic_enum/include/magic_enum.hpp>
-export module Vitro.Core.Enum;
+export module vt.Core.Enum;
 
 // TODO: remove when this is supported in preview
 namespace std
@@ -28,7 +28,7 @@ namespace vt
 	export using magic_enum::enum_count;
 	export using magic_enum::enum_name;
 
-	template<typename T> constexpr size_t sizeFromEnumMax()
+	template<typename T> constexpr size_t size_from_enum_max()
 	{
 		auto values = magic_enum::enum_values<T>();
 		auto max	= std::max_element(values.begin(), values.end());
@@ -58,13 +58,13 @@ namespace vt
 			bitset.set(static_cast<size_t>(position), value);
 		}
 
-		std::string toString() const
+		std::string to_string() const
 		{
 			return bitset.to_string();
 		}
 
 	private:
-		std::bitset<sizeFromEnumMax<T>()> bitset;
+		std::bitset<size_from_enum_max<T>()> bitset;
 	};
 
 	export constexpr auto bit(auto position)

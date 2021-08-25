@@ -2,28 +2,28 @@
 #include "Windows.API.hh"
 
 #include <csignal>
-export module Vitro.Windows.Trace;
+export module vt.Windows.Trace;
 
-import Vitro.Trace.CrashHandler;
+import vt.Trace.CrashHandler;
 
 namespace vt::windows
 {
-	LONG NTAPI forwardToStandardSignalHandlers(EXCEPTION_POINTERS* exceptionInfo)
+	LONG NTAPI forward_to_standard_signal_handlers(EXCEPTION_POINTERS* exception_info)
 	{
-		switch(exceptionInfo->ExceptionRecord->ExceptionCode)
+		switch(exception_info->ExceptionRecord->ExceptionCode)
 		{
-			case STATUS_ACCESS_VIOLATION: handleAccessViolationSignal(SIGSEGV); break;
-			case STATUS_INTEGER_DIVIDE_BY_ZERO: handleArithmeticSignal(SIGFPE); break;
-			case STATUS_STACK_OVERFLOW: handleAccessViolationSignal(SIGSEGV); break;
+			case STATUS_ACCESS_VIOLATION: handle_access_violation_signal(SIGSEGV); break;
+			case STATUS_INTEGER_DIVIDE_BY_ZERO: handle_arithmetic_signal(SIGFPE); break;
+			case STATUS_STACK_OVERFLOW: handle_access_violation_signal(SIGSEGV); break;
 		}
 		return EXCEPTION_CONTINUE_SEARCH;
 	}
 
-	export void initializeSystemSpecificTracing()
+	export void initialize_system_specific_tracing()
 	{
-		::AddVectoredExceptionHandler(true, forwardToStandardSignalHandlers);
+		::AddVectoredExceptionHandler(true, forward_to_standard_signal_handlers);
 
-		auto stdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
-		::SetConsoleMode(stdOut, ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_VIRTUAL_TERMINAL_INPUT);
+		auto std_out = ::GetStdHandle(STD_OUTPUT_HANDLE);
+		::SetConsoleMode(std_out, ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_VIRTUAL_TERMINAL_INPUT);
 	}
 }

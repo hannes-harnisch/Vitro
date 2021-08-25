@@ -1,11 +1,11 @@
-﻿export module Vitro.Graphics.DescriptorSetLayout;
+﻿export module vt.Graphics.DescriptorSetLayout;
 
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.DescriptorSetLayout;
+import vt.VT_GPU_API_MODULE_PRIMARY.DescriptorSetLayout;
 #endif
-import Vitro.VT_GPU_API_MODULE.DescriptorSetLayout;
+import vt.VT_GPU_API_MODULE.DescriptorSetLayout;
 
 namespace vt
 {

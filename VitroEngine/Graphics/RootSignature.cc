@@ -1,11 +1,11 @@
-﻿export module Vitro.Graphics.RootSignature;
+﻿export module vt.Graphics.RootSignature;
 
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.RootSignature;
+import vt.VT_GPU_API_MODULE_PRIMARY.RootSignature;
 #endif
-import Vitro.VT_GPU_API_MODULE.RootSignature;
+import vt.VT_GPU_API_MODULE.RootSignature;
 
 namespace vt
 {

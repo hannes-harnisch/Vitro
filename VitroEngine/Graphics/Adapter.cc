@@ -1,13 +1,13 @@
 ﻿module;
 #include <string_view>
-export module Vitro.Graphics.Adapter;
+export module vt.Graphics.Adapter;
 
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.Adapter;
+import vt.VT_GPU_API_MODULE_PRIMARY.Adapter;
 #endif
-import Vitro.VT_GPU_API_MODULE.Adapter;
+import vt.VT_GPU_API_MODULE.Adapter;
 
 namespace vt
 {
@@ -24,12 +24,12 @@ namespace vt
 			AdapterResource(std::move(resource)), name(std::move(name)), vram(vram)
 		{}
 
-		std::string_view getName() const
+		std::string_view get_name() const
 		{
 			return name;
 		}
 
-		size_t getVram() const
+		size_t get_vram() const
 		{
 			return vram;
 		}

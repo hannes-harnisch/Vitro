@@ -2,9 +2,9 @@
 #include <new>
 #include <type_traits>
 #include <utility>
-export module Vitro.Graphics.DynamicGpuApi;
+export module vt.Graphics.DynamicGpuApi;
 
-import Vitro.Core.Singleton;
+import vt.Core.Singleton;
 
 namespace vt
 {

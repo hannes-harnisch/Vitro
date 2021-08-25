@@ -1,11 +1,11 @@
-﻿export module Vitro.Graphics.RenderTarget;
+﻿export module vt.Graphics.RenderTarget;
 
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.RenderTarget;
+import vt.VT_GPU_API_MODULE_PRIMARY.RenderTarget;
 #endif
-import Vitro.VT_GPU_API_MODULE.RenderTarget;
+import vt.VT_GPU_API_MODULE.RenderTarget;
 
 namespace vt
 {

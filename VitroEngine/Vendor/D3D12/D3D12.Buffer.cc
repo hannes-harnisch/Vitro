@@ -1,26 +1,26 @@
 ﻿module;
 #include "D3D12.API.hh"
-export module Vitro.D3D12.Buffer;
+export module vt.D3D12.Buffer;
 
-import Vitro.D3D12.Utils;
-import Vitro.Graphics.Device;
+import vt.D3D12.Utils;
+import vt.Graphics.Device;
 
 namespace vt::d3d12
 {
 	export class Buffer
 	{
 	public:
-		D3D12_GPU_VIRTUAL_ADDRESS getGpuAddress() const
+		D3D12_GPU_VIRTUAL_ADDRESS get_gpu_address() const
 		{
 			return buffer->GetGPUVirtualAddress();
 		}
 
-		unsigned getSize() const
+		unsigned get_size() const
 		{
 			return size;
 		}
 
-		unsigned getStride() const
+		unsigned get_stride() const
 		{
 			return stride;
 		}

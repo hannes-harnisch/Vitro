@@ -2,34 +2,34 @@
 #include "Windows.API.hh"
 
 #include <string_view>
-export module Vitro.Windows.Utils;
+export module vt.Windows.Utils;
 
 namespace vt::windows
 {
-	export std::wstring widenString(std::string_view in)
+	export std::wstring widen_string(std::string_view in)
 	{
-		int inLength  = static_cast<int>(in.length());
-		int outLength = ::MultiByteToWideChar(CP_UTF8, 0, in.data(), inLength, nullptr, 0);
+		int in_length  = static_cast<int>(in.length());
+		int out_length = ::MultiByteToWideChar(CP_UTF8, 0, in.data(), in_length, nullptr, 0);
 
-		std::wstring out(outLength, L'\0');
-		::MultiByteToWideChar(CP_UTF8, 0, in.data(), inLength, out.data(), outLength);
+		std::wstring out(out_length, L'\0');
+		::MultiByteToWideChar(CP_UTF8, 0, in.data(), in_length, out.data(), out_length);
 		return out;
 	}
 
-	export std::string narrowString(std::wstring_view in)
+	export std::string narrow_string(std::wstring_view in)
 	{
-		int inLength  = static_cast<int>(in.length());
-		int outLength = ::WideCharToMultiByte(CP_UTF8, 0, in.data(), inLength, nullptr, 0, nullptr, nullptr);
+		int in_length  = static_cast<int>(in.length());
+		int out_length = ::WideCharToMultiByte(CP_UTF8, 0, in.data(), in_length, nullptr, 0, nullptr, nullptr);
 
-		std::string out(outLength, '\0');
-		::WideCharToMultiByte(CP_UTF8, 0, in.data(), inLength, out.data(), outLength, nullptr, nullptr);
+		std::string out(out_length, '\0');
+		::WideCharToMultiByte(CP_UTF8, 0, in.data(), in_length, out.data(), out_length, nullptr, nullptr);
 		return out;
 	}
 
-	export void showErrorMessageBox(std::string_view title, std::string_view message)
+	export void show_error_message_box(std::string_view title, std::string_view message)
 	{
-		auto wideTitle = widenString(title);
-		auto wideMsg   = widenString(message);
-		::MessageBoxW(nullptr, wideMsg.data(), wideTitle.data(), MB_OK | MB_ICONERROR);
+		auto wide_title = widen_string(title);
+		auto wide_msg	= widen_string(message);
+		::MessageBoxW(nullptr, wide_msg.data(), wide_title.data(), MB_OK | MB_ICONERROR);
 	}
 }

@@ -6,11 +6,11 @@
 #include <typeindex>
 #include <utility>
 #include <vector>
-export module Vitro.App.EventSystem;
+export module vt.App.EventSystem;
 
-import Vitro.App.Event;
-import Vitro.Core.Singleton;
-import Vitro.Trace.Log;
+import vt.App.Event;
+import vt.Core.Singleton;
+import vt.Trace.Log;
 
 namespace vt
 {
@@ -22,7 +22,7 @@ namespace vt
 	public:
 		static void notify(std::unique_ptr<Event> event)
 		{
-			get().dispatchEvent(std::move(event));
+			get().dispatch_event(std::move(event));
 		}
 
 		template<typename TEvent, typename... Ts> static void notify(Ts&&... ts)
@@ -35,18 +35,18 @@ namespace vt
 		{
 			bool (*function)(class EventListener&, Event&);
 			EventListener*	listener;
-			std::type_index eventType;
+			std::type_index event_type;
 		};
 		std::vector<EventHandler> handlers;
 
 		EventSystem() = default;
 
-		void dispatchEvent(std::unique_ptr<Event> event)
+		void dispatch_event(std::unique_ptr<Event> event)
 		{
-			std::type_index eventType = typeid(*event);
+			std::type_index event_type = typeid(*event);
 			for(auto handler : std::views::reverse(handlers))
 			{
-				if(handler.eventType == eventType)
+				if(handler.event_type == event_type)
 				{
 					bool consumed = handler.function(*handler.listener, *event);
 					if(consumed)
@@ -56,29 +56,29 @@ namespace vt
 			Log().verbose(*event);
 		}
 
-		template<typename... Ts> void submitHandler(Ts&&... ts)
+		template<typename... Ts> void submit_handler(Ts&&... ts)
 		{
 			handlers.emplace_back(std::forward<Ts>(ts)...);
 		}
 
-		void duplicateHandlersWithListener(EventListener& newListener, EventListener const& oldListener)
+		void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener)
 		{
 			for(size_t i = 0; i != handlers.size(); ++i)
 			{
 				auto handler = handlers[i];
-				if(handler.listener == &oldListener)
-					handlers.emplace_back(handler.function, &newListener, handler.eventType);
+				if(handler.listener == &old_listener)
+					handlers.emplace_back(handler.function, &new_listener, handler.event_type);
 			}
 		}
 
-		void replaceListener(EventListener& newListener, EventListener& oldListener)
+		void replace_listener(EventListener& new_listener, EventListener& old_listener)
 		{
 			for(auto& handler : handlers)
-				if(handler.listener == &oldListener)
-					handler.listener = &newListener;
+				if(handler.listener == &old_listener)
+					handler.listener = &new_listener;
 		}
 
-		void removeHandlersWithListener(EventListener& listener)
+		void remove_handlers_with_listener(EventListener& listener)
 		{
 			std::erase_if(handlers, [&](auto handler) {
 				return handler.listener == &listener;

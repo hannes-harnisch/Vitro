@@ -4,9 +4,9 @@
 #if VT_DEBUG
 	#define DEBUG 1
 #endif
-#define HH_ASSERT(condition, message) vtAssertPure(condition, message)
+#define HH_ASSERT(condition, message) VT_ASSERT_PURE(condition, message)
 #include <Array/Include/Array.hpp>
-export module Vitro.Core.Array;
+export module vt.Core.Array;
 
 namespace vt
 {

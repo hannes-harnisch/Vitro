@@ -1,9 +1,9 @@
 ﻿module;
 #include <string>
 #include <typeinfo>
-export module Vitro.App.Event;
+export module vt.App.Event;
 
-import Vitro.Core.Reflect;
+import vt.Core.Reflect;
 
 namespace vt
 {
@@ -12,9 +12,9 @@ namespace vt
 	public:
 		virtual ~Event() = default;
 
-		virtual std::string toString() const
+		virtual std::string to_string() const
 		{
-			return nameOf(*this);
+			return name_of(*this);
 		}
 
 	protected:

@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-export module Vitro.Trace.LogLevel;
+export module vt.Trace.LogLevel;
 
 namespace vt
 {
@@ -22,7 +22,7 @@ namespace vt
 #define TXT_AQUA   "96"
 #define TXT_WHITE  "97"
 
-	export char const* mapLogLevelToEscapeCodeParameters(LogLevel level)
+	export char const* map_log_level_to_escape_code_parameters(LogLevel level)
 	{
 		switch(level)
 		{
@@ -33,6 +33,6 @@ namespace vt
 			case LogLevel::Error: return TXT_WHITE BGR_MAROON;
 			case LogLevel::Fatal: return TXT_WHITE BGR_RED;
 		}
-		vtUnreachable();
+		VT_UNREACHABLE();
 	}
 }

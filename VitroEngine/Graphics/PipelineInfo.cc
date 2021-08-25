@@ -1,11 +1,11 @@
-﻿export module Vitro.Graphics.PipelineInfo;
+﻿export module vt.Graphics.PipelineInfo;
 
-import Vitro.Core.Array;
-import Vitro.Core.Enum;
-import Vitro.Core.FixedList;
-import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderPassInfo;
-import Vitro.Graphics.RootSignature;
+import vt.Core.Array;
+import vt.Core.Enum;
+import vt.Core.FixedList;
+import vt.Graphics.RenderPass;
+import vt.Graphics.RenderPassInfo;
+import vt.Graphics.RootSignature;
 
 namespace vt
 {
@@ -32,10 +32,10 @@ namespace vt
 
 	export struct VertexAttribute
 	{
-		unsigned char	   slot		  = 0;
-		unsigned char	   byteOffset = 0;
-		VertexDataType	   dataType	  = {};
-		AttributeInputRate inputRate  = {};
+		unsigned char	   slot		   = 0;
+		unsigned char	   byte_offset = 0;
+		VertexDataType	   data_type   = {};
+		AttributeInputRate input_rate  = {};
 	};
 
 	export enum class PrimitiveTopology : unsigned char {
@@ -100,13 +100,13 @@ namespace vt
 
 	struct RasterizerState
 	{
-		PolygonFillMode fillMode		= {};
-		CullMode		cullMode		= {};
-		FrontFace		frontFace		= {};
-		bool			enableDepthClip = false;
-		int				depthBias		= 0;
-		float			depthBiasClamp	= 0;
-		float			depthBiasSlope	= 0;
+		PolygonFillMode fill_mode		  = {};
+		CullMode		cull_mode		  = {};
+		FrontFace		front_face		  = {};
+		bool			enable_depth_clip = false;
+		int				depth_bias		  = 0;
+		float			depth_bias_clamp  = 0;
+		float			depth_bias_slope  = 0;
 	};
 
 	export enum class CompareOp : unsigned char {
@@ -133,30 +133,30 @@ namespace vt
 
 	export struct StencilOpState
 	{
-		StencilOp failOp	  = {};
-		StencilOp passOp	  = {};
-		StencilOp depthFailOp = {};
-		CompareOp compareOp	  = {};
+		StencilOp fail_op		= {};
+		StencilOp pass_op		= {};
+		StencilOp depth_fail_op = {};
+		CompareOp compare_op	= {};
 	};
 
 	struct DepthStencilState
 	{
-		bool		   enableDepthTest	 = false;
-		bool		   enableDepthWrite	 = false;
-		CompareOp	   depthCompareOp	 = {};
-		bool		   enableStencilTest = false;
-		unsigned char  stencilReadMask	 = 0;
-		unsigned char  stencilWriteMask	 = 0;
+		bool		   enable_depth_test   = false;
+		bool		   enable_depth_write  = false;
+		CompareOp	   depth_compare_op	   = {};
+		bool		   enable_stencil_test = false;
+		unsigned char  stencil_read_mask   = 0;
+		unsigned char  stencil_write_mask  = 0;
 		StencilOpState front;
 		StencilOpState back;
 	};
 
 	struct MultisampleState
 	{
-		unsigned	  sampleMask			= 0;
-		unsigned char sampleCount			= 1;
-		unsigned char rasterizerSampleCount = 1;
-		bool		  enableAlphaToCoverage = {};
+		unsigned	  sample_mask			   = 0;
+		unsigned char sample_count			   = 1;
+		unsigned char rasterizer_sample_count  = 1;
+		bool		  enable_alpha_to_coverage = {};
 	};
 
 	export enum class LogicOp : unsigned char {
@@ -216,36 +216,36 @@ namespace vt
 
 	export struct ColorAttachmentBlendState
 	{
-		bool		   enableBlend	  = false;
-		BlendFactor	   srcColorFactor = BlendFactor::SrcAlpha;
-		BlendFactor	   dstColorFactor = BlendFactor::SrcAlphaInv;
-		BlendOp		   colorOp		  = BlendOp::Add;
-		BlendFactor	   srcAlphaFactor = BlendFactor::One;
-		BlendFactor	   dstAlphaFactor = BlendFactor::One;
-		BlendOp		   alphaOp		  = BlendOp::Add;
-		ColorComponent writeMask	  = ColorComponent::All;
+		bool		   enable_blend		= false;
+		BlendFactor	   src_color_factor = BlendFactor::SrcAlpha;
+		BlendFactor	   dst_color_factor = BlendFactor::SrcAlphaInv;
+		BlendOp		   color_op			= BlendOp::Add;
+		BlendFactor	   src_alpha_factor = BlendFactor::One;
+		BlendFactor	   dst_alpha_factor = BlendFactor::One;
+		BlendOp		   alpha_op			= BlendOp::Add;
+		ColorComponent write_mask		= ColorComponent::All;
 	};
 
 	export struct BlendState
 	{
-		FixedList<ColorAttachmentBlendState, MaxColorAttachments> attachmentStates;
-		bool													  enableLogicOp = false;
-		LogicOp													  logicOp		= {};
+		FixedList<ColorAttachmentBlendState, MaxColorAttachments> attachment_states;
+		bool													  enable_logic_op = false;
+		LogicOp													  logic_op		  = {};
 	};
 
 	export constexpr unsigned MaxVertexAttributes = 16;
 
 	export struct RenderPipelineInfo
 	{
-		RootSignature const&							rootSignature;
-		RenderPass const&								renderPass;
-		Array<char> const&								vertexShaderBytecode;
-		Array<char> const&								fragmentShaderBytecode;
-		FixedList<VertexAttribute, MaxVertexAttributes> vertexAttributes;
-		PrimitiveTopology								primitiveTopology	   = {};
-		bool											enablePrimitiveRestart = false;
+		RootSignature const&							root_signature;
+		RenderPass const&								render_pass;
+		Array<char> const&								vertex_shader_bytecode;
+		Array<char> const&								fragment_shader_bytecode;
+		FixedList<VertexAttribute, MaxVertexAttributes> vertex_attributes;
+		PrimitiveTopology								primitive_topology		 = {};
+		bool											enable_primitive_restart = false;
 		RasterizerState									rasterizer;
-		DepthStencilState								depthStencil;
+		DepthStencilState								depth_stencil;
 		MultisampleState								multisample;
 		BlendState										blend;
 	};

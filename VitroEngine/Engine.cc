@@ -1,26 +1,27 @@
 ﻿module;
 #include <atomic>
 #include <condition_variable>
+#include <cstdlib>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
-export module Vitro.Engine;
+export module vt.Engine;
 
-import Vitro.App.AppSystem;
-import Vitro.Core.Tick;
-import Vitro.Editor.Editor;
-import Vitro.Graphics.GraphicsSystem;
-import Vitro.Trace.CrashHandler;
-import Vitro.Trace.Log;
-import Vitro.Trace.TraceSystem;
+import vt.App.AppSystem;
+import vt.Core.Tick;
+import vt.Editor.Editor;
+import vt.Graphics.GraphicsSystem;
+import vt.Trace.CrashHandler;
+import vt.Trace.Log;
+import vt.Trace.TraceSystem;
 
 namespace vt
 {
 	class Engine
 	{
 	public:
-		Engine(std::vector<std::string_view> commandLineArgs)
-		try : commandLineArgs(std::move(commandLineArgs)), appSystem(isRunning)
+		Engine(std::vector<std::string_view> command_line_args)
+		try : command_line_args(std::move(command_line_args)), app_system(is_running)
 		{}
 		catch(std::exception const& e)
 		{
@@ -28,42 +29,44 @@ namespace vt
 			crash(msg + e.what());
 		}
 
-		void run()
+		int run()
 		{
 			try
 			{
-				uint64_t previousTime = Tick::measureTime();
-				while(isRunning)
+				uint64_t previous_time = Tick::measure_time();
+				while(is_running)
 				{
-					tick.update(previousTime);
+					tick.update(previous_time);
 					update();
 				}
+				return EXIT_SUCCESS;
 			}
 			catch(std::exception const& e)
 			{
 				std::string msg = "An exception was thrown while the engine was running:\n\n";
 				crash(msg + e.what());
+				return EXIT_FAILURE;
 			}
 		}
 
 	private:
-		std::atomic_bool			  isRunning = true;
-		std::vector<std::string_view> commandLineArgs;
+		std::atomic_bool			  is_running = true;
+		std::vector<std::string_view> command_line_args;
 		Tick						  tick;
-		TraceSystem					  traceSystem;
-		AppSystem					  appSystem;
-		GraphicsSystem				  graphicsSystem;
+		TraceSystem					  trace_system;
+		AppSystem					  app_system;
+		GraphicsSystem				  graphics_system;
 		Editor						  editor;
 
 		void update()
 		{
-			appSystem.update();
+			app_system.update();
 		}
 	};
+}
 
-	export void launchEngine(int argc, char* argv[])
-	{
-		static Engine engine({argv, argv + argc});
-		engine.run();
-	}
+export int main(int argc, char* argv[])
+{
+	static vt::Engine engine({argv, argv + argc});
+	return engine.run();
 }

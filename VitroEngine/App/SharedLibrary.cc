@@ -1,8 +1,8 @@
 ﻿module;
 #include <string_view>
-export module Vitro.App.SharedLibrary;
+export module vt.App.SharedLibrary;
 
-import Vitro.VT_SYSTEM_MODULE.SharedLibrary;
+import vt.VT_SYSTEM_MODULE.SharedLibrary;
 
 namespace vt
 {
@@ -12,9 +12,9 @@ namespace vt
 		SharedLibrary(std::string_view path) : VT_SYSTEM_NAME::SharedLibrary(path)
 		{}
 
-		template<typename TSymbol> TSymbol* loadSymbol(std::string_view symbol) const
+		template<typename TSymbol> TSymbol* load_symbol(std::string_view symbol) const
 		{
-			return static_cast<TSymbol*>(loadSymbolAddress(symbol));
+			return static_cast<TSymbol*>(load_symbol_address(symbol));
 		}
 	};
 }

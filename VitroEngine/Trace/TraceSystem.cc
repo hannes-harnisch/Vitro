@@ -1,8 +1,8 @@
-﻿export module Vitro.Trace.TraceSystem;
+﻿export module vt.Trace.TraceSystem;
 
-import Vitro.Trace.CrashHandler;
-import Vitro.Trace.Log;
-import Vitro.VT_SYSTEM_MODULE.Trace;
+import vt.Trace.CrashHandler;
+import vt.Trace.Log;
+import vt.VT_SYSTEM_MODULE.Trace;
 
 namespace vt
 {
@@ -11,8 +11,8 @@ namespace vt
 	public:
 		TraceSystem()
 		{
-			setCrashHandlers();
-			VT_SYSTEM_NAME::initializeSystemSpecificTracing();
+			set_crash_handlers();
+			VT_SYSTEM_NAME::initialize_system_specific_tracing();
 		}
 
 	private:

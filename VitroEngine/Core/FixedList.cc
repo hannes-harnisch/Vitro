@@ -4,11 +4,11 @@
 #if VT_DEBUG
 	#define DEBUG 1
 #endif
-#define HH_ASSERT(condition, message) vtAssertPure(condition, message)
+#define HH_ASSERT(condition, message) VT_ASSERT_PURE(condition, message)
 #include <FixedList/include/FixedList.hpp>
-export module Vitro.Core.FixedList;
+export module vt.Core.FixedList;
 
 namespace vt
 {
-	export template<typename T, unsigned Capacity> using FixedList = hh::FixedList<T, Capacity>;
+	export template<typename T, size_t Capacity> using FixedList = hh::FixedList<T, Capacity>;
 }

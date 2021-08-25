@@ -1,4 +1,4 @@
-﻿export module Vitro.Graphics.RootSignatureInfo;
+﻿export module vt.Graphics.RootSignatureInfo;
 
 namespace vt
 {

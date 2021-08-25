@@ -1,10 +1,10 @@
 ﻿module;
 #include <new>
-export module Vitro.Editor.Editor;
+export module vt.Editor.Editor;
 
-import Vitro.App.KeyCode;
-import Vitro.App.Window;
-import Vitro.App.WindowEvent;
+import vt.App.KeyCode;
+import vt.App.Window;
+import vt.App.WindowEvent;
 
 namespace vt
 {

@@ -1,11 +1,11 @@
 ﻿module;
 #include <string_view>
-export module Vitro.App.Window;
+export module vt.App.Window;
 
-import Vitro.App.AppContextBase;
-import Vitro.Core.Rectangle;
-import Vitro.Graphics.GraphicsSystem;
-import Vitro.VT_SYSTEM_MODULE.Window;
+import vt.App.AppContextBase;
+import vt.Core.Rectangle;
+import vt.Graphics.GraphicsSystem;
+import vt.VT_SYSTEM_MODULE.Window;
 
 namespace vt
 {
@@ -16,44 +16,44 @@ namespace vt
 	public:
 		Window(std::string_view title, Rectangle rect = Base::DefaultRect) : Base(title, rect)
 		{
-			ensureCallIsOnMainThread();
-			AppContextBase::get().notifyWindowMapping(handle(), *this);
-			GraphicsSystem::get().notifyWindowConstruction(*this, handle());
+			ensure_call_is_on_main_thread();
+			AppContextBase::get().notify_window_mapping(handle(), *this);
+			GraphicsSystem::get().notify_window_construction(*this, handle());
 		}
 
 		Window(Window&& other) noexcept(false) : Base(std::move(other))
 		{
-			ensureCallIsOnMainThread();
-			notifyMove(other);
+			ensure_call_is_on_main_thread();
+			notify_move(other);
 		}
 
 		~Window()
 		{
-			ensureCallIsOnMainThread();
-			notifyDestruction();
+			ensure_call_is_on_main_thread();
+			notify_destruction();
 		}
 
 		Window& operator=(Window&& other) noexcept(false)
 		{
-			ensureCallIsOnMainThread();
+			ensure_call_is_on_main_thread();
 
-			notifyDestruction();
+			notify_destruction();
 			Base::operator=(std::move(other));
-			notifyMove(other);
+			notify_move(other);
 			return *this;
 		}
 
 	private:
-		void notifyDestruction()
+		void notify_destruction()
 		{
-			AppContextBase::get().notifyWindowDestruction(handle());
-			GraphicsSystem::get().notifyWindowDestruction(*this);
+			AppContextBase::get().notify_window_destruction(handle());
+			GraphicsSystem::get().notify_window_destruction(*this);
 		}
 
-		void notifyMove(Window& oldWindow)
+		void notify_move(Window& old_window)
 		{
-			AppContextBase::get().notifyWindowMapping(handle(), *this);
-			GraphicsSystem::get().notifyWindowReplacement(oldWindow, *this);
+			AppContextBase::get().notify_window_mapping(handle(), *this);
+			GraphicsSystem::get().notify_window_replacement(old_window, *this);
 		}
 	};
 }

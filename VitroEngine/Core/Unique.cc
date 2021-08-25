@@ -1,6 +1,6 @@
 ﻿module;
 #include <memory>
-export module Vitro.Core.Unique;
+export module vt.Core.Unique;
 
 namespace vt
 {

@@ -3,11 +3,11 @@
 #include "Windows.API.hh"
 
 #include <string_view>
-export module Vitro.Windows.SharedLibrary;
+export module vt.Windows.SharedLibrary;
 
-import Vitro.App.SharedLibraryBase;
-import Vitro.Core.Unique;
-import Vitro.Windows.Utils;
+import vt.App.SharedLibraryBase;
+import vt.Core.Unique;
+import vt.Windows.Utils;
 
 namespace vt::windows
 {
@@ -16,7 +16,7 @@ namespace vt::windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			library = makeLibrary();
+			library = make_library();
 			return library.get() != nullptr;
 		}
 
@@ -26,10 +26,10 @@ namespace vt::windows
 		}
 
 	protected:
-		SharedLibrary(std::string_view path) : path(widenString(path)), library(makeLibrary())
+		SharedLibrary(std::string_view path) : path(widen_string(path)), library(make_library())
 		{}
 
-		void* loadSymbolAddress(std::string_view symbol) const final override
+		void* load_symbol_address(std::string_view symbol) const final override
 		{
 			return ::GetProcAddress(library.get(), symbol.data());
 		}
@@ -38,14 +38,14 @@ namespace vt::windows
 		std::wstring				   path;
 		Unique<HMODULE, ::FreeLibrary> library;
 
-		decltype(library) makeLibrary() const
+		decltype(library) make_library() const
 		{
-			auto rawLibrary = ::LoadLibraryW(path.data());
+			auto raw_library = ::LoadLibraryW(path.data());
 
-			decltype(library) freshLibrary(rawLibrary);
-			vtEnsure(rawLibrary, "Failed to find shared library '{}'.", narrowString(path));
+			decltype(library) fresh_library(raw_library);
+			VT_ENSURE(raw_library, "Failed to find shared library '{}'.", narrow_string(path));
 
-			return freshLibrary;
+			return fresh_library;
 		}
 	};
 }

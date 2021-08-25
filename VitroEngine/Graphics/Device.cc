@@ -1,12 +1,12 @@
-﻿export module Vitro.Graphics.Device;
+﻿export module vt.Graphics.Device;
 
-import Vitro.Graphics.DeviceBase;
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DeviceBase;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.Device;
+import vt.VT_GPU_API_MODULE_PRIMARY.Device;
 #endif
-import Vitro.VT_GPU_API_MODULE.Device;
+import vt.VT_GPU_API_MODULE.Device;
 
 namespace vt
 {

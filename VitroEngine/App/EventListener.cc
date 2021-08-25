@@ -1,9 +1,9 @@
 ﻿module;
 #include <type_traits>
-export module Vitro.App.EventListener;
+export module vt.App.EventListener;
 
-import Vitro.App.EventSystem;
-import Vitro.App.Event;
+import vt.App.EventSystem;
+import vt.App.Event;
 
 namespace vt
 {
@@ -14,42 +14,42 @@ namespace vt
 
 		EventListener(EventListener const& that)
 		{
-			EventSystem::get().duplicateHandlersWithListener(*this, that);
+			EventSystem::get().duplicate_handlers_with_listener(*this, that);
 		}
 
 		EventListener(EventListener&& that) noexcept
 		{
-			EventSystem::get().replaceListener(*this, that);
+			EventSystem::get().replace_listener(*this, that);
 		}
 
 		~EventListener()
 		{
-			unregisterEventHandlers();
+			unregister_event_handlers();
 		}
 
 		EventListener& operator=(EventListener const& that)
 		{
-			unregisterEventHandlers();
-			EventSystem::get().duplicateHandlersWithListener(*this, that);
+			unregister_event_handlers();
+			EventSystem::get().duplicate_handlers_with_listener(*this, that);
 			return *this;
 		}
 
 		EventListener& operator=(EventListener&& that) noexcept
 		{
-			unregisterEventHandlers();
-			EventSystem::get().replaceListener(*this, that);
+			unregister_event_handlers();
+			EventSystem::get().replace_listener(*this, that);
 			return *this;
 		}
 
 	protected:
-		template<auto... Handlers> void registerEventHandlers()
+		template<auto... Handlers> void register_event_handlers()
 		{
-			(registerHandler<Handlers>(), ...);
+			(register_handler<Handlers>(), ...);
 		}
 
-		void unregisterEventHandlers()
+		void unregister_event_handlers()
 		{
-			EventSystem::get().removeHandlersWithListener(*this);
+			EventSystem::get().remove_handlers_with_listener(*this);
 		}
 
 	private:
@@ -61,7 +61,7 @@ namespace vt
 			using Param	 = P;
 		};
 
-		template<auto Handler> void registerHandler()
+		template<auto Handler> void register_handler()
 		{
 			using HandlerTraits = FunctionTraits<decltype(Handler)>;
 			using TReturn		= HandlerTraits::Return;
@@ -79,7 +79,7 @@ namespace vt
 				else
 					return (object.*Handler)(event);
 			};
-			EventSystem::get().submitHandler(func, this, typeid(TEvent));
+			EventSystem::get().submit_handler(func, this, typeid(TEvent));
 		}
 	};
 }

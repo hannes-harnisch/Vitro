@@ -3,15 +3,15 @@
 #include "D3D12.API.hh"
 
 #include <utility>
-export module Vitro.D3D12.SwapChain;
+export module vt.D3D12.SwapChain;
 
-import Vitro.Core.FixedList;
-import Vitro.D3D12.Utils;
-import Vitro.Graphics.Device;
-import Vitro.Graphics.Driver;
-import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderTarget;
-import Vitro.Graphics.SwapChainBase;
+import vt.Core.FixedList;
+import vt.D3D12.Utils;
+import vt.Graphics.Device;
+import vt.Graphics.Driver;
+import vt.Graphics.RenderPass;
+import vt.Graphics.RenderTarget;
+import vt.Graphics.SwapChainBase;
 
 namespace vt::d3d12
 {
@@ -20,117 +20,118 @@ namespace vt::d3d12
 	public:
 		SwapChain(vt::Driver const&		driver,
 				  vt::Device const&		dev,
-				  vt::RenderPass const& renderPass,
-				  void*					nativeWindow,
-				  unsigned				bufferCount = DefaultBufferCount) :
-			tearingSupported(driver.d3d12.swapChainTearingSupported()),
-			presentFlags(tearingSupported ? DXGI_PRESENT_ALLOW_TEARING : 0),
-			swapChain(makeSwapChain(driver.d3d12.get(), dev.d3d12.renderQueueHandle(), renderPass, nativeWindow, bufferCount)),
-			renderTargetHeap(makeRenderTargetHeap(dev.d3d12.get(), bufferCount))
+				  vt::RenderPass const& render_pass,
+				  void*					native_window,
+				  unsigned				buffer_count = DefaultBufferCount) :
+			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
+			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0),
+			swap_chain(
+				make_swap_chain(driver.d3d12.get(), dev.d3d12.render_queue_handle(), render_pass, native_window, buffer_count)),
+			render_target_heap(make_render_target_heap(dev.d3d12.get(), buffer_count))
 		{
 			auto device = dev.d3d12.get();
 			UINT size	= device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			auto handle = renderTargetHeap->GetCPUDescriptorHandleForHeapStart();
-			for(unsigned i = 0; i != bufferCount; ++i)
+			auto handle = render_target_heap->GetCPUDescriptorHandleForHeapStart();
+			for(unsigned i = 0; i != buffer_count; ++i)
 			{
-				ID3D12Resource* renderTargetPtr;
+				ID3D12Resource* render_target_ptr;
 
-				auto result = swapChain->GetBuffer(i, IID_PPV_ARGS(&renderTargetPtr));
-				vtEnsureResult(result, "Failed to get D3D12 swap chain buffer.");
-				ComUnique<ID3D12Resource> renderTarget(renderTargetPtr);
+				auto result = swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_target_ptr));
+				VT_ENSURE_RESULT(result, "Failed to get D3D12 swap chain buffer.");
+				ComUnique<ID3D12Resource> render_target(render_target_ptr);
 
-				device->CreateRenderTargetView(renderTarget.get(), nullptr, handle);
-				renderTargets.emplace_back(std::move(renderTarget), handle);
+				device->CreateRenderTargetView(render_target.get(), nullptr, handle);
+				render_targets.emplace_back(std::move(render_target), handle);
 
 				handle.ptr += size;
 			}
 		}
 
-		vt::RenderTarget& acquireRenderTarget() override
+		vt::RenderTarget& acquire_render_target() override
 		{
-			return renderTargets[swapChain->GetCurrentBackBufferIndex()];
+			return render_targets[swap_chain->GetCurrentBackBufferIndex()];
 		}
 
 		void present() override
 		{
-			auto result = swapChain->Present(isVSyncEnabled, presentFlags);
-			vtAssertResult(result, "Failed to present with D3D12 swap chain.");
+			auto result = swap_chain->Present(is_v_sync_enabled, present_flags);
+			VT_ASSERT_RESULT(result, "Failed to present with D3D12 swap chain.");
 		}
 
 		void resize() override
 		{
-			auto result = swapChain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
-			vtAssertResult(result, "Failed to resize D3D12 swap chain.");
+			auto result = swap_chain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
+			VT_ASSERT_RESULT(result, "Failed to resize D3D12 swap chain.");
 		}
 
-		void enableVSync() override
+		void enable_v_sync() override
 		{
-			isVSyncEnabled = true;
-			presentFlags   = 0;
+			is_v_sync_enabled = true;
+			present_flags	  = 0;
 		}
 
-		void disableVSync() override
+		void disable_v_sync() override
 		{
-			isVSyncEnabled = false;
-			if(tearingSupported)
-				presentFlags = DXGI_PRESENT_ALLOW_TEARING;
+			is_v_sync_enabled = false;
+			if(tearing_supported)
+				present_flags = DXGI_PRESENT_ALLOW_TEARING;
 		}
 
 	private:
-		bool									tearingSupported;
-		UINT									presentFlags;
-		ComUnique<IDXGISwapChain3>				swapChain;
-		ComUnique<ID3D12DescriptorHeap>			renderTargetHeap;
-		FixedList<vt::RenderTarget, MaxBuffers> renderTargets;
+		bool									tearing_supported;
+		UINT									present_flags;
+		ComUnique<IDXGISwapChain3>				swap_chain;
+		ComUnique<ID3D12DescriptorHeap>			render_target_heap;
+		FixedList<vt::RenderTarget, MaxBuffers> render_targets;
 
-		decltype(swapChain) makeSwapChain(IDXGIFactory5*		factory,
-										  ID3D12CommandQueue*	queue,
-										  vt::RenderPass const& renderPass,
-										  void*					nativeWindow,
-										  unsigned				bufferCount)
+		decltype(swap_chain) make_swap_chain(IDXGIFactory5*		   factory,
+											 ID3D12CommandQueue*   queue,
+											 vt::RenderPass const& render_pass,
+											 void*				   native_window,
+											 unsigned			   buffer_count)
 		{
-			HWND hwnd = static_cast<HWND>(nativeWindow);
+			HWND hwnd = static_cast<HWND>(native_window);
 
 			DXGI_SWAP_CHAIN_DESC1 const desc {
-				.Format		 = renderPass.d3d12.attachments[0].format,
+				.Format		 = render_pass.d3d12.attachments[0].format,
 				.Stereo		 = false,
 				.SampleDesc	 = {1, 0},
 				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
-				.BufferCount = bufferCount,
+				.BufferCount = buffer_count,
 				.Scaling	 = DXGI_SCALING_STRETCH,
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 				.AlphaMode	 = DXGI_ALPHA_MODE_UNSPECIFIED,
-				.Flags		 = tearingSupported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
+				.Flags		 = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
-			IDXGISwapChain1* rawSwapChainPrototype;
-			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &rawSwapChainPrototype);
-			ComUnique<IDXGISwapChain1> swapChainPrototype(rawSwapChainPrototype);
-			vtEnsureResult(result, "Failed to create D3D12 proxy swap chain.");
+			IDXGISwapChain1* raw_swap_chain_prototype;
+			auto result = factory->CreateSwapChainForHwnd(queue, hwnd, &desc, nullptr, nullptr, &raw_swap_chain_prototype);
+			ComUnique<IDXGISwapChain1> swap_chain_prototype(raw_swap_chain_prototype);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 proxy swap chain.");
 
-			IDXGISwapChain3* rawSwapChain;
-			result = swapChainPrototype->QueryInterface(&rawSwapChain);
-			decltype(swapChain) freshSwapChain(rawSwapChain);
-			vtEnsureResult(result, "Failed to query for D3D12 main swap chain.");
+			IDXGISwapChain3* raw_swap_chain;
+			result = swap_chain_prototype->QueryInterface(&raw_swap_chain);
+			decltype(swap_chain) fresh_swap_chain(raw_swap_chain);
+			VT_ENSURE_RESULT(result, "Failed to query for D3D12 main swap chain.");
 
 			result = factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
-			vtEnsureResult(result, "Failed to disable DXGI auto-fullscreen.");
-			return freshSwapChain;
+			VT_ENSURE_RESULT(result, "Failed to disable DXGI auto-fullscreen.");
+			return fresh_swap_chain;
 		}
 
-		decltype(renderTargetHeap) makeRenderTargetHeap(ID3D12Device4* device, unsigned bufferCount)
+		decltype(render_target_heap) make_render_target_heap(ID3D12Device4* device, unsigned buffer_count)
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-				.NumDescriptors = bufferCount,
+				.NumDescriptors = buffer_count,
 			};
-			ID3D12DescriptorHeap* rawHeap;
+			ID3D12DescriptorHeap* raw_heap;
 
-			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&rawHeap));
+			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&raw_heap));
 
-			decltype(renderTargetHeap) freshHeap(rawHeap);
-			vtEnsureResult(result, "Failed to create D3D12 render target descriptor heap.");
+			decltype(render_target_heap) fresh_heap(raw_heap);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 render target descriptor heap.");
 
-			return freshHeap;
+			return fresh_heap;
 		}
 	};
 }

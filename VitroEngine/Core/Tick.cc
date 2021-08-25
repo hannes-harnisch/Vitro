@@ -2,7 +2,7 @@
 #include <chrono>
 #include <cstdint>
 #include <format>
-export module Vitro.Core.Tick;
+export module vt.Core.Tick;
 
 namespace stdc = std::chrono;
 
@@ -11,7 +11,7 @@ namespace vt
 	export struct Tick
 	{
 	public:
-		static uint64_t measureTime()
+		static uint64_t measure_time()
 		{
 			auto now = stdc::steady_clock::now().time_since_epoch();
 			return stdc::duration_cast<stdc::microseconds>(now).count();
@@ -19,11 +19,11 @@ namespace vt
 
 		Tick() = default;
 
-		void update(uint64_t& previousTime)
+		void update(uint64_t& previous_time)
 		{
-			uint64_t current = Tick::measureTime();
-			secs			 = (current - previousTime) / 1000000.0f;
-			previousTime	 = current;
+			uint64_t current = Tick::measure_time();
+			secs			 = (current - previous_time) / 1000000.0f;
+			previous_time	 = current;
 		}
 
 		float seconds() const
@@ -41,7 +41,7 @@ namespace vt
 			return secs <=> other.secs;
 		}
 
-		std::string toString() const
+		std::string to_string() const
 		{
 			return std::format("{:.3f} ms", milliseconds());
 		}

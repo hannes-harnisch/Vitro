@@ -1,6 +1,3 @@
-﻿import Vitro.Engine;
+﻿import vt.Engine;
 
-int main(int argc, char* argv[])
-{
-	vt::launchEngine(argc, argv);
-}
+extern int main(int, char**);

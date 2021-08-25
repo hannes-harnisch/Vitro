@@ -1,8 +1,8 @@
 ﻿module;
 #include <utility>
-export module Vitro.Graphics.FrameContext;
+export module vt.Graphics.FrameContext;
 
-import Vitro.Core.FixedList;
+import vt.Core.FixedList;
 
 namespace vt
 {
@@ -11,34 +11,34 @@ namespace vt
 	export template<typename T> class FrameContext
 	{
 	public:
-		template<typename... Ts> FrameContext(unsigned framesInFlight, Ts&&... ts)
+		template<typename... Ts> FrameContext(unsigned frames_in_flight, Ts&&... ts)
 		{
-			for(unsigned i = 0; i != framesInFlight; ++i)
-				frameResources.emplace_back(std::forward<Ts>(ts)...);
+			for(unsigned i = 0; i != frames_in_flight; ++i)
+				frame_resources.emplace_back(std::forward<Ts>(ts)...);
 		}
 
 		T* operator->()
 		{
-			return &frameResources[index];
+			return &frame_resources[index];
 		}
 
 		T const* operator->() const
 		{
-			return &frameResources[index];
+			return &frame_resources[index];
 		}
 
-		unsigned currentIndex() const
+		unsigned current_index() const
 		{
 			return index;
 		}
 
-		void moveToNextFrame()
+		void move_to_next_frame()
 		{
-			index = (index + 1) % frameResources.size();
+			index = (index + 1) % frame_resources.size();
 		}
 
 	private:
-		FixedList<T, MaxFramesInFlight> frameResources;
+		FixedList<T, MaxFramesInFlight> frame_resources;
 		unsigned						index = 0;
 	};
 }

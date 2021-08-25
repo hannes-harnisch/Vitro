@@ -2,7 +2,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
-export module Vitro.Core.Algorithm;
+export module vt.Core.Algorithm;
 
 namespace vt
 {
@@ -12,14 +12,14 @@ namespace vt
 		return static_cast<unsigned>(std::size(container));
 	}
 
-	export constexpr void removeFirstOf(std::string& str, std::string_view pattern)
+	export constexpr void remove_first_of(std::string& str, std::string_view pattern)
 	{
 		size_t i = str.find(pattern);
 		if(i != std::string::npos)
 			str.erase(i, pattern.length());
 	}
 
-	export constexpr void removeAllOf(std::string& str, std::string_view pattern)
+	export constexpr void remove_all_of(std::string& str, std::string_view pattern)
 	{
 		for(size_t i = str.find(pattern); i != std::string::npos; i = str.find(pattern))
 			str.erase(i, pattern.length());

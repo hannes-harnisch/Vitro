@@ -1,11 +1,11 @@
-﻿export module Vitro.Graphics.RenderPass;
+﻿export module vt.Graphics.RenderPass;
 
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.RenderPass;
+import vt.VT_GPU_API_MODULE_PRIMARY.RenderPass;
 #endif
-import Vitro.VT_GPU_API_MODULE.RenderPass;
+import vt.VT_GPU_API_MODULE.RenderPass;
 
 namespace vt
 {

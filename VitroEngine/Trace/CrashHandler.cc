@@ -3,9 +3,9 @@
 #include <cstdio>
 #include <format>
 #include <string_view>
-export module Vitro.Trace.CrashHandler;
+export module vt.Trace.CrashHandler;
 
-import Vitro.VT_SYSTEM_MODULE.Utils;
+import vt.VT_SYSTEM_MODULE.Utils;
 
 namespace vt
 {
@@ -14,24 +14,24 @@ namespace vt
 		auto text = std::format("Fatal error: {}", message);
 		std::puts(text.data());
 
-		VT_SYSTEM_NAME::showErrorMessageBox("Fatal error", message);
+		VT_SYSTEM_NAME::show_error_message_box("Fatal error", message);
 		std::exit(EXIT_FAILURE);
 	}
 }
 
 extern "C"
 {
-	export void handleArithmeticSignal(int)
+	export void handle_arithmetic_signal(int)
 	{
 		vt::crash("Attempted to divide an integer by zero.");
 	}
 
-	export void handleAccessViolationSignal(int)
+	export void handle_access_violation_signal(int)
 	{
 		vt::crash("Attempted to access a restricted memory location.");
 	}
 
-	export void handleAbortSignal(int)
+	export void handle_abort_signal(int)
 	{
 		vt::crash("A fatal error occurred that led to an abort signal.");
 	}
@@ -39,10 +39,10 @@ extern "C"
 
 namespace vt
 {
-	export void setCrashHandlers()
+	export void set_crash_handlers()
 	{
-		std::signal(SIGFPE, handleArithmeticSignal);
-		std::signal(SIGSEGV, handleAccessViolationSignal);
-		std::signal(SIGABRT, handleAbortSignal);
+		std::signal(SIGFPE, handle_arithmetic_signal);
+		std::signal(SIGSEGV, handle_access_violation_signal);
+		std::signal(SIGABRT, handle_abort_signal);
 	}
 }

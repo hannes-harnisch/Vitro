@@ -3,46 +3,46 @@
 #include "D3D12.API.hh"
 
 #include <span>
-export module Vitro.D3D12.Queue;
+export module vt.D3D12.Queue;
 
-import Vitro.Core.Algorithm;
-import Vitro.D3D12.Utils;
-import Vitro.Graphics.Driver;
+import vt.Core.Algorithm;
+import vt.D3D12.Utils;
+import vt.Graphics.Driver;
 
 namespace vt::d3d12
 {
 	export class Queue
 	{
 	public:
-		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE commandType) :
-			queue(makeQueue(device, commandType)), fence(makeFence(device))
+		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type) :
+			queue(make_queue(device, command_type)), fence(make_fence(device))
 		{}
 
 		~Queue()
 		{
 			if(queue)
-				waitForIdle();
+				wait_for_idle();
 		}
 
-		void waitForIdle()
+		void wait_for_idle()
 		{
-			waitForFenceValue(signal());
+			wait_for_fence_value(signal());
 		}
 
-		uint64_t submit(std::span<vt::CommandListHandle> commandLists)
+		uint64_t submit(std::span<vt::CommandListHandle> command_lists)
 		{
-			auto lists = reinterpret_cast<ID3D12CommandList* const*>(commandLists.data());
-			queue->ExecuteCommandLists(count(commandLists), lists);
+			auto lists = reinterpret_cast<ID3D12CommandList* const*>(command_lists.data());
+			queue->ExecuteCommandLists(count(command_lists), lists);
 			return signal();
 		}
 
-		void waitForFenceValue(uint64_t valueToAwait) const
+		void wait_for_fence_value(uint64_t value_to_await) const
 		{
-			if(fence->GetCompletedValue() >= valueToAwait)
+			if(fence->GetCompletedValue() >= value_to_await)
 				return;
 
-			auto result = fence->SetEventOnCompletion(valueToAwait, nullptr);
-			vtAssertResult(result, "Failed to wait for queue workload completion.");
+			auto result = fence->SetEventOnCompletion(value_to_await, nullptr);
+			VT_ASSERT_RESULT(result, "Failed to wait for queue workload completion.");
 		}
 
 		ID3D12CommandQueue* get() const
@@ -53,44 +53,44 @@ namespace vt::d3d12
 	private:
 		ComUnique<ID3D12CommandQueue> queue;
 		ComUnique<ID3D12Fence>		  fence;
-		uint64_t					  fenceValue = 0;
+		uint64_t					  fence_value = 0;
 
-		static decltype(queue) makeQueue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE commandType)
+		static decltype(queue) make_queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type)
 		{
 			D3D12_COMMAND_QUEUE_DESC const desc {
-				.Type	  = commandType,
+				.Type	  = command_type,
 				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
 				.NodeMask = 0,
 			};
-			ID3D12CommandQueue* rawQueue;
+			ID3D12CommandQueue* raw_queue;
 
-			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&rawQueue));
+			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&raw_queue));
 
-			decltype(queue) freshQueue(rawQueue);
-			vtEnsureResult(result, "Failed to create D3D12 command queue.");
+			decltype(queue) fresh_queue(raw_queue);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 command queue.");
 
-			return freshQueue;
+			return fresh_queue;
 		}
 
-		static decltype(fence) makeFence(ID3D12Device4* device)
+		static decltype(fence) make_fence(ID3D12Device4* device)
 		{
-			ID3D12Fence* rawFence;
+			ID3D12Fence* raw_fence;
 
-			auto result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&rawFence));
+			auto result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&raw_fence));
 
-			decltype(fence) freshFence(rawFence);
-			vtEnsureResult(result, "Failed to create D3D12 fence.");
+			decltype(fence) fresh_fence(raw_fence);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 fence.");
 
-			return freshFence;
+			return fresh_fence;
 		}
 
 		uint64_t signal()
 		{
-			auto result = queue->Signal(fence.get(), ++fenceValue);
-			vtAssertResult(result, "Failed to signal command queue.");
+			auto result = queue->Signal(fence.get(), ++fence_value);
+			VT_ASSERT_RESULT(result, "Failed to signal command queue.");
 
-			return fenceValue;
+			return fence_value;
 		}
 	};
 }

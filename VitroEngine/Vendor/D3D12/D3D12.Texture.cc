@@ -1,15 +1,15 @@
 ﻿module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
-export module Vitro.D3D12.Texture;
+export module vt.D3D12.Texture;
 
-import Vitro.D3D12.Utils;
-import Vitro.Graphics.Device;
-import Vitro.Graphics.TextureInfo;
+import vt.D3D12.Utils;
+import vt.Graphics.Device;
+import vt.Graphics.TextureInfo;
 
 namespace vt::d3d12
 {
-	export constexpr DXGI_FORMAT convertImageFormat(ImageFormat format)
+	export constexpr DXGI_FORMAT convert_image_format(ImageFormat format)
 	{
 		using enum ImageFormat;
 		switch(format)
@@ -83,10 +83,10 @@ namespace vt::d3d12
 			case Bc7_UNorm: return DXGI_FORMAT_BC7_UNORM;
 			case Bc7_UNormSrgb: return DXGI_FORMAT_BC7_UNORM_SRGB;
 		}
-		vtUnreachable();
+		VT_UNREACHABLE();
 	}
 
-	export constexpr D3D12_RESOURCE_STATES convertImageLayout(ImageLayout layout)
+	export constexpr D3D12_RESOURCE_STATES convert_image_layout(ImageLayout layout)
 	{
 		using enum ImageLayout;
 		switch(layout)
@@ -105,7 +105,7 @@ namespace vt::d3d12
 			case NonFragmentShaderResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 			case UnorderedAccess: return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 		}
-		vtUnreachable();
+		VT_UNREACHABLE();
 	}
 
 	export class Texture

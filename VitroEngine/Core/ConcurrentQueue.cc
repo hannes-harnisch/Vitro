@@ -1,6 +1,6 @@
 ﻿module;
 #include <concurrentqueue/concurrentqueue.h>
-export module Vitro.Core.ConcurrentQueue;
+export module vt.Core.ConcurrentQueue;
 
 namespace vt
 {

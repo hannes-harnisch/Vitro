@@ -1,27 +1,27 @@
 ﻿module;
 #include <atomic>
-export module Vitro.App.AppSystem;
+export module vt.App.AppSystem;
 
-import Vitro.App.AppContext;
-import Vitro.App.EventSystem;
-import Vitro.App.Input;
+import vt.App.AppContext;
+import vt.App.EventSystem;
+import vt.App.Input;
 
 namespace vt
 {
 	export class AppSystem
 	{
 	public:
-		AppSystem(std::atomic_bool& engineRunningStatus) : appContext(engineRunningStatus)
+		AppSystem(std::atomic_bool& engine_running_status) : app_context(engine_running_status)
 		{}
 
 		void update()
 		{
-			appContext.pollEvents();
+			app_context.poll_events();
 		}
 
 	private:
-		EventSystem eventSystem;
-		AppContext	appContext;
+		EventSystem event_system;
+		AppContext	app_context;
 		Input		input;
 	};
 }

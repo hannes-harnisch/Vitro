@@ -5,26 +5,26 @@
 #include <cstdlib>
 #include <ranges>
 #include <type_traits>
-export module Vitro.D3D12.CommandList;
+export module vt.D3D12.CommandList;
 
-import Vitro.Core.Algorithm;
-import Vitro.Core.FixedList;
-import Vitro.Core.Rectangle;
-import Vitro.D3D12.RenderPass;
-import Vitro.D3D12.RenderTarget;
-import Vitro.D3D12.Utils;
-import Vitro.Graphics.CommandListBase;
-import Vitro.Graphics.Device;
-import Vitro.Graphics.Driver;
-import Vitro.Graphics.PipelineInfo;
-import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderTarget;
-import Vitro.Graphics.Resource;
-import Vitro.Graphics.RootSignature;
+import vt.Core.Algorithm;
+import vt.Core.FixedList;
+import vt.Core.Rectangle;
+import vt.D3D12.RenderPass;
+import vt.D3D12.RenderTarget;
+import vt.D3D12.Utils;
+import vt.Graphics.CommandListBase;
+import vt.Graphics.Device;
+import vt.Graphics.Driver;
+import vt.Graphics.PipelineInfo;
+import vt.Graphics.RenderPass;
+import vt.Graphics.RenderTarget;
+import vt.Graphics.Resource;
+import vt.Graphics.RootSignature;
 
 namespace vt::d3d12
 {
-	constexpr D3D12_COMMAND_LIST_TYPE convertCommandType(CommandType type)
+	constexpr D3D12_COMMAND_LIST_TYPE convert_command_type(CommandType type)
 	{
 		switch(type)
 		{
@@ -32,20 +32,20 @@ namespace vt::d3d12
 			case CommandType::Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
 			case CommandType::Render: return D3D12_COMMAND_LIST_TYPE_DIRECT;
 		}
-		vtUnreachable();
+		VT_UNREACHABLE();
 	}
 
-	constexpr DXGI_FORMAT getIndexFormatFromStride(unsigned stride)
+	constexpr DXGI_FORMAT get_index_format_from_stride(unsigned stride)
 	{
 		switch(stride)
 		{
 			case 2: return DXGI_FORMAT_R16_UINT;
 			case 4: return DXGI_FORMAT_R32_UINT;
 		}
-		vtUnreachable();
+		VT_UNREACHABLE();
 	}
 
-	constexpr D3D_PRIMITIVE_TOPOLOGY convertPrimitiveTopology(PrimitiveTopology topology)
+	constexpr D3D_PRIMITIVE_TOPOLOGY convert_primitive_topology(PrimitiveTopology topology)
 	{
 		using enum PrimitiveTopology;
 		switch(topology)
@@ -92,7 +92,7 @@ namespace vt::d3d12
 			case PatchList_31ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST;
 			case PatchList_32ControlPoints: return D3D_PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST;
 		}
-		vtUnreachable();
+		VT_UNREACHABLE();
 	}
 
 	template<CommandType Type> class CommandListData;
@@ -106,9 +106,9 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
 	{
 	protected:
-		RenderPass const*	activeRenderPass   = nullptr;
-		RenderTarget const* activeRenderTarget = nullptr;
-		unsigned			subpassIndex	   = 1;
+		RenderPass const*	active_render_pass	 = nullptr;
+		RenderTarget const* active_render_target = nullptr;
+		unsigned			subpass_index		 = 1;
 	};
 
 	template<CommandType Type>
@@ -123,7 +123,7 @@ namespace vt::d3d12
 	{
 	public:
 		CommandList(vt::Device const& device) :
-			allocator(makeAllocator(device.d3d12.get())), cmd(makeCommandList(device.d3d12.get()))
+			allocator(make_allocator(device.d3d12.get())), cmd(make_command_list(device.d3d12.get()))
 		{}
 
 		vt::CommandListHandle handle()
@@ -134,189 +134,191 @@ namespace vt::d3d12
 		void reset()
 		{
 			auto result = allocator->Reset();
-			vtAssertResult(result, "Failed to reset D3D12 command allocator.");
+			VT_ASSERT_RESULT(result, "Failed to reset D3D12 command allocator.");
 		}
 
 		void begin()
 		{
 			auto result = cmd->Reset(allocator.get(), nullptr);
-			vtAssertResult(result, "Failed to reset D3D12 command list.");
+			VT_ASSERT_RESULT(result, "Failed to reset D3D12 command list.");
 		}
 
 		void end()
 		{
 			auto result = cmd->Close();
-			vtAssertResult(result, "Failed to end D3D12 command list.");
+			VT_ASSERT_RESULT(result, "Failed to end D3D12 command list.");
 		}
 
-		void bindComputePipeline(vt::Pipeline const& pipeline)
+		void bind_compute_pipeline(vt::Pipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.get());
 		}
 
-		void bindComputeRootSignature(vt::RootSignature const& rootSignature)
+		void bind_compute_root_signature(vt::RootSignature const& root_signature)
 		{
-			cmd->SetComputeRootSignature(rootSignature.d3d12.get());
+			cmd->SetComputeRootSignature(root_signature.d3d12.get());
 		}
 
-		void pushComputeConstants(void const* data, unsigned size, unsigned offset)
+		void push_compute_constants(void const* data, unsigned size, unsigned offset)
 		{
 			cmd->SetComputeRoot32BitConstants(0, size / sizeof(DWORD), data, offset / sizeof(DWORD));
 		}
 
-		void dispatch(unsigned xCount, unsigned yCount, unsigned zCount)
+		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
 		{
-			cmd->Dispatch(xCount, yCount, zCount);
+			cmd->Dispatch(x_count, y_count, z_count);
 		}
 
-		void bindRenderPipeline(vt::Pipeline const& pipeline)
+		void bind_render_pipeline(vt::Pipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.get());
 		}
 
-		void bindRenderRootSignature(vt::RootSignature const& rootSignature)
+		void bind_render_root_signature(vt::RootSignature const& root_signature)
 		{
-			cmd->SetGraphicsRootSignature(rootSignature.d3d12.get());
+			cmd->SetGraphicsRootSignature(root_signature.d3d12.get());
 		}
 
-		void pushRenderConstants(void const* data, unsigned size, unsigned offset)
+		void push_render_constants(void const* data, unsigned size, unsigned offset)
 		{
 			cmd->SetGraphicsRoot32BitConstants(0, size / sizeof(DWORD), data, offset / sizeof(DWORD));
 		}
 
-		void beginRenderPass(vt::RenderPass const&		 renderPass,
-							 vt::RenderTarget const&	 renderTarget,
-							 std::span<ClearValue const> clearValues = {})
+		void begin_render_pass(vt::RenderPass const&	   render_pass,
+							   vt::RenderTarget const&	   render_target,
+							   std::span<ClearValue const> clear_values = {})
 		{
-			this->activeRenderPass	 = &renderPass.d3d12;
-			this->activeRenderTarget = &renderTarget.d3d12;
+			this->active_render_pass   = &render_pass.d3d12;
+			this->active_render_target = &render_target.d3d12;
 
-			auto& pass	 = *this->activeRenderPass;
-			auto& target = *this->activeRenderTarget;
-			insertRenderPassBarriers(pass.subpasses[0]);
+			auto& pass	 = *this->active_render_pass;
+			auto& target = *this->active_render_target;
+			insert_render_pass_barriers(pass.subpasses[0]);
 
-			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MaxColorAttachments> rtDescs;
+			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MaxColorAttachments> rt_descs;
 
 			unsigned index = 0;
-			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.usesDepthStencil))
+			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.uses_depth_stencil))
 			{
-				D3D12_CLEAR_VALUE colorClear;
-				if(clearValues.empty())
-					colorClear = {};
+				D3D12_CLEAR_VALUE color_clear;
+				if(clear_values.empty())
+					color_clear = {};
 				else
-					colorClear = {
+					color_clear = {
 						.Format = attachment.format,
 						.Color {
-							clearValues[index].color.r,
-							clearValues[index].color.g,
-							clearValues[index].color.b,
-							clearValues[index].color.a,
+							clear_values[index].color.r,
+							clear_values[index].color.g,
+							clear_values[index].color.b,
+							clear_values[index].color.a,
 						},
 					};
 
-				rtDescs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
-					.cpuDescriptor = target.getView(index),
+				rt_descs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
+					.cpuDescriptor = target.get_view(index),
 					.BeginningAccess {
-						.Type  = attachment.beginAccess,
-						.Clear = {colorClear},
+						.Type  = attachment.begin_access,
+						.Clear = {color_clear},
 					},
-					.EndingAccess = {.Type = attachment.endAccess},
+					.EndingAccess = {.Type = attachment.end_access},
 				});
 				++index;
 			}
 
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC dsDesc;
-			if(pass.usesDepthStencil)
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds_desc;
+			if(pass.uses_depth_stencil)
 			{
-				D3D12_CLEAR_VALUE depthClear, stencilClear;
-				if(clearValues.empty())
-					depthClear = stencilClear = {};
+				D3D12_CLEAR_VALUE depth_clear, stencil_clear;
+				if(clear_values.empty())
+					depth_clear = stencil_clear = {};
 				else
 				{
-					depthClear = {
+					depth_clear = {
 						.Format		  = pass.attachments.back().format,
-						.DepthStencil = {.Depth = clearValues.back().depth},
+						.DepthStencil = {.Depth = clear_values.back().depth},
 					};
-					stencilClear = {
+					stencil_clear = {
 						.Format		  = pass.attachments.back().format,
-						.DepthStencil = {.Stencil = clearValues.back().stencil},
+						.DepthStencil = {.Stencil = clear_values.back().stencil},
 					};
 				}
 
-				dsDesc = {
-					.cpuDescriptor = target.depthStencilView(),
+				ds_desc = {
+					.cpuDescriptor = target.depth_stencil_view(),
 					.DepthBeginningAccess {
-						.Type  = pass.attachments.back().beginAccess,
-						.Clear = {depthClear},
+						.Type  = pass.attachments.back().begin_access,
+						.Clear = {depth_clear},
 					},
 					.StencilBeginningAccess {
-						.Type  = pass.stencilBeginAccess,
-						.Clear = {stencilClear},
+						.Type  = pass.stencil_begin_access,
+						.Clear = {stencil_clear},
 					},
-					.DepthEndingAccess	 = {.Type = pass.attachments.back().endAccess},
-					.StencilEndingAccess = {.Type = pass.stencilEndAccess},
+					.DepthEndingAccess	 = {.Type = pass.attachments.back().end_access},
+					.StencilEndingAccess = {.Type = pass.stencil_end_access},
 				};
 			}
 
-			auto dsDescPtr = pass.usesDepthStencil ? &dsDesc : nullptr;
-			cmd->BeginRenderPass(count(rtDescs), rtDescs.data(), dsDescPtr, D3D12_RENDER_PASS_FLAG_NONE);
-			this->subpassIndex = 1;
+			auto ds_desc_ptr = pass.uses_depth_stencil ? &ds_desc : nullptr;
+			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, D3D12_RENDER_PASS_FLAG_NONE);
+			this->subpass_index = 1;
 		}
 
-		void transitionToNextSubpass()
+		void transition_to_next_subpass()
 		{
-			vtAssert(this->subpassIndex < this->activeRenderPass->subpasses.size() - 1,
-					 "All subpasses of this render pass have already been transitioned through.");
+			VT_ASSERT(this->subpass_index < this->active_render_pass->subpasses.size() - 1,
+					  "All subpasses of this render pass have already been transitioned through.");
 
-			insertRenderPassBarriers(this->activeRenderPass->subpasses[this->subpassIndex++]);
+			insert_render_pass_barriers(this->active_render_pass->subpasses[this->subpass_index++]);
 		}
 
-		void endRenderPass()
+		void end_render_pass()
 		{
 			cmd->EndRenderPass();
-			insertRenderPassBarriers(this->activeRenderPass->finalTransitions);
+			insert_render_pass_barriers(this->active_render_pass->final_transitions);
 #if VT_DEBUG
-			this->activeRenderPass = nullptr;
+			this->active_render_pass = nullptr;
 #endif
 		}
 
-		void bindVertexBuffers(unsigned firstBuffer, std::span<vt::Buffer const> buffers, std::span<unsigned const> byteOffsets)
+		void bind_vertex_buffers(unsigned					 first_buffer,
+								 std::span<vt::Buffer const> buffers,
+								 std::span<unsigned const>	 byte_offsets)
 		{
-			FixedList<D3D12_VERTEX_BUFFER_VIEW, MaxVertexAttributes> views(firstBuffer);
+			FixedList<D3D12_VERTEX_BUFFER_VIEW, MaxVertexAttributes> views(first_buffer);
 
-			auto offset = byteOffsets.begin() + firstBuffer;
-			for(auto& buffer : std::views::take(buffers, firstBuffer))
+			auto offset = byte_offsets.begin() + first_buffer;
+			for(auto& buffer : std::views::take(buffers, first_buffer))
 				views.emplace_back(D3D12_VERTEX_BUFFER_VIEW {
-					.BufferLocation = buffer.d3d12.getGpuAddress() + *offset++,
-					.SizeInBytes	= buffer.d3d12.getSize(),
-					.StrideInBytes	= buffer.d3d12.getStride(),
+					.BufferLocation = buffer.d3d12.get_gpu_address() + *offset++,
+					.SizeInBytes	= buffer.d3d12.get_size(),
+					.StrideInBytes	= buffer.d3d12.get_stride(),
 				});
 
-			cmd->IASetVertexBuffers(firstBuffer, count(views), views.data());
+			cmd->IASetVertexBuffers(first_buffer, count(views), views.data());
 		}
 
-		void bindIndexBuffer(vt::Buffer const& buffer, unsigned byteOffset)
+		void bind_index_buffer(vt::Buffer const& buffer, unsigned byte_offset)
 		{
 			D3D12_INDEX_BUFFER_VIEW const view {
-				.BufferLocation = buffer.d3d12.getGpuAddress() + byteOffset,
-				.SizeInBytes	= buffer.d3d12.getSize(),
-				.Format			= getIndexFormatFromStride(buffer.d3d12.getStride()),
+				.BufferLocation = buffer.d3d12.get_gpu_address() + byte_offset,
+				.SizeInBytes	= buffer.d3d12.get_size(),
+				.Format			= get_index_format_from_stride(buffer.d3d12.get_stride()),
 			};
 			cmd->IASetIndexBuffer(&view);
 		}
 
-		void bindPrimitiveTopology(PrimitiveTopology topology)
+		void bind_primitive_topology(PrimitiveTopology topology)
 		{
-			cmd->IASetPrimitiveTopology(convertPrimitiveTopology(topology));
+			cmd->IASetPrimitiveTopology(convert_primitive_topology(topology));
 		}
 
-		void bindViewports(std::span<Viewport const> viewports)
+		void bind_viewports(std::span<Viewport const> viewports)
 		{
 			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(viewports.data());
 			cmd->RSSetViewports(count(viewports), data);
 		}
 
-		void bindScissors(std::span<Rectangle const> scissors)
+		void bind_scissors(std::span<Rectangle const> scissors)
 		{
 			FixedList<D3D12_RECT, MaxAttachments> rects;
 			for(auto&& scissor : scissors)
@@ -330,49 +332,49 @@ namespace vt::d3d12
 			cmd->RSSetScissorRects(count(rects), rects.data());
 		}
 
-		void draw(unsigned vertexCount, unsigned instanceCount, unsigned firstVertex, unsigned firstInstance)
+		void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)
 		{
-			cmd->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+			cmd->DrawInstanced(vertex_count, instance_count, first_vertex, first_instance);
 		}
 
-		void drawIndexed(unsigned indexCount,
-						 unsigned instanceCount,
-						 unsigned firstIndex,
-						 int	  vertexOffset,
-						 unsigned firstInstance)
+		void draw_indexed(unsigned index_count,
+						  unsigned instance_count,
+						  unsigned first_index,
+						  int	   vertex_offset,
+						  unsigned first_instance)
 		{
-			cmd->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+			cmd->DrawIndexedInstanced(index_count, instance_count, first_index, vertex_offset, first_instance);
 		}
 
 	private:
-		static constexpr D3D12_COMMAND_LIST_TYPE CommandListType = convertCommandType(Type);
+		static constexpr D3D12_COMMAND_LIST_TYPE CommandListType = convert_command_type(Type);
 
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		static decltype(allocator) makeAllocator(ID3D12Device4* device)
+		static decltype(allocator) make_allocator(ID3D12Device4* device)
 		{
-			ID3D12CommandAllocator* rawAllocator;
+			ID3D12CommandAllocator* raw_allocator;
 
-			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&rawAllocator));
+			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&raw_allocator));
 
-			decltype(allocator) freshAllocator(rawAllocator);
-			vtAssertResult(result, "Failed to create D3D12 command allocator.");
+			decltype(allocator) fresh_allocator(raw_allocator);
+			VT_ASSERT_RESULT(result, "Failed to create D3D12 command allocator.");
 
-			return freshAllocator;
+			return fresh_allocator;
 		}
 
-		static decltype(cmd) makeCommandList(ID3D12Device4* device)
+		static decltype(cmd) make_command_list(ID3D12Device4* device)
 		{
-			ID3D12GraphicsCommandList4* rawCmd;
-			auto result = device->CreateCommandList1(0, CommandListType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&rawCmd));
-			decltype(cmd) freshCmd(rawCmd);
+			ID3D12GraphicsCommandList4* raw_cmd;
+			auto result = device->CreateCommandList1(0, CommandListType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&raw_cmd));
+			decltype(cmd) fresh_cmd(raw_cmd);
 
-			vtAssertResult(result, "Failed to create D3D12 command list.");
-			return freshCmd;
+			VT_ASSERT_RESULT(result, "Failed to create D3D12 command list.");
+			return fresh_cmd;
 		}
 
-		void insertRenderPassBarriers(FixedList<AttachmentTransition, MaxAttachments> const& transitions)
+		void insert_render_pass_barriers(FixedList<AttachmentTransition, MaxAttachments> const& transitions)
 		{
 			FixedList<D3D12_RESOURCE_BARRIER, MaxAttachments> barriers;
 			for(auto transition : transitions)
@@ -381,10 +383,10 @@ namespace vt::d3d12
 					.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
 					.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
 					.Transition {
-						.pResource	 = this->activeRenderTarget->getAttachment(transition.index),
+						.pResource	 = this->active_render_target->get_attachment(transition.index),
 						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
-						.StateBefore = transition.oldLayout,
-						.StateAfter	 = transition.newLayout,
+						.StateBefore = transition.old_layout,
+						.StateAfter	 = transition.new_layout,
 					},
 				});
 			}

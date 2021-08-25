@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-export module Vitro.Core.Singleton;
+export module vt.Core.Singleton;
 
 namespace vt
 {
@@ -20,7 +20,7 @@ namespace vt
 
 		Singleton()
 		{
-			vtEnsure(!instance, "This type can only be instantiated once.");
+			VT_ENSURE(!instance, "This type can only be instantiated once.");
 			instance = static_cast<T*>(this);
 		}
 	};

@@ -1,4 +1,4 @@
-﻿export module Vitro.App.App;
+﻿export module vt.App.App;
 
 namespace vt
 {

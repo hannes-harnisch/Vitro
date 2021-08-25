@@ -1,6 +1,6 @@
 ﻿module;
 #include <unordered_map>
-export module Vitro.Core.HashMap;
+export module vt.Core.HashMap;
 
 namespace vt
 {

@@ -4,7 +4,7 @@
 #include <format>
 #include <string>
 #include <type_traits>
-export module Vitro.Core.Vector;
+export module vt.Core.Vector;
 
 namespace vt
 {
@@ -29,13 +29,13 @@ namespace vt
 #define DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)                                                                             \
 	template<typename T2, int D2> constexpr operator Vector<T2, D2>() const noexcept requires LosslesslyConvertibleTo<T, T2>   \
 	{                                                                                                                          \
-		return vectorCast<T2, D2>(*this);                                                                                      \
+		return vector_cast<T2, D2>(*this);                                                                                     \
 	}                                                                                                                          \
                                                                                                                                \
 	template<typename T2, int D2>                                                                                              \
 	explicit constexpr operator Vector<T2, D2>() const noexcept requires(!LosslesslyConvertibleTo<T, T2>)                      \
 	{                                                                                                                          \
-		return vectorCast<T2, D2>(*this);                                                                                      \
+		return vector_cast<T2, D2>(*this);                                                                                     \
 	}                                                                                                                          \
                                                                                                                                \
 	constexpr T& operator[](size_t index) noexcept                                                                             \
@@ -48,7 +48,7 @@ namespace vt
 		return arr[index];                                                                                                     \
 	}                                                                                                                          \
                                                                                                                                \
-	std::string toString() const                                                                                               \
+	std::string to_string() const                                                                                              \
 	{                                                                                                                          \
 		auto str = std::format("[{}", arr[0]);                                                                                 \
                                                                                                                                \
@@ -286,7 +286,7 @@ namespace vt
 		return vec;
 	}
 
-	export template<typename T1, typename T2, int D1, int D2> constexpr Vector<T2, D2> vectorCast(Vector<T1, D1> vec) noexcept
+	export template<typename T1, typename T2, int D1, int D2> constexpr Vector<T2, D2> vector_cast(Vector<T1, D1> vec) noexcept
 	{
 		Vector<T2, D2> cast {};
 		for(unsigned i = 0; i != std::min(D1, D2); ++i)
@@ -334,7 +334,7 @@ namespace vt
 		});
 	}
 
-	export template<typename T, int D> constexpr auto invSqrt(Vector<T, D> vec)
+	export template<typename T, int D> constexpr auto inv_sqrt(Vector<T, D> vec)
 	{
 		return 1.0f / sqrt(vec);
 	}

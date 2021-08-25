@@ -2,62 +2,61 @@
 #include <array>
 #include <new>
 #include <span>
-export module Vitro.Graphics.ForwardRenderer;
+export module vt.Graphics.ForwardRenderer;
 
-import Vitro.Graphics.CommandList;
-import Vitro.Graphics.CommandListBase;
-import Vitro.Graphics.Device;
-import Vitro.Graphics.DeviceBase;
-import Vitro.Graphics.FrameContext;
-import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.SwapChain;
-import Vitro.Trace.Log;
+import vt.Graphics.CommandList;
+import vt.Graphics.CommandListBase;
+import vt.Graphics.Device;
+import vt.Graphics.DeviceBase;
+import vt.Graphics.FrameContext;
+import vt.Graphics.RenderPass;
+import vt.Graphics.SwapChain;
+import vt.Trace.Log;
 
 namespace vt
 {
 	export class ForwardRenderer
 	{
 	public:
-		ForwardRenderer(Device& device, RenderPass const& presentPass) :
-			device(device), presentPass(presentPass), context(FrameBufferCount, device, device)
+		ForwardRenderer(Device& device, RenderPass const& present_pass) :
+			device(device), present_pass(present_pass), context(FrameBufferCount, device)
 		{}
 
-		void draw(SwapChain& swapChain)
+		void draw(SwapChain& swap_chain)
 		{
 			auto& cmd = context->cmd;
 
-			device->waitForRenderWorkload(context->frameFinished);
-			auto& swapChainRenderTarget = swapChain->acquireRenderTarget();
+			device->wait_for_render_workload(context->frame_finished);
+			auto& swap_chain_render_target = swap_chain->acquire_render_target();
 			cmd->reset();
 
 			cmd->begin();
 
-			std::array clearValues {
+			std::array clear_values {
 				ClearValue {{0.3, 0.5, 0.3, 1}},
 			};
-			cmd->beginRenderPass(presentPass, swapChainRenderTarget, clearValues);
-			cmd->endRenderPass();
+			cmd->begin_render_pass(present_pass, swap_chain_render_target, clear_values);
+			cmd->end_render_pass();
 			cmd->end();
 
-			std::array cmdLists {cmd->handle()};
-			context->frameFinished = device->submitRenderCommands(cmdLists);
-			swapChain->present();
+			std::array cmd_lists {cmd->handle()};
+			context->frame_finished = device->submit_render_commands(cmd_lists);
+			swap_chain->present();
 
-			context.moveToNextFrame();
+			context.move_to_next_frame();
 		}
 
 	private:
 		struct FrameResources
 		{
 			RenderCommandList cmd;
-			CopyCommandList	  copy;
-			Receipt			  frameFinished;
+			Receipt			  frame_finished;
 		};
 
 		static constexpr unsigned FrameBufferCount = 2;
 
 		Device&						 device;
-		RenderPass const&			 presentPass;
+		RenderPass const&			 present_pass;
 		FrameContext<FrameResources> context;
 	};
 }

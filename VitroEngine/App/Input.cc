@@ -1,14 +1,14 @@
 ﻿module;
 #include <new>
-export module Vitro.App.Input;
+export module vt.App.Input;
 
-import Vitro.App.EventListener;
-import Vitro.App.KeyCode;
-import Vitro.App.MouseCode;
-import Vitro.App.WindowEvent;
-import Vitro.Core.Enum;
-import Vitro.Core.Singleton;
-import Vitro.Core.Vector;
+import vt.App.EventListener;
+import vt.App.KeyCode;
+import vt.App.MouseCode;
+import vt.App.WindowEvent;
+import vt.Core.Enum;
+import vt.Core.Singleton;
+import vt.Core.Vector;
 
 namespace vt
 {
@@ -17,55 +17,55 @@ namespace vt
 		friend class AppSystem;
 
 	public:
-		static bool isDown(KeyCode key)
+		static bool is_down(KeyCode key)
 		{
-			return get().keyDownStates[key];
+			return get().key_down_states[key];
 		}
 
-		static bool isDown(MouseCode button)
+		static bool is_down(MouseCode button)
 		{
-			return get().mouseDownStates[button];
+			return get().mouse_down_states[button];
 		}
 
-		static Int2 mousePosition()
+		static Int2 mouse_position()
 		{
-			return get().mousePos;
+			return get().mouse_pos;
 		}
 
 	private:
-		EnumBitArray<KeyCode>	keyDownStates;
-		EnumBitArray<MouseCode> mouseDownStates;
-		Int2					mousePos;
+		EnumBitArray<KeyCode>	key_down_states;
+		EnumBitArray<MouseCode> mouse_down_states;
+		Int2					mouse_pos;
 
 		Input()
 		{
-			registerEventHandlers<&Input::onKeyDown, &Input::onKeyUp, &Input::onMouseDown, &Input::onMouseUp,
-								  &Input::onMouseMove>();
+			register_event_handlers<&Input::on_key_down, &Input::on_key_up, &Input::on_mouse_down, &Input::on_mouse_up,
+									&Input::on_mouse_move>();
 		}
 
-		void onKeyDown(KeyDownEvent& e)
+		void on_key_down(KeyDownEvent& e)
 		{
-			keyDownStates[e.key] = true;
+			key_down_states[e.key] = true;
 		}
 
-		void onKeyUp(KeyUpEvent& e)
+		void on_key_up(KeyUpEvent& e)
 		{
-			keyDownStates[e.key] = false;
+			key_down_states[e.key] = false;
 		}
 
-		void onMouseDown(MouseDownEvent& e)
+		void on_mouse_down(MouseDownEvent& e)
 		{
-			mouseDownStates[e.button] = true;
+			mouse_down_states[e.button] = true;
 		}
 
-		void onMouseUp(MouseUpEvent& e)
+		void on_mouse_up(MouseUpEvent& e)
 		{
-			mouseDownStates[e.button] = false;
+			mouse_down_states[e.button] = false;
 		}
 
-		void onMouseMove(MouseMoveEvent& e)
+		void on_mouse_move(MouseMoveEvent& e)
 		{
-			mousePos = e.position;
+			mouse_pos = e.position;
 		}
 	};
 }

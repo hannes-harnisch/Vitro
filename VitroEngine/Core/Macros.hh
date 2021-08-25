@@ -13,16 +13,16 @@
 	#define VT_DLLEXPORT	 __declspec(dllexport)
 	#define VT_ALWAYS_INLINE __attribute__((always_inline))
 
-	#define vtDebugBreak()		  __builtin_debugtrap()
-	#define vtAssumeUnreachable() __builtin_unreachable()
+	#define VT_DEBUG_BREAK()		__builtin_debugtrap()
+	#define VT_ASSUME_UNREACHABLE() __builtin_unreachable()
 
 #elif VT_COMPILER_MSVC
 
 	#define VT_DLLEXPORT	 __declspec(dllexport)
 	#define VT_ALWAYS_INLINE __forceinline
 
-	#define vtDebugBreak()		  __debugbreak()
-	#define vtAssumeUnreachable() __assume(0)
+	#define VT_DEBUG_BREAK()		__debugbreak()
+	#define VT_ASSUME_UNREACHABLE() __assume(0)
 
 #elif VT_COMPILER_GCC
 
@@ -30,8 +30,8 @@
 	#define VT_ALWAYS_INLINE __attribute__((always_inline)) inline
 
 	#include <csignal>
-	#define vtDebugBreak()		  std::raise(SIGTRAP)
-	#define vtAssumeUnreachable() __builtin_unreachable()
+	#define VT_DEBUG_BREAK()		std::raise(SIGTRAP)
+	#define VT_ASSUME_UNREACHABLE() __builtin_unreachable()
 
 #endif
 
@@ -42,49 +42,49 @@
 
 	#include <cstdlib>
 
-	#define vtUnreachable()                                                                                                    \
+	#define VT_UNREACHABLE()                                                                                                   \
 		{                                                                                                                      \
-			vtDebugBreak();                                                                                                    \
-			vtAssumeUnreachable();                                                                                             \
+			VT_DEBUG_BREAK();                                                                                                  \
+			VT_ASSUME_UNREACHABLE();                                                                                           \
 		}
 
-	#define vtAssert(condition, message)                                                                                       \
+	#define VT_ASSERT(condition, message)                                                                                      \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 			{                                                                                                                  \
-				vtDebugBreak();                                                                                                \
+				VT_DEBUG_BREAK();                                                                                              \
 				std::exit(EXIT_FAILURE);                                                                                       \
 			}                                                                                                                  \
 		}
 
-	#define vtAssertPure(condition, message)   vtAssert(condition, message)
-	#define vtAssertResult(condition, message) vtAssert(static_cast<int>(condition) >= 0, message)
+	#define VT_ASSERT_PURE(condition, message)	 VT_ASSERT(condition, message)
+	#define VT_ASSERT_RESULT(condition, message) VT_ASSERT(static_cast<int>(condition) >= 0, message)
 
-	#define vtEnsure(condition, message, ...)                                                                                  \
+	#define VT_ENSURE(condition, message, ...)                                                                                 \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 			{                                                                                                                  \
-				vtDebugBreak();                                                                                                \
+				VT_DEBUG_BREAK();                                                                                              \
 				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
 			}                                                                                                                  \
 		}
 
-	#define vtEnsureResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
+	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE(static_cast<int>(condition) >= 0, message)
 
 #else
 
-	#define vtUnreachable() vtAssumeUnreachable()
+	#define VT_UNREACHABLE() VT_ASSUME_UNREACHABLE()
 
-	#define vtAssertPure(condition, message)
-	#define vtAssert(condition, message)	   static_cast<void>(condition)
-	#define vtAssertResult(condition, message) static_cast<void>(condition)
+	#define VT_ASSERT_PURE(condition, message)
+	#define VT_ASSERT(condition, message)		 static_cast<void>(condition)
+	#define VT_ASSERT_RESULT(condition, message) static_cast<void>(condition)
 
-	#define vtEnsure(condition, message, ...)                                                                                  \
+	#define VT_ENSURE(condition, message, ...)                                                                                 \
 		{                                                                                                                      \
 			if(!(condition))                                                                                                   \
 				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
 		}
 
-	#define vtEnsureResult(condition, message) vtEnsure(static_cast<int>(condition) >= 0, message)
+	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE(static_cast<int>(condition) >= 0, message)
 
 #endif

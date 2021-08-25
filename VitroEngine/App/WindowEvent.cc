@@ -1,13 +1,13 @@
 ﻿module;
 #include <format>
-export module Vitro.App.WindowEvent;
+export module vt.App.WindowEvent;
 
-import Vitro.App.Event;
-import Vitro.App.KeyCode;
-import Vitro.App.MouseCode;
-import Vitro.Core.Enum;
-import Vitro.Core.Rectangle;
-import Vitro.Core.Vector;
+import vt.App.Event;
+import vt.App.KeyCode;
+import vt.App.MouseCode;
+import vt.Core.Enum;
+import vt.Core.Rectangle;
+import vt.Core.Vector;
 
 namespace vt
 {
@@ -16,9 +16,9 @@ namespace vt
 	public:
 		class Window& window;
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}: Window({})", Event::toString(), static_cast<void*>(&window));
+			return std::format("{}: Window({})", Event::to_string(), static_cast<void*>(&window));
 		}
 
 	protected:
@@ -69,9 +69,9 @@ namespace vt
 		WindowSizeEvent(Window& window, Extent size) : WindowEvent(window), size(size)
 		{}
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Size({})", WindowEvent::toString(), size.toString());
+			return std::format("{}, Size({})", WindowEvent::to_string(), size.to_string());
 		}
 	};
 
@@ -83,9 +83,9 @@ namespace vt
 		WindowMoveEvent(Window& window, Int2 position) : WindowEvent(window), position(position)
 		{}
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Position({})", WindowEvent::toString(), position.toString());
+			return std::format("{}, Position({})", WindowEvent::to_string(), position.to_string());
 		}
 	};
 
@@ -94,9 +94,9 @@ namespace vt
 	public:
 		KeyCode const key;
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Key({})", WindowEvent::toString(), enum_name(key));
+			return std::format("{}, Key({})", WindowEvent::to_string(), enum_name(key));
 		}
 
 	protected:
@@ -112,9 +112,9 @@ namespace vt
 		KeyDownEvent(Window& window, KeyCode key, unsigned repeats) : KeyEvent(window, key), repeats(repeats)
 		{}
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Repeats({})", KeyEvent::toString(), repeats);
+			return std::format("{}, Repeats({})", KeyEvent::to_string(), repeats);
 		}
 	};
 
@@ -133,9 +133,9 @@ namespace vt
 		KeyTextEvent(Window& window, KeyCode key, std::string text) : KeyEvent(window, key), text(std::move(text))
 		{}
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Text({})", KeyEvent::toString(), text);
+			return std::format("{}, Text({})", KeyEvent::to_string(), text);
 		}
 	};
 
@@ -144,9 +144,9 @@ namespace vt
 	public:
 		MouseCode const button;
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Button({})", WindowEvent::toString(), enum_name(button));
+			return std::format("{}, Button({})", WindowEvent::to_string(), enum_name(button));
 		}
 
 	protected:
@@ -163,10 +163,10 @@ namespace vt
 			MouseEvent(window, MouseCode::None), position(position), direction(direction)
 		{}
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Position({}), Direction({})", MouseEvent::toString(), position.toString(),
-							   direction.toString());
+			return std::format("{}, Position({}), Direction({})", MouseEvent::to_string(), position.to_string(),
+							   direction.to_string());
 		}
 	};
 
@@ -199,9 +199,9 @@ namespace vt
 		MouseScrollEvent(Window& window, Float2 offset) : MouseEvent(window, MouseCode::Wheel), offset(offset)
 		{}
 
-		std::string toString() const override
+		std::string to_string() const override
 		{
-			return std::format("{}, Offset({})", MouseEvent::toString(), offset.toString());
+			return std::format("{}, Offset({})", MouseEvent::to_string(), offset.to_string());
 		}
 	};
 }

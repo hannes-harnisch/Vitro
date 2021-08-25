@@ -1,12 +1,12 @@
-﻿export module Vitro.Graphics.CommandList;
+﻿export module vt.Graphics.CommandList;
 
-import Vitro.Graphics.CommandListBase;
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.CommandListBase;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.CommandList;
+import vt.VT_GPU_API_MODULE_PRIMARY.CommandList;
 #endif
-import Vitro.VT_GPU_API_MODULE.CommandList;
+import vt.VT_GPU_API_MODULE.CommandList;
 
 namespace vt
 {

@@ -1,7 +1,7 @@
 ﻿module;
 #include <format>
 #include <string>
-export module Vitro.Core.Rectangle;
+export module vt.Core.Rectangle;
 
 namespace vt
 {
@@ -12,7 +12,7 @@ namespace vt
 		unsigned width	= 0;
 		unsigned height = 0;
 
-		std::string toString() const
+		std::string to_string() const
 		{
 			return std::format("[{}, {} | {}, {}]", x, y, width, height);
 		}
@@ -23,7 +23,7 @@ namespace vt
 		unsigned width	= 0;
 		unsigned height = 0;
 
-		std::string toString() const
+		std::string to_string() const
 		{
 			return std::format("[{}, {}]", width, height);
 		}
@@ -33,16 +33,16 @@ namespace vt
 	{
 		static constexpr float UpperDepthLimit = 1.0f;
 
-		float x		   = 0;
-		float y		   = 0;
-		float width	   = 0;
-		float height   = 0;
-		float minDepth = 0;
-		float maxDepth = UpperDepthLimit;
+		float x			= 0;
+		float y			= 0;
+		float width		= 0;
+		float height	= 0;
+		float min_depth = 0;
+		float max_depth = UpperDepthLimit;
 
-		std::string toString() const
+		std::string to_string() const
 		{
-			return std::format("[{}, {} | {}, {} | {}, {}]", x, y, width, height, minDepth, maxDepth);
+			return std::format("[{}, {} | {}, {} | {}, {}]", x, y, width, height, min_depth, max_depth);
 		}
 	};
 }

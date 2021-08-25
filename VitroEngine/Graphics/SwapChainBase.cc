@@ -1,6 +1,6 @@
-﻿export module Vitro.Graphics.SwapChainBase;
+﻿export module vt.Graphics.SwapChainBase;
 
-import Vitro.Graphics.RenderTarget;
+import vt.Graphics.RenderTarget;
 
 namespace vt
 {
@@ -9,21 +9,21 @@ namespace vt
 	public:
 		virtual ~SwapChainBase() = default;
 
-		virtual RenderTarget& acquireRenderTarget() = 0;
-		virtual void		  present()				= 0;
-		virtual void		  resize()				= 0;
-		virtual void		  enableVSync()			= 0;
-		virtual void		  disableVSync()		= 0;
+		virtual RenderTarget& acquire_render_target() = 0;
+		virtual void		  present()				  = 0;
+		virtual void		  resize()				  = 0;
+		virtual void		  enable_v_sync()		  = 0;
+		virtual void		  disable_v_sync()		  = 0;
 
-		bool vSyncEnabled() const
+		bool v_sync_enabled() const
 		{
-			return isVSyncEnabled;
+			return is_v_sync_enabled;
 		}
 
 	protected:
 		static constexpr unsigned MaxBuffers		 = 3;
 		static constexpr unsigned DefaultBufferCount = 3;
 
-		bool isVSyncEnabled = false;
+		bool is_v_sync_enabled = false;
 	};
 }

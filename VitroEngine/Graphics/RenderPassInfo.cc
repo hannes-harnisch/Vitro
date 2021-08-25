@@ -1,7 +1,7 @@
-﻿export module Vitro.Graphics.RenderPassInfo;
+﻿export module vt.Graphics.RenderPassInfo;
 
-import Vitro.Core.FixedList;
-import Vitro.Graphics.TextureInfo;
+import vt.Core.FixedList;
+import vt.Graphics.TextureInfo;
 
 namespace vt
 {
@@ -22,30 +22,30 @@ namespace vt
 
 	export struct AttachmentInfo
 	{
-		ImageFormat	  format		= {};
-		unsigned char sampleCount	= 1;
-		ImageLoadOp	  loadOp		= {};
-		ImageStoreOp  storeOp		= {};
-		ImageLayout	  initialLayout = {};
-		ImageLayout	  finalLayout	= {};
+		ImageFormat	  format		 = {};
+		unsigned char sample_count	 = 1;
+		ImageLoadOp	  load_op		 = {};
+		ImageStoreOp  store_op		 = {};
+		ImageLayout	  initial_layout = {};
+		ImageLayout	  final_layout	 = {};
 	};
 
 	export struct AttachmentReference
 	{
-		unsigned char index		 = 0;
-		ImageLayout	  usedLayout = {};
+		unsigned char index		  = 0;
+		ImageLayout	  used_layout = {};
 	};
 
 	export struct Subpass
 	{
-		FixedList<AttachmentReference, MaxColorAttachments> outputRefs;
+		FixedList<AttachmentReference, MaxColorAttachments> output_refs;
 	};
 
 	export struct RenderPassInfo
 	{
 		FixedList<AttachmentInfo, MaxAttachments> attachments;
-		ImageLoadOp								  stencilLoadOp	 = {};
-		ImageStoreOp							  stencilStoreOp = {};
+		ImageLoadOp								  stencil_load_op  = {};
+		ImageStoreOp							  stencil_store_op = {};
 		FixedList<Subpass, MaxSubpasses>		  subpasses;
 	};
 }

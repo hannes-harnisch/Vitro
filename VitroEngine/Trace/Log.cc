@@ -9,12 +9,12 @@
 #include <source_location>
 #include <string_view>
 #include <thread>
-export module Vitro.Trace.Log;
+export module vt.Trace.Log;
 
-import Vitro.Core.ConcurrentQueue;
-import Vitro.Core.Enum;
-import Vitro.Core.Singleton;
-import Vitro.Trace.LogLevel;
+import vt.Core.ConcurrentQueue;
+import vt.Core.Enum;
+import vt.Core.Singleton;
+import vt.Trace.LogLevel;
 
 namespace stdc = std::chrono;
 
@@ -40,7 +40,7 @@ namespace vt
 	concept HasToString = requires(T const& t)
 	{
 		{
-			t.toString()
+			t.to_string()
 			} -> std::convertible_to<std::string>;
 	};
 
@@ -55,32 +55,32 @@ namespace vt
 		friend class Log;
 
 	public:
-		static void disableChannel(LogChannel channel)
+		static void disable_channel(LogChannel channel)
 		{
-			get().atomicallySetDisabledChannels(channel, true);
+			get().atomically_set_disabled_channels(channel, true);
 		}
 
-		static void enableChannel(LogChannel channel)
+		static void enable_channel(LogChannel channel)
 		{
-			get().atomicallySetDisabledChannels(channel, false);
+			get().atomically_set_disabled_channels(channel, false);
 		}
 
-		static void disableLevel(LogLevel level)
+		static void disable_level(LogLevel level)
 		{
-			get().atomicallySetDisabledLevels(level, true);
+			get().atomically_set_disabled_levels(level, true);
 		}
 
-		static void enableLevel(LogLevel level)
+		static void enable_level(LogLevel level)
 		{
-			get().atomicallySetDisabledLevels(level, false);
+			get().atomically_set_disabled_levels(level, false);
 		}
 
-		Logger() : conToken(queue), logWorker(&Logger::runLogProcessing, this)
+		Logger() : con_token(queue), log_worker(&Logger::run_log_processing, this)
 		{}
 
 		~Logger()
 		{
-			isAcceptingLogs = false;
+			is_accepting_logs = false;
 			condition.notify_one();
 		}
 
@@ -94,106 +94,106 @@ namespace vt
 		};
 
 		ConcurrentQueue<Entry>				  queue;
-		ConsumerToken						  conToken;
+		ConsumerToken						  con_token;
 		std::mutex							  mutex;
 		std::condition_variable				  condition;
-		std::atomic<EnumBitArray<LogChannel>> disabledChannels;
-		std::atomic<EnumBitArray<LogLevel>>	  disabledLevels;
-		std::atomic_bool					  isAcceptingLogs = true;
-		std::jthread						  logWorker;
+		std::atomic<EnumBitArray<LogChannel>> disabled_channels;
+		std::atomic<EnumBitArray<LogLevel>>	  disabled_levels;
+		std::atomic_bool					  is_accepting_logs = true;
+		std::jthread						  log_worker;
 
-		static std::string prepareArgument(HasToString auto&& arg)
+		static std::string prepare_argument(HasToString auto&& arg)
 		{
-			return arg.toString();
+			return arg.to_string();
 		}
 
-		static char const* prepareArgument(bool arg)
+		static char const* prepare_argument(bool arg)
 		{
 			return arg ? "true" : "false";
 		}
 
-		static std::string prepareArgument(HasStdToStringOverload auto arg)
+		static std::string prepare_argument(HasStdToStringOverload auto arg)
 		{
 			return std::to_string(arg);
 		}
 
-		template<typename T> static std::string_view prepareArgument(T arg) requires std::is_enum_v<T>
+		template<typename T> static std::string_view prepare_argument(T arg) requires std::is_enum_v<T>
 		{
 			return enum_name(arg);
 		}
 
 		template<typename T>
-		static auto prepareArgument(T arg) requires(std::same_as<T, std::string> || std::same_as<T, std::string_view> ||
-													std::convertible_to<T, char const*>)
+		static auto prepare_argument(T arg) requires(std::same_as<T, std::string> || std::same_as<T, std::string_view> ||
+													 std::convertible_to<T, char const*>)
 		{
 			return arg;
 		}
 
-		template<typename... Ts> static std::string makeMessage(Ts&&... ts)
+		template<typename... Ts> static std::string make_message(Ts&&... ts)
 		{
 			// TODO: switch to stringstream after linker fix
 			std::string str;
-			(((str += ' ') += prepareArgument(std::forward<Ts>(ts))), ...);
+			(((str += ' ') += prepare_argument(std::forward<Ts>(ts))), ...);
 			return str;
 		}
 
-		static std::string makeTimestamp(stdc::system_clock::duration now)
+		static std::string make_timestamp(stdc::system_clock::duration now)
 		{
 			int64_t secs = stdc::duration_cast<stdc::seconds>(now).count();
-			std::tm calendarTime;
-			localtime_s(&calendarTime, &secs);
+			std::tm calendar_time;
+			localtime_s(&calendar_time, &secs);
 
 			std::string timestamp(sizeof "00:00:00", '\0');
-			std::strftime(timestamp.data(), timestamp.capacity(), "%T", &calendarTime);
+			std::strftime(timestamp.data(), timestamp.capacity(), "%T", &calendar_time);
 			return timestamp;
 		}
 
 		template<typename... Ts> void submit(LogLevel level, LogChannel channel, Ts&&... ts)
 		{
-			if(!isLevelDisabled(level) && !isChannelDisabled(channel))
-				enqueue(level, channel, makeMessage(std::forward<Ts>(ts)...));
+			if(!is_level_disabled(level) && !is_channel_disabled(channel))
+				enqueue(level, channel, make_message(std::forward<Ts>(ts)...));
 		}
 
 		void enqueue(LogLevel level, LogChannel channel, std::string message)
 		{
-			thread_local ProducerToken const proToken(queue);
+			thread_local ProducerToken const pro_token(queue);
 
 			auto now = stdc::system_clock::now().time_since_epoch();
-			queue.enqueue(proToken, {level, channel, now, std::move(message)});
+			queue.enqueue(pro_token, {level, channel, now, std::move(message)});
 			condition.notify_one();
 		}
 
-		void atomicallySetDisabledChannels(LogChannel channel, bool value)
+		void atomically_set_disabled_channels(LogChannel channel, bool value)
 		{
-			auto channels = disabledChannels.load();
+			auto channels = disabled_channels.load();
 			channels.set(channel, value);
-			disabledChannels.store(channels);
+			disabled_channels.store(channels);
 		}
 
-		void atomicallySetDisabledLevels(LogLevel level, bool value)
+		void atomically_set_disabled_levels(LogLevel level, bool value)
 		{
-			auto levels = disabledLevels.load();
+			auto levels = disabled_levels.load();
 			levels.set(level, value);
-			disabledLevels.store(levels);
+			disabled_levels.store(levels);
 		}
 
-		bool isChannelDisabled(LogChannel channel) const
+		bool is_channel_disabled(LogChannel channel) const
 		{
-			return disabledChannels.load().test(channel);
+			return disabled_channels.load().test(channel);
 		}
 
-		bool isLevelDisabled(LogLevel level) const
+		bool is_level_disabled(LogLevel level) const
 		{
-			return disabledLevels.load().test(level);
+			return disabled_levels.load().test(level);
 		}
 
-		void runLogProcessing()
+		void run_log_processing()
 		{
-			while(isAcceptingLogs)
-				flushQueue();
+			while(is_accepting_logs)
+				flush_queue();
 		}
 
-		void flushQueue()
+		void flush_queue()
 		{
 			std::unique_lock lock(mutex);
 			condition.wait(lock);
@@ -204,50 +204,50 @@ namespace vt
 				constexpr unsigned MaxEntriesDequeued = 100;
 
 				Entry  entries[MaxEntriesDequeued];
-				size_t count = queue.try_dequeue_bulk(conToken, entries, MaxEntriesDequeued);
+				size_t count = queue.try_dequeue_bulk(con_token, entries, MaxEntriesDequeued);
 				for(auto const& entry : std::views::take(entries, count))
-					writeLog(entry);
+					write_log(entry);
 			}
 		}
 
-		void writeLog(Entry const& entry)
+		void write_log(Entry const& entry)
 		{
 			auto level	 = enum_name(entry.level);
 			auto channel = enum_name(entry.channel);
 
-			auto	timestamp = makeTimestamp(entry.time);
+			auto	timestamp = make_timestamp(entry.time);
 			int64_t millisecs = stdc::duration_cast<stdc::milliseconds>(entry.time).count() % 1000;
 
-			auto escCodeParams = mapLogLevelToEscapeCodeParameters(entry.level);
-			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ]%s\n", escCodeParams, timestamp.data(), millisecs, level.data(),
+			auto esc_code_params = map_log_level_to_escape_code_parameters(entry.level);
+			std::printf("\x1b[%sm[ %s.%03lli | %s | %s ]%s\n", esc_code_params, timestamp.data(), millisecs, level.data(),
 						channel.data(), entry.message.data());
 		}
 	};
 
-	consteval LogChannel extractChannelFromPath(std::source_location src)
+	consteval LogChannel extract_channel_from_path(std::source_location src)
 	{
 		std::string_view path = src.file_name();
 
-		size_t dirBegin		= path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
-		auto   pathAfterDir = path.substr(dirBegin);
-		size_t dirEnd		= pathAfterDir.find(std::filesystem::path::preferred_separator);
-		auto   dir			= pathAfterDir.substr(0, dirEnd);
-		auto   channel		= enum_cast<LogChannel>(dir);
+		size_t dir_begin	  = path.rfind(VT_ENGINE_NAME) + sizeof VT_ENGINE_NAME;
+		auto   path_after_dir = path.substr(dir_begin);
+		size_t dir_end		  = path_after_dir.find(std::filesystem::path::preferred_separator);
+		auto   dir			  = path_after_dir.substr(0, dir_end);
+		auto   channel		  = enum_cast<LogChannel>(dir);
 
-		auto   restPath		 = pathAfterDir.substr(dirEnd + 1);
-		size_t vendorEnd	 = restPath.find(std::filesystem::path::preferred_separator);
-		auto   vendorDir	 = restPath.substr(0, vendorEnd);
-		auto   vendorChannel = enum_cast<LogChannel>(vendorDir);
+		auto   rest_path	  = path_after_dir.substr(dir_end + 1);
+		size_t vendor_end	  = rest_path.find(std::filesystem::path::preferred_separator);
+		auto   vendor_dir	  = rest_path.substr(0, vendor_end);
+		auto   vendor_channel = enum_cast<LogChannel>(vendor_dir);
 
-		return channel.value_or(vendorChannel.value_or(LogChannel::Client));
+		return channel.value_or(vendor_channel.value_or(LogChannel::Client));
 	}
 
 	export class Log
 	{
 	public:
 		// TODO false compiler error because of consteval
-		Log(/*LogChannel channel = extractChannelFromPath(std::source_location::current())*/) :
-			channel(extractChannelFromPath(std::source_location::current()))
+		Log(/*LogChannel channel = extract_channel_from_path(std::source_location::current())*/) :
+			channel(extract_channel_from_path(std::source_location::current()))
 		{}
 
 		template<typename... Ts> void verbose(Ts&&... ts) const

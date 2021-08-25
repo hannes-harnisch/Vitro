@@ -1,6 +1,6 @@
 ﻿module;
 #include <memory>
-export module Vitro.D3D12.Utils;
+export module vt.D3D12.Utils;
 
 namespace vt::d3d12
 {

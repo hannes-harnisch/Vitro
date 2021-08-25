@@ -1,46 +1,46 @@
 ﻿module;
 #include <thread>
-export module Vitro.App.AppContextBase;
+export module vt.App.AppContextBase;
 
-import Vitro.Core.HashMap;
-import Vitro.Core.Singleton;
+import vt.Core.HashMap;
+import vt.Core.Singleton;
 
 namespace vt
 {
 	export class AppContextBase : public Singleton<AppContextBase>
 	{
 	public:
-		virtual void  pollEvents() const = 0;
-		virtual void* handle()			 = 0;
+		virtual void  poll_events() const = 0;
+		virtual void* handle()			  = 0;
 
-		std::thread::id mainThreadId()
+		std::thread::id main_thread_id()
 		{
-			return mainThread;
+			return main_thread;
 		}
 
-		void notifyWindowMapping(void* nativeHandle, class Window& window)
+		void notify_window_mapping(void* native_handle, class Window& window)
 		{
-			nativeWindowToEngineWindow[nativeHandle] = &window;
+			native_window_to_engine_window[native_handle] = &window;
 		}
 
-		void notifyWindowDestruction(void* nativeHandle)
+		void notify_window_destruction(void* native_handle)
 		{
-			nativeWindowToEngineWindow.erase(nativeHandle);
+			native_window_to_engine_window.erase(native_handle);
 		}
 
 	protected:
-		Window* findWindow(void* nativeHandle)
+		Window* find_window(void* native_handle)
 		{
-			auto it = nativeWindowToEngineWindow.find(nativeHandle);
+			auto it = native_window_to_engine_window.find(native_handle);
 
-			if(it == nativeWindowToEngineWindow.end())
+			if(it == native_window_to_engine_window.end())
 				return nullptr;
 
 			return it->second;
 		}
 
 	private:
-		HashMap<void*, Window*> nativeWindowToEngineWindow;
-		std::thread::id			mainThread = std::this_thread::get_id();
+		HashMap<void*, Window*> native_window_to_engine_window;
+		std::thread::id			main_thread = std::this_thread::get_id();
 	};
 }

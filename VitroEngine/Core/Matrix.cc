@@ -1,9 +1,9 @@
 ﻿module;
 #include <cmath>
 #include <format>
-export module Vitro.Core.Matrix;
+export module vt.Core.Matrix;
 
-import Vitro.Core.Vector;
+import vt.Core.Vector;
 
 namespace vt
 {
@@ -20,12 +20,12 @@ namespace vt
 			return mat;
 		}
 
-		static constexpr size_t rowSize() noexcept
+		static constexpr size_t row_size() noexcept
 		{
 			return R;
 		}
 
-		static constexpr size_t columnSize() noexcept
+		static constexpr size_t column_size() noexcept
 		{
 			return C;
 		}
@@ -250,12 +250,12 @@ namespace vt
 			return cast;
 		}
 
-		std::string toString() const
+		std::string to_string() const
 		{
-			auto str = std::format("[{}", rows[0].toString());
+			auto str = std::format("[{}", rows[0].to_string());
 
 			for(unsigned r = 1; r != R; ++r)
-				str += std::format(", {}", rows[r].toString());
+				str += std::format(", {}", rows[r].to_string());
 
 			return str + ']';
 		}
@@ -282,17 +282,18 @@ namespace vt
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R > 2)
 		{
 			Matrix<T, R - 1, R - 1> submatrix;
-			T						det {};
+
+			T det {};
 			for(unsigned i = 0; i != R; ++i)
 			{
 				for(unsigned r = 1; r != R; ++r)
 				{
-					for(unsigned c = 0, subC {}; c != C; ++c)
+					for(unsigned c = 0, sub_c {}; c != C; ++c)
 					{
 						if(c == i)
 							continue;
-						submatrix.rows[r - 1].arr[subC] = mat.rows[r].arr[c];
-						++subC;
+						submatrix.rows[r - 1].arr[sub_c] = mat.rows[r].arr[c];
+						++sub_c;
 					}
 				}
 				T minor = determinant(submatrix);
@@ -305,29 +306,30 @@ namespace vt
 
 		friend constexpr auto inverse(Matrix const& mat) noexcept requires(R == C)
 		{
-			Matrix					cofactor;
+			Matrix cofactor;
+
 			Matrix<T, R - 1, R - 1> submatrix;
-			for(unsigned cofC = 0; cofC != C; ++cofC)
+			for(unsigned cof_c = 0; cof_c != C; ++cof_c)
 			{
-				for(unsigned cofR = 0; cofR != R; ++cofR)
+				for(unsigned cof_r = 0; cof_r != R; ++cof_r)
 				{
-					for(unsigned r = 0, subR = 0; r != R; ++r)
+					for(unsigned r = 0, sub_r = 0; r != R; ++r)
 					{
-						if(r == cofR)
+						if(r == cof_r)
 							continue;
-						for(unsigned c = 0, subC = 0; c != C; ++c)
+						for(unsigned c = 0, sub_c = 0; c != C; ++c)
 						{
-							if(c == cofC)
+							if(c == cof_c)
 								continue;
-							submatrix.rows[subR].arr[subC] = mat.rows[r].arr[c];
-							++subC;
+							submatrix.rows[sub_r].arr[sub_c] = mat.rows[r].arr[c];
+							++sub_c;
 						}
-						++subR;
+						++sub_r;
 					}
 					T minor = determinant(submatrix);
-					if((cofR + cofC) & 1)
+					if((cof_r + cof_c) & 1)
 						minor = -minor;
-					cofactor.rows[cofR].arr[cofC] = minor;
+					cofactor.rows[cof_r].arr[cof_c] = minor;
 				}
 			}
 			return transpose(cofactor) * (1.0f / determinant(mat));

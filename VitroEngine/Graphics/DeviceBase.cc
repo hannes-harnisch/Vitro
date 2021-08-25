@@ -1,15 +1,15 @@
 ﻿module;
 #include <cstdint>
 #include <span>
-export module Vitro.Graphics.DeviceBase;
+export module vt.Graphics.DeviceBase;
 
-import Vitro.Graphics.Driver;
+import vt.Graphics.Driver;
 
 namespace vt
 {
 	export struct Receipt
 	{
-		std::uintptr_t hostWaitValue = 0;
+		std::uintptr_t host_wait_value = 0;
 	};
 
 	export class DeviceBase
@@ -17,15 +17,15 @@ namespace vt
 	public:
 		virtual ~DeviceBase() = default;
 
-		virtual Receipt submitRenderCommands(std::span<CommandListHandle> commandLists)	 = 0;
-		virtual Receipt submitComputeCommands(std::span<CommandListHandle> commandLists) = 0;
-		virtual Receipt submitCopyCommands(std::span<CommandListHandle> commandLists)	 = 0;
-		virtual void	waitForRenderWorkload(Receipt receipt)							 = 0;
-		virtual void	waitForComputeWorkload(Receipt receipt)							 = 0;
-		virtual void	waitForCopyWorkload(Receipt receipt)							 = 0;
-		virtual void	flushRenderQueue()												 = 0;
-		virtual void	flushComputeQueue()												 = 0;
-		virtual void	flushCopyQueue()												 = 0;
-		virtual void	waitForIdle()													 = 0;
+		virtual Receipt submit_render_commands(std::span<CommandListHandle> command_lists)	= 0;
+		virtual Receipt submit_compute_commands(std::span<CommandListHandle> command_lists) = 0;
+		virtual Receipt submit_copy_commands(std::span<CommandListHandle> command_lists)	= 0;
+		virtual void	wait_for_render_workload(Receipt receipt)							= 0;
+		virtual void	wait_for_compute_workload(Receipt receipt)							= 0;
+		virtual void	wait_for_copy_workload(Receipt receipt)								= 0;
+		virtual void	flush_render_queue()												= 0;
+		virtual void	flush_compute_queue()												= 0;
+		virtual void	flush_copy_queue()													= 0;
+		virtual void	wait_for_idle()														= 0;
 	};
 }

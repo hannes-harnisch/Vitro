@@ -1,12 +1,12 @@
-﻿export module Vitro.Graphics.SwapChain;
+﻿export module vt.Graphics.SwapChain;
 
-import Vitro.Graphics.DynamicGpuApi;
-import Vitro.Graphics.SwapChainBase;
+import vt.Graphics.DynamicGpuApi;
+import vt.Graphics.SwapChainBase;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.SwapChain;
+import vt.VT_GPU_API_MODULE_PRIMARY.SwapChain;
 #endif
-import Vitro.VT_GPU_API_MODULE.SwapChain;
+import vt.VT_GPU_API_MODULE.SwapChain;
 
 namespace vt
 {

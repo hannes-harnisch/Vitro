@@ -1,11 +1,11 @@
 ﻿module;
 #include "D3D12.API.hh"
-export module Vitro.D3D12.RenderTarget;
+export module vt.D3D12.RenderTarget;
 
-import Vitro.Core.FixedList;
-import Vitro.D3D12.Utils;
-import Vitro.Graphics.RenderPassInfo;
-import Vitro.Graphics.RenderTargetInfo;
+import vt.Core.FixedList;
+import vt.D3D12.Utils;
+import vt.Graphics.RenderPassInfo;
+import vt.Graphics.RenderTargetInfo;
 
 namespace vt::d3d12
 {
@@ -18,22 +18,22 @@ namespace vt::d3d12
 			views.emplace_back(handle);
 		}
 
-		ID3D12Resource* getAttachment(size_t index) const
+		ID3D12Resource* get_attachment(size_t index) const
 		{
 			return attachments[index].get();
 		}
 
-		D3D12_CPU_DESCRIPTOR_HANDLE getView(size_t index) const
+		D3D12_CPU_DESCRIPTOR_HANDLE get_view(size_t index) const
 		{
 			return views[index];
 		}
 
-		ID3D12Resource* depthStencilAttachment() const
+		ID3D12Resource* depth_stencil_attachment() const
 		{
 			return attachments.back().get();
 		}
 
-		D3D12_CPU_DESCRIPTOR_HANDLE depthStencilView() const
+		D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view() const
 		{
 			return views.back();
 		}

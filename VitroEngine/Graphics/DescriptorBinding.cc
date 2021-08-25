@@ -1,4 +1,4 @@
-﻿export module Vitro.Graphics.DescriptorBinding;
+﻿export module vt.Graphics.DescriptorBinding;
 
 namespace vt
 {

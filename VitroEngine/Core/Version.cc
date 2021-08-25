@@ -1,7 +1,7 @@
 ﻿module;
 #include <format>
 #include <string>
-export module Vitro.Core.Version;
+export module vt.Core.Version;
 
 namespace vt
 {
@@ -11,7 +11,7 @@ namespace vt
 		unsigned minor = 0;
 		unsigned patch = 0;
 
-		std::string toString() const
+		std::string to_string() const
 		{
 			return std::format("{}.{}.{}", major, minor, patch);
 		}

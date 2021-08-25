@@ -1,4 +1,4 @@
-﻿export module Vitro.App.MouseCode;
+﻿export module vt.App.MouseCode;
 
 namespace vt
 {

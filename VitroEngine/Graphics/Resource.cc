@@ -1,13 +1,15 @@
-﻿export module Vitro.Graphics.Resource;
+﻿export module vt.Graphics.Resource;
 
-import Vitro.Graphics.DynamicGpuApi;
+import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import Vitro.VT_GPU_API_MODULE_PRIMARY.Buffer;
-import Vitro.VT_GPU_API_MODULE_PRIMARY.Pipeline;
+import vt.VT_GPU_API_MODULE_PRIMARY.Buffer;
+import vt.VT_GPU_API_MODULE_PRIMARY.Pipeline;
+import vt.VT_GPU_API_MODULE_PRIMARY.Texture;
 #else
-import Vitro.VT_GPU_API_MODULE.Buffer;
-import Vitro.VT_GPU_API_MODULE.Pipeline;
+import vt.VT_GPU_API_MODULE.Buffer;
+import vt.VT_GPU_API_MODULE.Pipeline;
+import vt.VT_GPU_API_MODULE.Texture;
 #endif
 
 namespace vt
@@ -21,4 +23,5 @@ namespace vt
 
 	EXPORT_RESOURCE_VARIANT(Buffer);
 	EXPORT_RESOURCE_VARIANT(Pipeline);
+	//	EXPORT_RESOURCE_VARIANT(Texture);
 }

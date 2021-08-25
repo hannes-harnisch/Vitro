@@ -2,21 +2,21 @@
 #include "Core/Macros.hh"
 
 #include <algorithm>
-export module Vitro.Graphics.GraphicsSystem;
+export module vt.Graphics.GraphicsSystem;
 
-import Vitro.App.EventListener;
-import Vitro.App.WindowEvent;
-import Vitro.Core.HashMap;
-import Vitro.Core.Singleton;
-import Vitro.Graphics.Adapter;
-import Vitro.Graphics.Device;
-import Vitro.Graphics.Driver;
-import Vitro.Graphics.DynamicGpuApi;
-import Vitro.Graphics.ForwardRenderer;
-import Vitro.Graphics.RenderPass;
-import Vitro.Graphics.RenderPassInfo;
-import Vitro.Graphics.SwapChain;
-import Vitro.Graphics.TextureInfo;
+import vt.App.EventListener;
+import vt.App.WindowEvent;
+import vt.Core.HashMap;
+import vt.Core.Singleton;
+import vt.Graphics.Adapter;
+import vt.Graphics.Device;
+import vt.Graphics.Driver;
+import vt.Graphics.DynamicGpuApi;
+import vt.Graphics.ForwardRenderer;
+import vt.Graphics.RenderPass;
+import vt.Graphics.RenderPassInfo;
+import vt.Graphics.SwapChain;
+import vt.Graphics.TextureInfo;
 
 namespace vt
 {
@@ -24,66 +24,66 @@ namespace vt
 	{
 	public:
 		GraphicsSystem() :
-			device(driver, selectAdapter()), presentPass(device, fillPresentPassInfo()), renderer(device, presentPass)
+			device(driver, select_adapter()), present_pass(device, fill_present_pass_info()), renderer(device, present_pass)
 		{
-			registerEventHandlers<&GraphicsSystem::update>();
+			register_event_handlers<&GraphicsSystem::update>();
 		}
 
-		void notifyWindowConstruction(class Window const& window, void* nativeWindowHandle)
+		void notify_window_construction(class Window const& window, void* native_window_handle)
 		{
-			swapChains.try_emplace(&window, driver, device, presentPass, nativeWindowHandle);
+			swap_chains.try_emplace(&window, driver, device, present_pass, native_window_handle);
 		}
 
-		void notifyWindowReplacement(Window const& oldWindow, Window const& newWindow)
+		void notify_window_replacement(Window const& old_window, Window const& new_window)
 		{
-			auto node  = swapChains.extract(&oldWindow);
-			node.key() = &newWindow;
-			swapChains.insert(std::move(node));
+			auto node  = swap_chains.extract(&old_window);
+			node.key() = &new_window;
+			swap_chains.insert(std::move(node));
 		}
 
-		void notifyWindowDestruction(Window const& window)
+		void notify_window_destruction(Window const& window)
 		{
-			device->flushRenderQueue();
-			swapChains.erase(&window);
+			device->flush_render_queue();
+			swap_chains.erase(&window);
 		}
 
 	private:
-		DynamicGpuApi					  dynamicGpuApi;
+		DynamicGpuApi					  dynamic_gpu_api;
 		Driver							  driver;
 		Device							  device;
-		HashMap<Window const*, SwapChain> swapChains;
-		RenderPass						  presentPass;
+		HashMap<Window const*, SwapChain> swap_chains;
+		RenderPass						  present_pass;
 		ForwardRenderer					  renderer;
 
-		static RenderPassInfo fillPresentPassInfo()
+		static RenderPassInfo fill_present_pass_info()
 		{
-			Subpass subpass {{AttachmentReference {.usedLayout = ImageLayout::ColorAttachment}}};
+			Subpass subpass {{AttachmentReference {.used_layout = ImageLayout::ColorAttachment}}};
 			return RenderPassInfo {
 				.attachments {AttachmentInfo {
-					.format		   = ImageFormat::R8_G8_B8_A8_UNorm,
-					.loadOp		   = ImageLoadOp::Clear,
-					.storeOp	   = ImageStoreOp::Store,
-					.initialLayout = ImageLayout::Undefined,
-					.finalLayout   = ImageLayout::Presentable,
+					.format			= ImageFormat::R8_G8_B8_A8_UNorm,
+					.load_op		= ImageLoadOp::Clear,
+					.store_op		= ImageStoreOp::Store,
+					.initial_layout = ImageLayout::Undefined,
+					.final_layout	= ImageLayout::Presentable,
 				}},
 				.subpasses {subpass},
 			};
 		}
 
-		Adapter selectAdapter()
+		Adapter select_adapter()
 		{
-			auto adapters = driver->enumerateAdapters();
+			auto adapters = driver->enumerate_adapters();
 			auto selected = std::max_element(adapters.begin(), adapters.end(), [](Adapter const& a1, Adapter const& a2) {
-				return a1.getVram() < a2.getVram();
+				return a1.get_vram() < a2.get_vram();
 			});
-			vtEnsure(selected != adapters.end(), "No suitable GPUs found.");
+			VT_ENSURE(selected != adapters.end(), "No suitable GPUs found.");
 			return std::move(*selected);
 		}
 
 		void update(WindowPaintEvent& e)
 		{
-			auto& swapChain = swapChains.at(&e.window);
-			renderer.draw(swapChain);
+			auto& swap_chain = swap_chains.at(&e.window);
+			renderer.draw(swap_chain);
 		}
 	};
 }
