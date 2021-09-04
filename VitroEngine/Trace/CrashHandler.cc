@@ -9,12 +9,16 @@ import vt.VT_SYSTEM_MODULE.Utils;
 
 namespace vt
 {
-	export [[noreturn]] void crash(std::string_view message)
+	export void on_failure(std::string_view message)
 	{
 		auto text = std::format("Fatal error: {}", message);
 		std::puts(text.data());
-
 		VT_SYSTEM_NAME::show_error_message_box("Fatal error", message);
+	}
+
+	export [[noreturn]] void crash(std::string_view message)
+	{
+		on_failure(message);
 		std::exit(EXIT_FAILURE);
 	}
 }

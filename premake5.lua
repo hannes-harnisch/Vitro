@@ -1,12 +1,12 @@
 output_dir				= '%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}'
 
 workspace 'Vitro'
-	startproject		'VitroMain'
+	startproject		'VitroEngine'
 	architecture		'x64'
 	configurations		{ 'Debug', 'Development', 'Release' }
 	flags				{ 'MultiProcessorCompile' }
 	language			'C++'
-	cppdialect			'C++20'
+	cppdialect			'C++latest'
 	conformancemode		'On'
 	warnings			'Extra'
 	disablewarnings		'4201'
@@ -60,10 +60,14 @@ workspace 'Vitro'
 
 project 'VitroEngine'
 	location			'%{prj.name}'
-	kind				'StaticLib'
+	kind				'ConsoleApp'
 	includedirs			{ '%{prj.name}', 'Dependencies' }
 	defines				'VT_ENGINE_NAME="%{prj.name}"'
 	links				'D3D12MemoryAllocator'
+
+	filter 'configurations:Release'
+		kind			'WindowedApp'
+		entrypoint		'mainCRTStartup'
 
 	filter 'system:Windows'
 		systemversion	'latest'
@@ -80,25 +84,6 @@ project 'VitroEngine'
 							'VT_GPU_API_MODULE=D3D12',
 							'VT_GPU_API_NAME=d3d12'
 						}
-
-project 'VitroMain'
-	location			'%{prj.name}'
-	kind				'ConsoleApp'
-	links				'VitroEngine'
-
-	filter 'configurations:Release'
-		kind			'WindowedApp'
-		entrypoint		'mainCRTStartup'
-
-project 'VitroTests'
-	location			'%{prj.name}'
-	kind				'SharedLib'
-	includedirs			{ 'VitroEngine' }
-	links				'VitroEngine'
-
-	filter 'configurations:Release'
-		kind			'WindowedApp'
-		entrypoint		'mainCRTStartup'
 
 group 'Dependencies'
 

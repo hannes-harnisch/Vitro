@@ -27,7 +27,7 @@ namespace vt
 		virtual std::string get_title() const				  = 0;
 		virtual void		set_title(std::string_view title) = 0;
 		virtual Rectangle	client_area() const				  = 0;
-		virtual void*		handle()						  = 0;
+		virtual void*		get_handle()					  = 0;
 
 		bool cursor_enabled() const
 		{

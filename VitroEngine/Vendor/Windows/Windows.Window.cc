@@ -26,8 +26,16 @@ namespace vt::windows
 			.height = static_cast<unsigned>(CW_USEDEFAULT),
 		};
 
-		Window(std::string_view title, Rectangle rect) : window(make_window(title, rect))
-		{}
+		Window(std::string_view title, Rectangle rect)
+		{
+			auto widened_title	 = widen_string(title);
+			auto instance_handle = static_cast<HINSTANCE>(AppContextBase::get().get_handle());
+
+			HWND raw_window = ::CreateWindowExW(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
+												rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
+			window.reset(raw_window);
+			VT_ENSURE(raw_window, "Failed to create window.");
+		}
 
 		void open() final override
 		{
@@ -148,25 +156,12 @@ namespace vt::windows
 			};
 		}
 
-		void* handle() final override
+		void* get_handle() final override
 		{
 			return window.get();
 		}
 
 	private:
 		Unique<HWND, ::DestroyWindow> window;
-
-		static decltype(window) make_window(std::string_view title, Rectangle rect)
-		{
-			auto widened_title	 = widen_string(title);
-			auto instance_handle = static_cast<HINSTANCE>(AppContextBase::get().handle());
-
-			HWND raw_window = ::CreateWindowExW(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
-												rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
-			decltype(window) fresh_window(raw_window);
-			VT_ENSURE(raw_window, "Failed to create window.");
-
-			return fresh_window;
-		}
 	};
 }

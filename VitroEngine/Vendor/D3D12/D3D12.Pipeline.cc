@@ -11,7 +11,7 @@ import vt.Graphics.PipelineInfo;
 
 namespace vt::d3d12
 {
-	constexpr DXGI_FORMAT convert_vertex_data_type(VertexDataType type)
+	DXGI_FORMAT convert_vertex_data_type(VertexDataType type)
 	{
 		using enum VertexDataType;
 		switch(type)
@@ -33,7 +33,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_INPUT_CLASSIFICATION convert_attribute_input_rate(AttributeInputRate rate)
+	D3D12_INPUT_CLASSIFICATION convert_attribute_input_rate(AttributeInputRate rate)
 	{
 		switch(rate)
 		{
@@ -43,7 +43,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_INPUT_ELEMENT_DESC convert_vertex_attribute(VertexAttribute attrib)
+	D3D12_INPUT_ELEMENT_DESC convert_vertex_attribute(VertexAttribute attrib)
 	{
 		return {
 			.Format				  = convert_vertex_data_type(attrib.data_type),
@@ -54,7 +54,7 @@ namespace vt::d3d12
 		};
 	}
 
-	constexpr D3D12_PRIMITIVE_TOPOLOGY_TYPE categorize_primitive_topology(PrimitiveTopology topology)
+	D3D12_PRIMITIVE_TOPOLOGY_TYPE categorize_primitive_topology(PrimitiveTopology topology)
 	{
 		using enum PrimitiveTopology;
 		switch(topology)
@@ -104,7 +104,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_FILL_MODE convert_fill_mode(PolygonFillMode mode)
+	D3D12_FILL_MODE convert_fill_mode(PolygonFillMode mode)
 	{
 		switch(mode)
 		{
@@ -114,7 +114,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_CULL_MODE convert_cull_mode(CullMode mode)
+	D3D12_CULL_MODE convert_cull_mode(CullMode mode)
 	{
 		switch(mode)
 		{
@@ -125,7 +125,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_COMPARISON_FUNC convert_compare_op(CompareOp op)
+	D3D12_COMPARISON_FUNC convert_compare_op(CompareOp op)
 	{
 		using enum CompareOp;
 		switch(op)
@@ -142,7 +142,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_STENCIL_OP convert_stencil_op(StencilOp op)
+	D3D12_STENCIL_OP convert_stencil_op(StencilOp op)
 	{
 		using enum StencilOp;
 		switch(op)
@@ -159,7 +159,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_DEPTH_STENCILOP_DESC convert_stencil_op_state(StencilOpState op_state)
+	D3D12_DEPTH_STENCILOP_DESC convert_stencil_op_state(StencilOpState op_state)
 	{
 		return {
 			.StencilFailOp		= convert_stencil_op(op_state.fail_op),
@@ -169,7 +169,7 @@ namespace vt::d3d12
 		};
 	}
 
-	constexpr D3D12_LOGIC_OP convert_logic_op(LogicOp op)
+	D3D12_LOGIC_OP convert_logic_op(LogicOp op)
 	{
 		using enum LogicOp;
 		switch(op)
@@ -194,7 +194,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_BLEND convert_blend_factor(BlendFactor factor)
+	D3D12_BLEND convert_blend_factor(BlendFactor factor)
 	{
 		using enum BlendFactor;
 		switch(factor)
@@ -218,7 +218,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_BLEND_OP convert_blend_op(BlendOp op)
+	D3D12_BLEND_OP convert_blend_op(BlendOp op)
 	{
 		using enum BlendOp;
 		switch(op)
@@ -252,19 +252,7 @@ namespace vt::d3d12
 	export class Pipeline
 	{
 	public:
-		Pipeline(vt::Device const& device, RenderPipelineInfo const& info) :
-			pipeline(make_render_pipeline(device.d3d12.get(), info))
-		{}
-
-		ID3D12PipelineState* get() const
-		{
-			return pipeline.get();
-		}
-
-	private:
-		ComUnique<ID3D12PipelineState> pipeline;
-
-		static decltype(pipeline) make_render_pipeline(ID3D12Device4* device, RenderPipelineInfo const& info)
+		Pipeline(vt::Device const& device, RenderPipelineInfo const& info)
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> input_element_descs;
 			for(auto attrib : info.vertex_attributes)
@@ -329,12 +317,17 @@ namespace vt::d3d12
 
 			ID3D12PipelineState* raw_pipeline;
 
-			auto result = device->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
-
-			decltype(pipeline) fresh_pipeline(raw_pipeline);
+			auto result = device.d3d12.get()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
+			pipeline.reset(raw_pipeline);
 			VT_ASSERT_RESULT(result, "Failed to create render pipeline.");
-
-			return fresh_pipeline;
 		}
+
+		ID3D12PipelineState* get() const
+		{
+			return pipeline.get();
+		}
+
+	private:
+		ComUnique<ID3D12PipelineState> pipeline;
 	};
 }

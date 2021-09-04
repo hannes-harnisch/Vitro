@@ -10,7 +10,7 @@ namespace vt::d3d12
 	export class Adapter
 	{
 	public:
-		Adapter(ComUnique<IDXGIAdapter1> adapter_handle) : adapter(std::move(adapter_handle))
+		Adapter(ComUnique<IDXGIAdapter1> adapter_resource) : adapter(std::move(adapter_resource))
 		{}
 
 		IDXGIAdapter1* get() const

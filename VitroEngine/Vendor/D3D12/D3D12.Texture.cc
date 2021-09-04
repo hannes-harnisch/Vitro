@@ -9,7 +9,7 @@ import vt.Graphics.TextureInfo;
 
 namespace vt::d3d12
 {
-	export constexpr DXGI_FORMAT convert_image_format(ImageFormat format)
+	export DXGI_FORMAT convert_image_format(ImageFormat format)
 	{
 		using enum ImageFormat;
 		switch(format)
@@ -86,7 +86,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	export constexpr D3D12_RESOURCE_STATES convert_image_layout(ImageLayout layout)
+	export D3D12_RESOURCE_STATES convert_image_layout(ImageLayout layout)
 	{
 		using enum ImageLayout;
 		switch(layout)

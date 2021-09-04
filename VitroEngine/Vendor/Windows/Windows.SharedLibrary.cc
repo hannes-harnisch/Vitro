@@ -16,18 +16,20 @@ namespace vt::windows
 	public:
 		[[nodiscard]] bool reload() final override
 		{
-			library = make_library();
+			initialize_library();
 			return library.get() != nullptr;
 		}
 
-		void* handle() final override
+		void* get_handle() final override
 		{
 			return library.get();
 		}
 
 	protected:
-		SharedLibrary(std::string_view path) : path(widen_string(path)), library(make_library())
-		{}
+		SharedLibrary(std::string_view path) : path(widen_string(path))
+		{
+			initialize_library();
+		}
 
 		void* load_symbol_address(std::string_view symbol) const final override
 		{
@@ -38,14 +40,10 @@ namespace vt::windows
 		std::wstring				   path;
 		Unique<HMODULE, ::FreeLibrary> library;
 
-		decltype(library) make_library() const
+		void initialize_library()
 		{
-			auto raw_library = ::LoadLibraryW(path.data());
-
-			decltype(library) fresh_library(raw_library);
-			VT_ENSURE(raw_library, "Failed to find shared library '{}'.", narrow_string(path));
-
-			return fresh_library;
+			library.reset(::LoadLibraryW(path.data()));
+			VT_ENSURE(library, "Failed to find shared library '{}'.", narrow_string(path));
 		}
 	};
 }

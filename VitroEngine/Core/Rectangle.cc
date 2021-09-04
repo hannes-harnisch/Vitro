@@ -12,6 +12,16 @@ namespace vt
 		unsigned width	= 0;
 		unsigned height = 0;
 
+		unsigned area() const
+		{
+			return width * height;
+		}
+
+		bool zero() const
+		{
+			return width == 0 || height == 0;
+		}
+
 		std::string to_string() const
 		{
 			return std::format("[{}, {} | {}, {}]", x, y, width, height);
@@ -22,6 +32,16 @@ namespace vt
 	{
 		unsigned width	= 0;
 		unsigned height = 0;
+
+		unsigned area() const
+		{
+			return width * height;
+		}
+
+		bool zero() const
+		{
+			return width == 0 || height == 0;
+		}
 
 		std::string to_string() const
 		{

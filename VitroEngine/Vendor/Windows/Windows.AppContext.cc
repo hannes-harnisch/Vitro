@@ -55,7 +55,7 @@ namespace vt::windows
 			}
 		}
 
-		void* handle() override
+		void* get_handle() override
 		{
 			return instance_handle;
 		}
@@ -90,26 +90,29 @@ namespace vt::windows
 				case WM_LBUTTONDOWN: get().on_mouse_event<MouseDownEvent>(hwnd, MouseCode::Mouse1); return 0;
 				case WM_RBUTTONDOWN: get().on_mouse_event<MouseDownEvent>(hwnd, MouseCode::Mouse2); return 0;
 				case WM_MBUTTONDOWN: get().on_mouse_event<MouseDownEvent>(hwnd, MouseCode::Wheel); return 0;
-				case WM_XBUTTONDOWN: get().on_mouse_event<MouseDownEvent>(hwnd, map_extra_mouse_button(w_param)); return true;
+				case WM_XBUTTONDOWN: get().on_mouse_event<MouseDownEvent>(hwnd, convert_extra_button(w_param)); return true;
 				case WM_LBUTTONUP: get().on_mouse_event<MouseUpEvent>(hwnd, MouseCode::Mouse1); return 0;
 				case WM_RBUTTONUP: get().on_mouse_event<MouseUpEvent>(hwnd, MouseCode::Mouse2); return 0;
 				case WM_MBUTTONUP: get().on_mouse_event<MouseUpEvent>(hwnd, MouseCode::Wheel); return 0;
-				case WM_XBUTTONUP: get().on_mouse_event<MouseUpEvent>(hwnd, map_extra_mouse_button(w_param)); return true;
+				case WM_XBUTTONUP: get().on_mouse_event<MouseUpEvent>(hwnd, convert_extra_button(w_param)); return true;
 				case WM_LBUTTONDBLCLK: get().on_mouse_event<DoubleClickEvent>(hwnd, MouseCode::Mouse1); return 0;
 				case WM_RBUTTONDBLCLK: get().on_mouse_event<DoubleClickEvent>(hwnd, MouseCode::Mouse2); return 0;
 				case WM_MBUTTONDBLCLK: get().on_mouse_event<DoubleClickEvent>(hwnd, MouseCode::Wheel); return 0;
-				case WM_XBUTTONDBLCLK:
-					get().on_mouse_event<DoubleClickEvent>(hwnd, map_extra_mouse_button(w_param));
-					return true;
+				case WM_XBUTTONDBLCLK: get().on_mouse_event<DoubleClickEvent>(hwnd, convert_extra_button(w_param)); return true;
 				case WM_MOUSEWHEEL: get().on_vertical_scroll(hwnd, w_param); return 0;
 				case WM_MOUSEHWHEEL: get().on_horizontal_scroll(hwnd, w_param); return 0;
 			}
 			return ::DefWindowProcW(hwnd, message, w_param, l_param);
 		}
 
-		static MouseCode map_extra_mouse_button(WPARAM wp)
+		static MouseCode convert_extra_button(WPARAM wp)
 		{
-			return static_cast<MouseCode>(HIWORD(wp) + 3);
+			switch(HIWORD(wp))
+			{
+				case XBUTTON1: return MouseCode::Extra1;
+				case XBUTTON2: return MouseCode::Extra2;
+			}
+			VT_UNREACHABLE();
 		}
 
 		void on_window_move(HWND hwnd, LPARAM lp)

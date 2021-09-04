@@ -17,8 +17,8 @@ namespace vt
 		Window(std::string_view title, Rectangle rect = Base::DefaultRect) : Base(title, rect)
 		{
 			ensure_call_is_on_main_thread();
-			AppContextBase::get().notify_window_mapping(handle(), *this);
-			GraphicsSystem::get().notify_window_construction(*this, handle());
+			AppContextBase::get().notify_window_mapping(get_handle(), *this);
+			GraphicsSystem::get().notify_window_construction(*this, get_handle());
 		}
 
 		Window(Window&& other) noexcept(false) : Base(std::move(other))
@@ -46,13 +46,13 @@ namespace vt
 	private:
 		void notify_destruction()
 		{
-			AppContextBase::get().notify_window_destruction(handle());
+			AppContextBase::get().notify_window_destruction(get_handle());
 			GraphicsSystem::get().notify_window_destruction(*this);
 		}
 
 		void notify_move(Window& old_window)
 		{
-			AppContextBase::get().notify_window_mapping(handle(), *this);
+			AppContextBase::get().notify_window_mapping(get_handle(), *this);
 			GraphicsSystem::get().notify_window_replacement(old_window, *this);
 		}
 	};

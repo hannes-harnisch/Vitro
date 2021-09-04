@@ -1,5 +1,4 @@
 ﻿module;
-#include <array>
 #include <cmath>
 #include <format>
 #include <string>
@@ -60,14 +59,14 @@ namespace vt
 
 	export template<typename T, int D> union Vector
 	{
-		std::array<T, D> arr;
+		T arr[D];
 
 		DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)
 	};
 
 	export template<typename T> union Vector<T, 2>
 	{
-		std::array<T, 2> arr;
+		T arr[2];
 		struct
 		{
 			T x, y;
@@ -82,7 +81,7 @@ namespace vt
 
 	export template<typename T> union Vector<T, 3>
 	{
-		std::array<T, 3> arr;
+		T arr[3];
 		struct
 		{
 			T x, y, z;
@@ -97,7 +96,7 @@ namespace vt
 
 	export template<typename T> union Vector<T, 4>
 	{
-		std::array<T, 4> arr;
+		T arr[4];
 		struct
 		{
 			T x, y, z, w;

@@ -35,7 +35,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr DXGI_FORMAT get_index_format_from_stride(unsigned stride)
+	DXGI_FORMAT get_index_format_from_stride(unsigned stride)
 	{
 		switch(stride)
 		{
@@ -45,7 +45,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D_PRIMITIVE_TOPOLOGY convert_primitive_topology(PrimitiveTopology topology)
+	D3D_PRIMITIVE_TOPOLOGY convert_primitive_topology(PrimitiveTopology topology)
 	{
 		using enum PrimitiveTopology;
 		switch(topology)
@@ -122,9 +122,21 @@ namespace vt::d3d12
 	export template<CommandType Type> class CommandList final : public CommandListBase<Type>, public CommandListData<Type>
 	{
 	public:
-		CommandList(vt::Device const& device) :
-			allocator(make_allocator(device.d3d12.get())), cmd(make_command_list(device.d3d12.get()))
-		{}
+		CommandList(vt::Device const& in_device)
+		{
+			auto device = in_device.d3d12.get();
+
+			ID3D12CommandAllocator* raw_allocator;
+
+			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&raw_allocator));
+			allocator.reset(raw_allocator);
+			VT_ASSERT_RESULT(result, "Failed to create D3D12 command allocator.");
+
+			ID3D12GraphicsCommandList4* raw_cmd;
+			result = device->CreateCommandList1(0, CommandListType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&raw_cmd));
+			cmd.reset(raw_cmd);
+			VT_ASSERT_RESULT(result, "Failed to create D3D12 command list.");
+		}
 
 		vt::CommandListHandle handle()
 		{
@@ -159,9 +171,12 @@ namespace vt::d3d12
 			cmd->SetComputeRootSignature(root_signature.d3d12.get());
 		}
 
-		void push_compute_constants(void const* data, unsigned size, unsigned offset)
+		void bind_compute_descriptors()
+		{}
+
+		void push_compute_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
 		{
-			cmd->SetComputeRoot32BitConstants(0, size / sizeof(DWORD), data, offset / sizeof(DWORD));
+			cmd->SetComputeRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
 		}
 
 		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
@@ -179,9 +194,12 @@ namespace vt::d3d12
 			cmd->SetGraphicsRootSignature(root_signature.d3d12.get());
 		}
 
-		void push_render_constants(void const* data, unsigned size, unsigned offset)
+		void bind_render_descriptors()
+		{}
+
+		void push_render_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
 		{
-			cmd->SetGraphicsRoot32BitConstants(0, size / sizeof(DWORD), data, offset / sizeof(DWORD));
+			cmd->SetGraphicsRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
 		}
 
 		void begin_render_pass(vt::RenderPass const&	   render_pass,
@@ -244,7 +262,7 @@ namespace vt::d3d12
 				}
 
 				ds_desc = {
-					.cpuDescriptor = target.depth_stencil_view(),
+					.cpuDescriptor = target.get_depth_stencil_view(),
 					.DepthBeginningAccess {
 						.Type  = pass.attachments.back().begin_access,
 						.Clear = {depth_clear},
@@ -351,28 +369,6 @@ namespace vt::d3d12
 
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
-
-		static decltype(allocator) make_allocator(ID3D12Device4* device)
-		{
-			ID3D12CommandAllocator* raw_allocator;
-
-			auto result = device->CreateCommandAllocator(CommandListType, IID_PPV_ARGS(&raw_allocator));
-
-			decltype(allocator) fresh_allocator(raw_allocator);
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 command allocator.");
-
-			return fresh_allocator;
-		}
-
-		static decltype(cmd) make_command_list(ID3D12Device4* device)
-		{
-			ID3D12GraphicsCommandList4* raw_cmd;
-			auto result = device->CreateCommandList1(0, CommandListType, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&raw_cmd));
-			decltype(cmd) fresh_cmd(raw_cmd);
-
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 command list.");
-			return fresh_cmd;
-		}
 
 		void insert_render_pass_barriers(FixedList<AttachmentTransition, MaxAttachments> const& transitions)
 		{

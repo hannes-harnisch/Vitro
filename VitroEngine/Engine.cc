@@ -44,7 +44,7 @@ namespace vt
 			catch(std::exception const& e)
 			{
 				std::string msg = "An exception was thrown while the engine was running:\n\n";
-				crash(msg + e.what());
+				on_failure(msg + e.what());
 				return EXIT_FAILURE;
 			}
 		}

@@ -4,15 +4,44 @@ namespace vt
 {
 	export enum class DescriptorType : unsigned char {
 		Texture,
-		StorageBuffer,
+		ReadWriteTexture,
+		Buffer,
+		ReadWriteBuffer,
+		ByteAddressBuffer,
+		StructuredBuffer,
 		UniformBuffer,
 		Sampler,
 	};
 
-	export struct DescriptorBinding
+	export enum class ShaderStage : unsigned char {
+		All,
+		Vertex,
+		Hull,
+		Domain,
+		Geometry,
+		Fragment,
+		Compute,
+		RayGen,
+		AnyHit,
+		ClosestHit,
+		Miss,
+		Intersection,
+		Callable,
+		Task,
+		Mesh,
+	};
+
+	export struct DescriptorSetBinding
 	{
 		unsigned char  slot	 = 0;
 		DescriptorType type	 = {};
-		unsigned char  count = 1;
+		unsigned short count = 1;
+	};
+
+	export struct RootDescriptorBinding
+	{
+		unsigned char  slot		  = 0;
+		DescriptorType type		  = {};
+		ShaderStage	   visibility = {};
 	};
 }

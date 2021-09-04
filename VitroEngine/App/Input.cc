@@ -43,29 +43,29 @@ namespace vt
 									&Input::on_mouse_move>();
 		}
 
-		void on_key_down(KeyDownEvent& e)
+		void on_key_down(KeyDownEvent& event)
 		{
-			key_down_states[e.key] = true;
+			key_down_states[event.key] = true;
 		}
 
-		void on_key_up(KeyUpEvent& e)
+		void on_key_up(KeyUpEvent& event)
 		{
-			key_down_states[e.key] = false;
+			key_down_states[event.key] = false;
 		}
 
-		void on_mouse_down(MouseDownEvent& e)
+		void on_mouse_down(MouseDownEvent& event)
 		{
-			mouse_down_states[e.button] = true;
+			mouse_down_states[event.button] = true;
 		}
 
-		void on_mouse_up(MouseUpEvent& e)
+		void on_mouse_up(MouseUpEvent& event)
 		{
-			mouse_down_states[e.button] = false;
+			mouse_down_states[event.button] = false;
 		}
 
-		void on_mouse_move(MouseMoveEvent& e)
+		void on_mouse_move(MouseMoveEvent& event)
 		{
-			mouse_pos = e.position;
+			mouse_pos = event.position;
 		}
 	};
 }

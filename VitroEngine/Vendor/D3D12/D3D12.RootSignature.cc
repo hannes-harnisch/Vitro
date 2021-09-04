@@ -3,55 +3,71 @@
 #include "D3D12.API.hh"
 export module vt.D3D12.RootSignature;
 
+import vt.Core.Algorithm;
+import vt.Core.Enum;
+import vt.Core.FixedList;
+import vt.D3D12.DescriptorSetLayout;
 import vt.D3D12.Utils;
+import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Device;
 import vt.Graphics.RootSignatureInfo;
 
 namespace vt::d3d12
 {
-	constexpr D3D12_SHADER_VISIBILITY convert_shader_stage(ShaderStage stage)
+	D3D12_ROOT_PARAMETER_TYPE get_root_signature_parameter_type(DescriptorType type)
 	{
-		using enum ShaderStage;
-		switch(stage)
+		using enum DescriptorType;
+		switch(type)
 		{
-			case Vertex: return D3D12_SHADER_VISIBILITY_VERTEX;
-			case Hull: return D3D12_SHADER_VISIBILITY_HULL;
-			case Domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
-			case Geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
-			case Fragment: return D3D12_SHADER_VISIBILITY_PIXEL;
-			case Compute: return D3D12_SHADER_VISIBILITY_ALL;
-			case RayGen: return D3D12_SHADER_VISIBILITY_ALL;
-			case AnyHit: return D3D12_SHADER_VISIBILITY_ALL;
-			case ClosestHit: return D3D12_SHADER_VISIBILITY_ALL;
-			case Miss: return D3D12_SHADER_VISIBILITY_ALL;
-			case Intersection: return D3D12_SHADER_VISIBILITY_ALL;
-			case Callable: return D3D12_SHADER_VISIBILITY_ALL;
-			case Task: return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
-			case Mesh: return D3D12_SHADER_VISIBILITY_MESH;
+			case Buffer:
+			case ByteAddressBuffer: return D3D12_ROOT_PARAMETER_TYPE_SRV;
+			case ReadWriteTexture:
+			case ReadWriteBuffer:
+			case StructuredBuffer: return D3D12_ROOT_PARAMETER_TYPE_UAV;
+			case UniformBuffer: return D3D12_ROOT_PARAMETER_TYPE_CBV;
 		}
-		VT_UNREACHABLE();
+		throw std::runtime_error(std::format("Descriptor type '{}' cannot be used for root descriptors.", enum_name(type)));
 	}
 
 	export class RootSignature
 	{
 	public:
-		RootSignature(vt::Device const& device, RootSignatureInfo const& info) :
-			root_signature(make_root_signature(device, info))
-		{}
-
-		ID3D12RootSignature* get() const
+		RootSignature(vt::Device const& device, RootSignatureInfo const& info)
 		{
-			return root_signature.get();
-		}
+			FixedList<D3D12_ROOT_PARAMETER1, D3D12_MAX_ROOT_COST> parameters;
+			parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
+				.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+				.Constants {
+					.ShaderRegister = 0,
+					.RegisterSpace	= 0,
+					.Num32BitValues = info.push_constants_size_in_32bit_units,
+				},
+				.ShaderVisibility = convert_shader_stage(info.push_constants_visibility),
+			});
 
-	private:
-		ComUnique<ID3D12RootSignature> root_signature;
+			for(auto binding : info.root_descriptor_bindings)
+				parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
+					.ParameterType = get_root_signature_parameter_type(binding.type),
+					.Descriptor {
+						.ShaderRegister = binding.slot,
+						.RegisterSpace	= 0,
+						.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
+					},
+					.ShaderVisibility = convert_shader_stage(binding.visibility),
+				});
 
-		static decltype(root_signature) make_root_signature(vt::Device const& device, RootSignatureInfo const& info)
-		{
+			for(auto& set_layout : info.descriptor_set_layouts)
+				parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
+					.ParameterType	  = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+					.DescriptorTable  = set_layout.d3d12.get_descriptor_table(),
+					.ShaderVisibility = set_layout.d3d12.get_visibility(),
+				});
+
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC const desc {
 				.Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
 				.Desc_1_1 {
+					.NumParameters	   = count(parameters),
+					.pParameters	   = parameters.data(),
 					.NumStaticSamplers = 0,
 					.pStaticSamplers   = nullptr,
 					.Flags			   = D3D12_ROOT_SIGNATURE_FLAG_NONE,
@@ -67,10 +83,16 @@ namespace vt::d3d12
 			ID3D12RootSignature* raw_root_signature;
 			result = device.d3d12.get()->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
 															 IID_PPV_ARGS(&raw_root_signature));
-			decltype(root_signature) fresh_root_signature(raw_root_signature);
+			root_signature.reset(raw_root_signature);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 root signature.");
-
-			return fresh_root_signature;
 		}
+
+		ID3D12RootSignature* get() const
+		{
+			return root_signature.get();
+		}
+
+	private:
+		ComUnique<ID3D12RootSignature> root_signature;
 	};
 }

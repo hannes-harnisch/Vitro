@@ -14,14 +14,24 @@ namespace vt::d3d12
 	export class Queue
 	{
 	public:
-		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type) :
-			queue(make_queue(device, command_type)), fence(make_fence(device))
-		{}
-
-		~Queue()
+		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type)
 		{
-			if(queue)
-				wait_for_idle();
+			D3D12_COMMAND_QUEUE_DESC const desc {
+				.Type	  = command_type,
+				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
+				.NodeMask = 0,
+			};
+			ID3D12CommandQueue* raw_queue;
+
+			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&raw_queue));
+			queue.reset(raw_queue);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 command queue.");
+
+			ID3D12Fence* raw_fence;
+			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&raw_fence));
+			fence.reset(raw_fence);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 fence.");
 		}
 
 		void wait_for_idle()
@@ -54,36 +64,6 @@ namespace vt::d3d12
 		ComUnique<ID3D12CommandQueue> queue;
 		ComUnique<ID3D12Fence>		  fence;
 		uint64_t					  fence_value = 0;
-
-		static decltype(queue) make_queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type)
-		{
-			D3D12_COMMAND_QUEUE_DESC const desc {
-				.Type	  = command_type,
-				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
-				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
-				.NodeMask = 0,
-			};
-			ID3D12CommandQueue* raw_queue;
-
-			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&raw_queue));
-
-			decltype(queue) fresh_queue(raw_queue);
-			VT_ENSURE_RESULT(result, "Failed to create D3D12 command queue.");
-
-			return fresh_queue;
-		}
-
-		static decltype(fence) make_fence(ID3D12Device4* device)
-		{
-			ID3D12Fence* raw_fence;
-
-			auto result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&raw_fence));
-
-			decltype(fence) fresh_fence(raw_fence);
-			VT_ENSURE_RESULT(result, "Failed to create D3D12 fence.");
-
-			return fresh_fence;
-		}
 
 		uint64_t signal()
 		{

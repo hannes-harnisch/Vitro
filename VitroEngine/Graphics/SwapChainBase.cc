@@ -1,5 +1,6 @@
 ﻿export module vt.Graphics.SwapChainBase;
 
+import vt.App.WindowEvent;
 import vt.Graphics.RenderTarget;
 
 namespace vt
@@ -9,21 +10,21 @@ namespace vt
 	public:
 		virtual ~SwapChainBase() = default;
 
-		virtual RenderTarget& acquire_render_target() = 0;
-		virtual void		  present()				  = 0;
-		virtual void		  resize()				  = 0;
-		virtual void		  enable_v_sync()		  = 0;
-		virtual void		  disable_v_sync()		  = 0;
+		virtual RenderTarget const& acquire_render_target()				 = 0;
+		virtual void				present()							 = 0;
+		virtual void				resize(WindowSizeEvent const& event) = 0;
+		virtual void				enable_vsync()						 = 0;
+		virtual void				disable_vsync()						 = 0;
 
-		bool v_sync_enabled() const
+		bool vsync_enabled() const
 		{
-			return is_v_sync_enabled;
+			return is_vsync_enabled;
 		}
 
 	protected:
-		static constexpr unsigned MaxBuffers		 = 3;
-		static constexpr unsigned DefaultBufferCount = 3;
+		static constexpr unsigned char MaxBuffers		  = 3;
+		static constexpr unsigned char DefaultBufferCount = 3;
 
-		bool is_v_sync_enabled = false;
+		bool is_vsync_enabled = false;
 	};
 }

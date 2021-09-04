@@ -26,7 +26,7 @@ namespace vt
 		GraphicsSystem() :
 			device(driver, select_adapter()), present_pass(device, fill_present_pass_info()), renderer(device, present_pass)
 		{
-			register_event_handlers<&GraphicsSystem::update>();
+			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize>();
 		}
 
 		void notify_window_construction(class Window const& window, void* native_window_handle)
@@ -57,7 +57,9 @@ namespace vt
 
 		static RenderPassInfo fill_present_pass_info()
 		{
-			Subpass subpass {{AttachmentReference {.used_layout = ImageLayout::ColorAttachment}}};
+			Subpass subpass {{AttachmentReference {
+				.used_layout = ImageLayout::ColorAttachment,
+			}}};
 			return RenderPassInfo {
 				.attachments {AttachmentInfo {
 					.format			= ImageFormat::R8_G8_B8_A8_UNorm,
@@ -80,10 +82,15 @@ namespace vt
 			return std::move(*selected);
 		}
 
-		void update(WindowPaintEvent& e)
+		void on_paint(WindowPaintEvent& event)
 		{
-			auto& swap_chain = swap_chains.at(&e.window);
+			auto& swap_chain = swap_chains.at(&event.window);
 			renderer.draw(swap_chain);
+		}
+
+		void on_window_resize(WindowSizeEvent& event)
+		{
+			swap_chains.at(&event.window)->resize(event);
 		}
 	};
 }

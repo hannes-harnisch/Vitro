@@ -12,36 +12,63 @@ import vt.Graphics.Device;
 
 namespace vt::d3d12
 {
-	constexpr D3D12_DESCRIPTOR_RANGE_TYPE convert_descriptor_type(DescriptorType type)
+	D3D12_DESCRIPTOR_RANGE_TYPE convert_descriptor_type(DescriptorType type)
 	{
 		using enum DescriptorType;
 		switch(type)
 		{
-			case Texture: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			case StorageBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			case Texture:
+			case Buffer:
+			case ByteAddressBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			case ReadWriteTexture:
+			case ReadWriteBuffer:
+			case StructuredBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			case UniformBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 			case Sampler: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 		}
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_DESCRIPTOR_RANGE1 convert_descriptor_binding(DescriptorBinding binding)
+	export D3D12_SHADER_VISIBILITY convert_shader_stage(ShaderStage stage)
 	{
-		return {
-			.RangeType						   = convert_descriptor_type(binding.type),
-			.NumDescriptors					   = binding.count,
-			.BaseShaderRegister				   = binding.slot,
-			.RegisterSpace					   = 0,
-			.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
-			.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
-		};
+		using enum ShaderStage;
+		switch(stage)
+		{
+			case Vertex: return D3D12_SHADER_VISIBILITY_VERTEX;
+			case Hull: return D3D12_SHADER_VISIBILITY_HULL;
+			case Domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
+			case Geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
+			case Fragment: return D3D12_SHADER_VISIBILITY_PIXEL;
+			case Task: return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+			case Mesh: return D3D12_SHADER_VISIBILITY_MESH;
+			case All:
+			case Compute:
+			case RayGen:
+			case AnyHit:
+			case ClosestHit:
+			case Miss:
+			case Intersection:
+			case Callable: return D3D12_SHADER_VISIBILITY_ALL;
+		}
+		VT_UNREACHABLE();
 	}
 
 	export class DescriptorSetLayout
 	{
 	public:
-		DescriptorSetLayout(vt::Device const&, std::span<DescriptorBinding const> bindings) : ranges(convert_ranges(bindings))
-		{}
+		DescriptorSetLayout(vt::Device const&, std::span<DescriptorSetBinding const> bindings, ShaderStage visibility) :
+			ranges(bindings.size()), visibility(convert_shader_stage(visibility))
+		{
+			for(auto binding : bindings)
+				ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
+					.RangeType						   = convert_descriptor_type(binding.type),
+					.NumDescriptors					   = binding.count,
+					.BaseShaderRegister				   = binding.slot,
+					.RegisterSpace					   = 0,
+					.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
+					.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+				});
+		}
 
 		D3D12_ROOT_DESCRIPTOR_TABLE1 get_descriptor_table() const
 		{
@@ -51,17 +78,13 @@ namespace vt::d3d12
 			};
 		}
 
+		D3D12_SHADER_VISIBILITY get_visibility() const
+		{
+			return visibility;
+		}
+
 	private:
 		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
-
-		static std::vector<D3D12_DESCRIPTOR_RANGE1> convert_ranges(std::span<DescriptorBinding const> bindings)
-		{
-			std::vector<D3D12_DESCRIPTOR_RANGE1> ranges(bindings.size());
-
-			for(auto binding : bindings)
-				ranges.emplace_back(convert_descriptor_binding(binding));
-
-			return ranges;
-		}
+		D3D12_SHADER_VISIBILITY				 visibility;
 	};
 }

@@ -13,7 +13,7 @@ import vt.Graphics.RenderPassInfo;
 
 namespace vt::d3d12
 {
-	constexpr D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE convert_image_load_op(ImageLoadOp op)
+	D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE convert_image_load_op(ImageLoadOp op)
 	{
 		switch(op)
 		{
@@ -24,7 +24,7 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	constexpr D3D12_RENDER_PASS_ENDING_ACCESS_TYPE convert_image_store_op(ImageStoreOp op)
+	D3D12_RENDER_PASS_ENDING_ACCESS_TYPE convert_image_store_op(ImageStoreOp op)
 	{
 		switch(op)
 		{

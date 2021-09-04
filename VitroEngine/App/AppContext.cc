@@ -23,22 +23,22 @@ namespace vt
 			register_event_handlers<&AppContext::on_window_open, &AppContext::on_window_close, &AppContext::on_escape_held>();
 		}
 
-		void on_window_open(WindowOpenEvent& e)
+		void on_window_open(WindowOpenEvent& event)
 		{
-			open_windows.emplace_back(&e.window);
+			open_windows.emplace_back(&event.window);
 		}
 
-		void on_window_close(WindowCloseEvent& e)
+		void on_window_close(WindowCloseEvent& event)
 		{
-			std::erase(open_windows, &e.window);
+			std::erase(open_windows, &event.window);
 			if(open_windows.empty())
 				engine_running_status = false;
 		}
 
-		void on_escape_held(KeyDownEvent& e)
+		void on_escape_held(KeyDownEvent& event)
 		{
-			if(e.key == KeyCode::Escape && e.repeats == 10)
-				e.window.close();
+			if(event.key == KeyCode::Escape && event.repeats == 10)
+				event.window.close();
 		}
 	};
 }

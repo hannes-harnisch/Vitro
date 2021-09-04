@@ -28,12 +28,12 @@ namespace vt::d3d12
 			return views[index];
 		}
 
-		ID3D12Resource* depth_stencil_attachment() const
+		ID3D12Resource* get_depth_stencil_attachment() const
 		{
 			return attachments.back().get();
 		}
 
-		D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view() const
+		D3D12_CPU_DESCRIPTOR_HANDLE get_depth_stencil_view() const
 		{
 			return views.back();
 		}
