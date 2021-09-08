@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.RenderTarget;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Graphics.RenderTarget;
 
 import vt.Graphics.DynamicGpuApi;
 
@@ -9,9 +11,5 @@ import vt.VT_GPU_API_MODULE.RenderTarget;
 
 namespace vt
 {
-	export using RenderTarget = ResourceVariant<
-#if VT_DYNAMIC_GPU_API
-		VT_GPU_API_NAME_PRIMARY::RenderTarget,
-#endif
-		VT_GPU_API_NAME::RenderTarget>;
+	export using RenderTarget = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderTarget)>;
 }

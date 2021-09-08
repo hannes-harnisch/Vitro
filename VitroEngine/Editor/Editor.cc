@@ -2,7 +2,6 @@
 #include <new>
 export module vt.Editor.Editor;
 
-import vt.App.KeyCode;
 import vt.App.Window;
 import vt.App.WindowEvent;
 

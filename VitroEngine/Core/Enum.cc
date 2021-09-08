@@ -28,11 +28,13 @@ namespace vt
 	export using magic_enum::enum_count;
 	export using magic_enum::enum_name;
 
-	template<typename T> constexpr size_t size_from_enum_max()
+	template<typename T>
+	requires std::is_enum_v<T>
+	constexpr size_t size_from_enum_max()
 	{
 		auto values = magic_enum::enum_values<T>();
-		auto max	= std::max_element(values.begin(), values.end());
-		return static_cast<size_t>(*max) + 1;
+		auto max	= *std::max_element(values.begin(), values.end());
+		return static_cast<size_t>(max) + 1;
 	}
 
 	export template<typename T> class EnumBitArray
@@ -70,6 +72,24 @@ namespace vt
 	export constexpr auto bit(auto position)
 	{
 		return 1 << position;
+	}
+
+	constexpr size_t floor_log2(size_t x)
+	{
+		return x == 1 ? 0 : 1 + floor_log2(x >> 1);
+	}
+
+	export template<typename T>
+	requires std::is_enum_v<T>
+	constexpr size_t min_bit_field_size()
+	{
+		auto values = magic_enum::enum_values<T>();
+		auto max	= *std::max_element(values.begin(), values.end());
+		if(max == 0)
+			return 1;
+
+		unsigned sign_bit_space = std::is_signed_v<std::underlying_type_t<T>>;
+		return floor_log2(max) + sign_bit_space + 1;
 	}
 
 	export template<typename T>

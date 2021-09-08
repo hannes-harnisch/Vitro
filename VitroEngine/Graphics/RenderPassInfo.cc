@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.RenderPassInfo;
+﻿module;
+#include <vector>
+export module vt.Graphics.RenderPassInfo;
 
 import vt.Core.FixedList;
 import vt.Graphics.TextureInfo;
@@ -7,7 +9,6 @@ namespace vt
 {
 	export constexpr unsigned MaxColorAttachments = 8;						 // limit imposed by D3D12 for pipelines
 	export constexpr unsigned MaxAttachments	  = MaxColorAttachments + 1; // All color attachments + 1 depth attachment
-	export constexpr unsigned MaxSubpasses		  = 5;						 // arbitrary limit, can be changed later
 
 	export enum class ImageLoadOp : unsigned char {
 		Load,
@@ -46,6 +47,6 @@ namespace vt
 		FixedList<AttachmentInfo, MaxAttachments> attachments;
 		ImageLoadOp								  stencil_load_op  = {};
 		ImageStoreOp							  stencil_store_op = {};
-		FixedList<Subpass, MaxSubpasses>		  subpasses;
+		std::vector<Subpass>					  subpasses;
 	};
 }

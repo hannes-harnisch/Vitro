@@ -8,6 +8,7 @@
 export module vt.Engine;
 
 import vt.App.AppSystem;
+import vt.App.EventSystem;
 import vt.Core.Tick;
 import vt.Editor.Editor;
 import vt.Graphics.GraphicsSystem;
@@ -54,6 +55,7 @@ namespace vt
 		std::vector<std::string_view> command_line_args;
 		Tick						  tick;
 		TraceSystem					  trace_system;
+		EventSystem					  event_system;
 		AppSystem					  app_system;
 		GraphicsSystem				  graphics_system;
 		Editor						  editor;

@@ -7,8 +7,6 @@ export module vt.Windows.AppContext;
 
 import vt.App.AppContextBase;
 import vt.App.EventSystem;
-import vt.App.KeyCode;
-import vt.App.MouseCode;
 import vt.App.Window;
 import vt.App.WindowEvent;
 import vt.Core.Array;
@@ -55,16 +53,16 @@ namespace vt::windows
 			}
 		}
 
-		void* get_handle() override
+		void* get_system_window_owner() override
 		{
 			return instance_handle;
 		}
 
 	private:
-		HINSTANCE const instance_handle;
-		unsigned		key_repeats			= 0;
-		KeyCode			last_key_code		= {};
-		Int2			last_mouse_position = {};
+		HINSTANCE instance_handle;
+		unsigned  key_repeats		  = 0;
+		KeyCode	  last_key_code		  = KeyCode::None;
+		Int2	  last_mouse_position = {};
 
 		static LRESULT CALLBACK forward_messages(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
 		{
@@ -252,7 +250,7 @@ namespace vt::windows
 				return;
 
 			Float2 offset {
-				.y = short(HIWORD(wp)) / float(WHEEL_DELTA),
+				.y = GET_WHEEL_DELTA_WPARAM(wp) / float(WHEEL_DELTA),
 			};
 			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}
@@ -264,7 +262,7 @@ namespace vt::windows
 				return;
 
 			Float2 offset {
-				.x = short(HIWORD(wp)) / -float(WHEEL_DELTA),
+				.x = GET_WHEEL_DELTA_WPARAM(wp) / float(WHEEL_DELTA),
 			};
 			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}

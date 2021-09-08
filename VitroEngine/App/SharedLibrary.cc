@@ -8,13 +8,25 @@ namespace vt
 {
 	export class SharedLibrary : public VT_SYSTEM_NAME::SharedLibrary
 	{
+		using Base = VT_SYSTEM_NAME::SharedLibrary;
+
 	public:
-		SharedLibrary(std::string_view path) : VT_SYSTEM_NAME::SharedLibrary(path)
+		SharedLibrary(std::string_view path) : Base(path)
 		{}
 
-		template<typename TSymbol> TSymbol* load_symbol(std::string_view symbol) const
+		template<typename TSymbol> TSymbol* load_symbol(char const name[]) const
 		{
-			return static_cast<TSymbol*>(load_symbol_address(symbol));
+			return static_cast<TSymbol*>(Base::load_symbol(name));
+		}
+
+		[[nodiscard]] bool reload()
+		{
+			return Base::reload();
+		}
+
+		void* get_handle()
+		{
+			return Base::get_handle();
 		}
 	};
 }

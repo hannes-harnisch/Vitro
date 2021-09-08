@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.RenderPass;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Graphics.RenderPass;
 
 import vt.Graphics.DynamicGpuApi;
 
@@ -9,9 +11,5 @@ import vt.VT_GPU_API_MODULE.RenderPass;
 
 namespace vt
 {
-	export using RenderPass = ResourceVariant<
-#if VT_DYNAMIC_GPU_API
-		VT_GPU_API_NAME_PRIMARY::RenderPass,
-#endif
-		VT_GPU_API_NAME::RenderPass>;
+	export using RenderPass = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderPass)>;
 }

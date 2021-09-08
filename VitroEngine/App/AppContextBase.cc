@@ -10,12 +10,12 @@ namespace vt
 	export class AppContextBase : public Singleton<AppContextBase>
 	{
 	public:
-		virtual void  poll_events() const = 0;
-		virtual void* get_handle()		  = 0;
+		virtual void  poll_events() const		= 0;
+		virtual void* get_system_window_owner() = 0;
 
-		std::thread::id main_thread_id()
+		std::thread::id main_thread_id() const
 		{
-			return main_thread;
+			return main_thr_id;
 		}
 
 		void notify_window_mapping(void* native_handle, class Window& window)
@@ -41,6 +41,6 @@ namespace vt
 
 	private:
 		HashMap<void*, Window*> native_window_to_engine_window;
-		std::thread::id			main_thread = std::this_thread::get_id();
+		std::thread::id			main_thr_id = std::this_thread::get_id();
 	};
 }

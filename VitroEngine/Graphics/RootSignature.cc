@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.RootSignature;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Graphics.RootSignature;
 
 import vt.Graphics.DynamicGpuApi;
 
@@ -9,9 +11,5 @@ import vt.VT_GPU_API_MODULE.RootSignature;
 
 namespace vt
 {
-	export using RootSignature = ResourceVariant<
-#if VT_DYNAMIC_GPU_API
-		VT_GPU_API_NAME_PRIMARY::RootSignature,
-#endif
-		VT_GPU_API_NAME::RootSignature>;
+	export using RootSignature = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RootSignature)>;
 }

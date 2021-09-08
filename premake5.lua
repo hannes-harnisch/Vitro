@@ -84,6 +84,7 @@ project 'VitroEngine'
 							'VT_GPU_API_MODULE=D3D12',
 							'VT_GPU_API_NAME=d3d12'
 						}
+		links			{ 'd3d12', 'dxgi' }
 
 group 'Dependencies'
 

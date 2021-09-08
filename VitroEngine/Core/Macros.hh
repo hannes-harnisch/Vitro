@@ -35,6 +35,21 @@
 
 #endif
 
+#define VT_PASTE_IMPL(first, second) first##second
+#define VT_PASTE(first, second)		 VT_PASTE_IMPL(first, second)
+
+#if VT_DYNAMIC_GPU_API
+
+	#define VT_GPU_API_VARIANT_ARGS(object)                                                                                    \
+		VT_GPU_API_NAME_PRIMARY::VT_PASTE(VT_GPU_API_MODULE_PRIMARY, object),                                                  \
+			VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, object)
+
+#else
+
+	#define VT_GPU_API_VARIANT_ARGS(object) VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, object)
+
+#endif
+
 #include <format>
 #include <stdexcept>
 
@@ -45,7 +60,7 @@
 	#define VT_UNREACHABLE()                                                                                                   \
 		{                                                                                                                      \
 			VT_DEBUG_BREAK();                                                                                                  \
-			VT_ASSUME_UNREACHABLE();                                                                                           \
+			std::exit(EXIT_FAILURE);                                                                                           \
 		}
 
 	#define VT_ASSERT(condition, message)                                                                                      \

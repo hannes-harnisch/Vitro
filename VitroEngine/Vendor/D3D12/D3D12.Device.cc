@@ -6,7 +6,7 @@
 #include <span>
 export module vt.D3D12.Device;
 
-import vt.D3D12.Queue;
+import vt.Core.Algorithm;
 import vt.D3D12.Utils;
 import vt.Graphics.Adapter;
 import vt.Graphics.DeviceBase;
@@ -14,20 +14,74 @@ import vt.Graphics.Driver;
 
 namespace vt::d3d12
 {
-	export class Device final : public DeviceBase
+	class Queue
 	{
 	public:
-		PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER const d3d12_create_versioned_root_signature_deserializer;
-		PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE const			 d3d12_serialize_versioned_root_signature;
+		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type)
+		{
+			D3D12_COMMAND_QUEUE_DESC const desc {
+				.Type	  = command_type,
+				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
+				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
+				.NodeMask = 0,
+			};
+			ID3D12CommandQueue* raw_queue;
 
-		Device(vt::Driver const& driver, vt::Adapter adapter) :
-			d3d12_create_versioned_root_signature_deserializer(
-				driver.d3d12.load_d3d12_function<PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER>(
-					"D3D12CreateVersionedRootSignatureDeserializer")),
-			d3d12_serialize_versioned_root_signature(
-				driver.d3d12.load_d3d12_function<PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE>(
-					"D3D12SerializeVersionedRootSignature")),
-			device(make_device(driver, std::move(adapter))),
+			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&raw_queue));
+			queue.reset(raw_queue);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 command queue.");
+
+			ID3D12Fence* raw_fence;
+			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&raw_fence));
+			fence.reset(raw_fence);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 fence.");
+		}
+
+		void wait_for_idle()
+		{
+			wait_for_fence_value(signal());
+		}
+
+		uint64_t submit(std::span<CommandListHandle const> command_lists)
+		{
+			auto lists = reinterpret_cast<ID3D12CommandList* const*>(command_lists.data());
+			queue->ExecuteCommandLists(count(command_lists), lists);
+			return signal();
+		}
+
+		void wait_for_fence_value(uint64_t value_to_await) const
+		{
+			if(fence->GetCompletedValue() >= value_to_await)
+				return;
+
+			auto result = fence->SetEventOnCompletion(value_to_await, nullptr);
+			VT_ASSERT_RESULT(result, "Failed to wait for queue workload completion.");
+		}
+
+		ID3D12CommandQueue* ptr() const
+		{
+			return queue.get();
+		}
+
+	private:
+		ComUnique<ID3D12CommandQueue> queue;
+		ComUnique<ID3D12Fence>		  fence;
+		uint64_t					  fence_value = 0;
+
+		uint64_t signal()
+		{
+			auto result = queue->Signal(fence.get(), ++fence_value);
+			VT_ASSERT_RESULT(result, "Failed to signal command queue.");
+
+			return fence_value;
+		}
+	};
+
+	export class D3D12Device final : public DeviceBase
+	{
+	public:
+		D3D12Device(Driver const&, Adapter adapter) :
+			device(make_device(std::move(adapter))),
 			render_queue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
 			compute_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
 			copy_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
@@ -39,10 +93,10 @@ namespace vt::d3d12
 			VT_ENSURE_RESULT(result, "Failed to check for D3D12 root signature feature support.");
 			VT_ENSURE(feature.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1,
 					  "The DirectX 12 root signature 1.1 feature isn't available. Try updating your Windows version and your "
-					  "graphics drivers. If the problem persists, you may need to change to a newer graphics card.");
+					  "graphics drivers. If the problem persists, you may need to switch to a newer GPU.");
 		}
 
-		Receipt submit_render_commands(std::span<vt::CommandListHandle> command_lists) override
+		Receipt submit_render_commands(std::span<CommandListHandle const> command_lists) override
 		{
 #if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -50,7 +104,7 @@ namespace vt::d3d12
 			return {render_queue.submit(command_lists)};
 		}
 
-		Receipt submit_compute_commands(std::span<vt::CommandListHandle> command_lists) override
+		Receipt submit_compute_commands(std::span<CommandListHandle const> command_lists) override
 		{
 #if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COMPUTE);
@@ -58,7 +112,7 @@ namespace vt::d3d12
 			return {compute_queue.submit(command_lists)};
 		}
 
-		Receipt submit_copy_commands(std::span<vt::CommandListHandle> command_lists) override
+		Receipt submit_copy_commands(std::span<CommandListHandle const> command_lists) override
 		{
 #if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COPY);
@@ -103,14 +157,14 @@ namespace vt::d3d12
 			copy_queue.wait_for_idle();
 		}
 
-		ID3D12Device4* get() const
+		ID3D12Device4* ptr() const
 		{
 			return device.get();
 		}
 
-		ID3D12CommandQueue* get_render_queue_handle() const
+		ID3D12CommandQueue* get_render_queue_ptr() const
 		{
-			return render_queue.get();
+			return render_queue.ptr();
 		}
 
 	private:
@@ -119,20 +173,19 @@ namespace vt::d3d12
 		Queue					 compute_queue;
 		Queue					 copy_queue;
 
-		static decltype(device) make_device(vt::Driver const& driver, vt::Adapter adapter)
+		static ComUnique<ID3D12Device4> make_device(Adapter adapter)
 		{
 			ID3D12Device4* raw_device;
 
-			auto result = driver.d3d12.d3d12_create_device(adapter.d3d12.get(), Driver::FeatureLevel,
-														   IID_PPV_ARGS(&raw_device));
+			auto result = D3D12CreateDevice(adapter.d3d12.ptr(), D3D12Driver::MinimumFeatureLevel, IID_PPV_ARGS(&raw_device));
 
-			decltype(device) fresh_device(raw_device);
+			ComUnique<ID3D12Device4> fresh_device(raw_device);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 device.");
 
 			return fresh_device;
 		}
 
-		static void validate_command_lists(std::span<vt::CommandListHandle> command_lists, D3D12_COMMAND_LIST_TYPE type)
+		static void validate_command_lists(std::span<CommandListHandle const> command_lists, D3D12_COMMAND_LIST_TYPE type)
 		{
 			for(auto list : command_lists)
 			{

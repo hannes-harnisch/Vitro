@@ -7,13 +7,13 @@ import vt.D3D12.Utils;
 
 namespace vt::d3d12
 {
-	export class Adapter
+	export class D3D12Adapter
 	{
 	public:
-		Adapter(ComUnique<IDXGIAdapter1> adapter_resource) : adapter(std::move(adapter_resource))
+		D3D12Adapter(ComUnique<IDXGIAdapter1> adapter_resource) : adapter(std::move(adapter_resource))
 		{}
 
-		IDXGIAdapter1* get() const
+		IDXGIAdapter1* ptr() const
 		{
 			return adapter.get();
 		}

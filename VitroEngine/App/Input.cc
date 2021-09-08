@@ -3,8 +3,6 @@
 export module vt.App.Input;
 
 import vt.App.EventListener;
-import vt.App.KeyCode;
-import vt.App.MouseCode;
 import vt.App.WindowEvent;
 import vt.Core.Enum;
 import vt.Core.Singleton;

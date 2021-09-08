@@ -9,10 +9,10 @@ import vt.Graphics.RenderTargetInfo;
 
 namespace vt::d3d12
 {
-	export class RenderTarget
+	export class D3D12RenderTarget
 	{
 	public:
-		RenderTarget(ComUnique<ID3D12Resource> resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+		D3D12RenderTarget(ComUnique<ID3D12Resource> resource, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 		{
 			attachments.emplace_back(std::move(resource));
 			views.emplace_back(handle);

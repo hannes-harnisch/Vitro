@@ -9,6 +9,7 @@
 export module vt.App.EventSystem;
 
 import vt.App.Event;
+import vt.App.WindowEvent;
 import vt.Core.Singleton;
 import vt.Trace.Log;
 
@@ -16,7 +17,7 @@ namespace vt
 {
 	export class EventSystem : public Singleton<EventSystem>
 	{
-		friend class AppSystem;
+		friend class Engine;
 		friend class EventListener;
 
 	public:
@@ -53,7 +54,8 @@ namespace vt
 						break;
 				}
 			}
-			Log().verbose(*event);
+			if(event_type != typeid(WindowPaintEvent))
+				Log().verbose(*event);
 		}
 
 		template<typename... Ts> void submit_handler(Ts&&... ts)

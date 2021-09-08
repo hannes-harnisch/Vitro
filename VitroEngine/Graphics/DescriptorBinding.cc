@@ -13,6 +13,12 @@ namespace vt
 		Sampler,
 	};
 
+	export struct DescriptorPoolSize
+	{
+		unsigned	   descriptor_count = 0;
+		DescriptorType type				= {};
+	};
+
 	export enum class ShaderStage : unsigned char {
 		All,
 		Vertex,

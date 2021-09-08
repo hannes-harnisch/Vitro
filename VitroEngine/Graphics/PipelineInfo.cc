@@ -229,24 +229,27 @@ namespace vt
 	export struct BlendState
 	{
 		FixedList<ColorAttachmentBlendState, MaxColorAttachments> attachment_states;
-		bool													  enable_logic_op = false;
-		LogicOp													  logic_op		  = {};
+
+		bool	enable_logic_op = false;
+		LogicOp logic_op		= {};
 	};
 
 	export constexpr unsigned MaxVertexAttributes = 16;
 
 	export struct RenderPipelineInfo
 	{
-		RootSignature const&							root_signature;
-		RenderPass const&								render_pass;
-		Array<char> const&								vertex_shader_bytecode;
-		Array<char> const&								fragment_shader_bytecode;
-		FixedList<VertexAttribute, MaxVertexAttributes> vertex_attributes;
-		PrimitiveTopology								primitive_topology		 = {};
-		bool											enable_primitive_restart = false;
-		RasterizerState									rasterizer;
-		DepthStencilState								depth_stencil;
-		MultisampleState								multisample;
-		BlendState										blend;
+		using VertexAttributeList = FixedList<VertexAttribute, MaxVertexAttributes>;
+
+		RootSignature const& root_signature;
+		RenderPass const&	 render_pass;
+		Array<char> const&	 vertex_shader_bytecode;
+		Array<char> const&	 fragment_shader_bytecode;
+		VertexAttributeList	 vertex_attributes;
+		PrimitiveTopology	 primitive_topology		  = {};
+		bool				 enable_primitive_restart = false;
+		RasterizerState		 rasterizer;
+		DepthStencilState	 depth_stencil;
+		MultisampleState	 multisample;
+		BlendState			 blend;
 	};
 }

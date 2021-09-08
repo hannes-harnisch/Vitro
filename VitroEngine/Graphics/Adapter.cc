@@ -1,4 +1,6 @@
 ﻿module;
+#include "Core/Macros.hh"
+
 #include <string_view>
 export module vt.Graphics.Adapter;
 
@@ -11,11 +13,7 @@ import vt.VT_GPU_API_MODULE.Adapter;
 
 namespace vt
 {
-	using AdapterResource = ResourceVariant<
-#if VT_DYNAMIC_GPU_API
-		VT_GPU_API_NAME_PRIMARY::Adapter,
-#endif
-		VT_GPU_API_NAME::Adapter>;
+	export using AdapterResource = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
 
 	export class Adapter : public AdapterResource
 	{

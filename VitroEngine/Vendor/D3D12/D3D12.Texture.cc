@@ -108,10 +108,10 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	export class Texture
+	export class D3D12Texture
 	{
 	public:
-		ID3D12Resource* get() const
+		ID3D12Resource* ptr() const
 		{
 			return texture.get();
 		}

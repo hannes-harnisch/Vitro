@@ -14,7 +14,7 @@ import vt.Graphics.RootSignatureInfo;
 
 namespace vt::d3d12
 {
-	D3D12_ROOT_PARAMETER_TYPE get_root_signature_parameter_type(DescriptorType type)
+	D3D12_ROOT_PARAMETER_TYPE convert_to_root_signature_parameter_type(DescriptorType type)
 	{
 		using enum DescriptorType;
 		switch(type)
@@ -29,10 +29,10 @@ namespace vt::d3d12
 		throw std::runtime_error(std::format("Descriptor type '{}' cannot be used for root descriptors.", enum_name(type)));
 	}
 
-	export class RootSignature
+	export class D3D12RootSignature
 	{
 	public:
-		RootSignature(vt::Device const& device, RootSignatureInfo const& info)
+		D3D12RootSignature(Device const& device, RootSignatureInfo const& info)
 		{
 			FixedList<D3D12_ROOT_PARAMETER1, D3D12_MAX_ROOT_COST> parameters;
 			parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
@@ -47,7 +47,7 @@ namespace vt::d3d12
 
 			for(auto binding : info.root_descriptor_bindings)
 				parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
-					.ParameterType = get_root_signature_parameter_type(binding.type),
+					.ParameterType = convert_to_root_signature_parameter_type(binding.type),
 					.Descriptor {
 						.ShaderRegister = binding.slot,
 						.RegisterSpace	= 0,
@@ -75,19 +75,19 @@ namespace vt::d3d12
 			};
 			ID3DBlob *raw_blob, *raw_error;
 
-			auto result = device.d3d12.d3d12_serialize_versioned_root_signature(&desc, &raw_blob, &raw_error);
+			auto result = D3D12SerializeVersionedRootSignature(&desc, &raw_blob, &raw_error);
 
 			ComUnique<ID3DBlob> blob(raw_blob), error(raw_error);
 			VT_ASSERT_RESULT(result, "Failed to serialize D3D12 root signature.");
 
 			ID3D12RootSignature* raw_root_signature;
-			result = device.d3d12.get()->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
+			result = device.d3d12.ptr()->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
 															 IID_PPV_ARGS(&raw_root_signature));
 			root_signature.reset(raw_root_signature);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 root signature.");
 		}
 
-		ID3D12RootSignature* get() const
+		ID3D12RootSignature* ptr() const
 		{
 			return root_signature.get();
 		}

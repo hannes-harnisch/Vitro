@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.Device;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Graphics.Device;
 
 import vt.Graphics.DeviceBase;
 import vt.Graphics.DynamicGpuApi;
@@ -10,9 +12,5 @@ import vt.VT_GPU_API_MODULE.Device;
 
 namespace vt
 {
-	export using Device = InterfaceVariant<DeviceBase,
-#if VT_DYNAMIC_GPU_API
-										   VT_GPU_API_NAME_PRIMARY::Device,
-#endif
-										   VT_GPU_API_NAME::Device>;
+	export using Device = InterfaceVariant<DeviceBase, VT_GPU_API_VARIANT_ARGS(Device)>;
 }

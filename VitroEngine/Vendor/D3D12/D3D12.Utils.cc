@@ -4,7 +4,7 @@ export module vt.D3D12.Utils;
 
 namespace vt::d3d12
 {
-	template<typename T> struct InterfaceDeleter
+	template<typename T> struct ComDeleter
 	{
 		void operator()(T* ptr)
 		{
@@ -12,5 +12,5 @@ namespace vt::d3d12
 		}
 	};
 
-	export template<typename T> using ComUnique = std::unique_ptr<T, InterfaceDeleter<T>>;
+	export template<typename T> using ComUnique = std::unique_ptr<T, ComDeleter<T>>;
 }

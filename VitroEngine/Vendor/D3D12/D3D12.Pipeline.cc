@@ -249,10 +249,10 @@ namespace vt::d3d12
 		};
 	}
 
-	export class Pipeline
+	export class D3D12Pipeline
 	{
 	public:
-		Pipeline(vt::Device const& device, RenderPipelineInfo const& info)
+		D3D12Pipeline(Device const& device, RenderPipelineInfo const& info)
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> input_element_descs;
 			for(auto attrib : info.vertex_attributes)
@@ -261,7 +261,7 @@ namespace vt::d3d12
 			auto& pass = info.render_pass.d3d12;
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC desc {
-				.pRootSignature = info.root_signature.d3d12.get(),
+				.pRootSignature = info.root_signature.d3d12.ptr(),
 				.VS {
 					.pShaderBytecode = info.vertex_shader_bytecode.data(),
 					.BytecodeLength	 = info.vertex_shader_bytecode.size(),
@@ -304,7 +304,7 @@ namespace vt::d3d12
 																	   : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
 				.PrimitiveTopologyType = categorize_primitive_topology(info.primitive_topology),
 				.NumRenderTargets	   = info.blend.attachment_states.count(),
-				.DSVFormat			   = pass.uses_depth_stencil ? pass.attachments.back().format : DXGI_FORMAT_UNKNOWN,
+				.DSVFormat			   = pass.uses_depth_stencil() ? pass.get_depth_stencil_format() : DXGI_FORMAT_UNKNOWN,
 				.SampleDesc			   = {.Count = info.multisample.sample_count},
 			};
 			unsigned i = 0;
@@ -312,17 +312,17 @@ namespace vt::d3d12
 				desc.BlendState.RenderTarget[i++] = convert_color_attachment_blend_state(info.blend, state);
 
 			i = 0;
-			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.uses_depth_stencil))
+			for(auto attachment : pass.get_render_target_attachments())
 				desc.RTVFormats[i++] = attachment.format;
 
 			ID3D12PipelineState* raw_pipeline;
 
-			auto result = device.d3d12.get()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
+			auto result = device.d3d12.ptr()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
 			pipeline.reset(raw_pipeline);
 			VT_ASSERT_RESULT(result, "Failed to create render pipeline.");
 		}
 
-		ID3D12PipelineState* get() const
+		ID3D12PipelineState* ptr() const
 		{
 			return pipeline.get();
 		}

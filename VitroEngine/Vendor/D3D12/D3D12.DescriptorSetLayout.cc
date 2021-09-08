@@ -53,10 +53,10 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	export class DescriptorSetLayout
+	export class D3D12DescriptorSetLayout
 	{
 	public:
-		DescriptorSetLayout(vt::Device const&, std::span<DescriptorSetBinding const> bindings, ShaderStage visibility) :
+		D3D12DescriptorSetLayout(Device const&, std::span<DescriptorSetBinding const> bindings, ShaderStage visibility) :
 			ranges(bindings.size()), visibility(convert_shader_stage(visibility))
 		{
 			for(auto binding : bindings)

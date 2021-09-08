@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.Resource;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Graphics.Resource;
 
 import vt.Graphics.DynamicGpuApi;
 
@@ -14,14 +16,7 @@ import vt.VT_GPU_API_MODULE.Texture;
 
 namespace vt
 {
-#if VT_DYNAMIC_GPU_API
-	#define EXPORT_RESOURCE_VARIANT(resource)                                                                                  \
-		export using resource = ResourceVariant<VT_GPU_API_NAME_PRIMARY::resource, VT_GPU_API_NAME::resource>
-#else
-	#define EXPORT_RESOURCE_VARIANT(resource) export using resource = ResourceVariant<VT_GPU_API_NAME::resource>
-#endif
-
-	EXPORT_RESOURCE_VARIANT(Buffer);
-	EXPORT_RESOURCE_VARIANT(Pipeline);
-	//	EXPORT_RESOURCE_VARIANT(Texture);
+	export using Buffer	  = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Buffer)>;
+	export using Pipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Pipeline)>;
+	export using Texture  = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Texture)>;
 }

@@ -106,9 +106,9 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
 	{
 	protected:
-		RenderPass const*	active_render_pass	 = nullptr;
-		RenderTarget const* active_render_target = nullptr;
-		unsigned			subpass_index		 = 1;
+		D3D12RenderPass const*	 active_render_pass	  = nullptr;
+		D3D12RenderTarget const* active_render_target = nullptr;
+		unsigned				 subpass_index		  = 1;
 	};
 
 	template<CommandType Type>
@@ -119,12 +119,12 @@ namespace vt::d3d12
 						   ComputeCommandListBase,
 						   std::conditional_t<Type == CommandType::Copy, CopyCommandListBase, void>>>;
 
-	export template<CommandType Type> class CommandList final : public CommandListBase<Type>, public CommandListData<Type>
+	export template<CommandType Type> class D3D12CommandList final : public CommandListBase<Type>, public CommandListData<Type>
 	{
 	public:
-		CommandList(vt::Device const& in_device)
+		D3D12CommandList(Device const& in_device)
 		{
-			auto device = in_device.d3d12.get();
+			auto device = in_device.d3d12.ptr();
 
 			ID3D12CommandAllocator* raw_allocator;
 
@@ -138,7 +138,7 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 command list.");
 		}
 
-		vt::CommandListHandle handle()
+		CommandListHandle handle()
 		{
 			return {cmd.get()};
 		}
@@ -161,14 +161,14 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to end D3D12 command list.");
 		}
 
-		void bind_compute_pipeline(vt::Pipeline const& pipeline)
+		void bind_compute_pipeline(Pipeline const& pipeline)
 		{
-			cmd->SetPipelineState(pipeline.d3d12.get());
+			cmd->SetPipelineState(pipeline.d3d12.ptr());
 		}
 
-		void bind_compute_root_signature(vt::RootSignature const& root_signature)
+		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
-			cmd->SetComputeRootSignature(root_signature.d3d12.get());
+			cmd->SetComputeRootSignature(root_signature.d3d12.ptr());
 		}
 
 		void bind_compute_descriptors()
@@ -184,14 +184,14 @@ namespace vt::d3d12
 			cmd->Dispatch(x_count, y_count, z_count);
 		}
 
-		void bind_render_pipeline(vt::Pipeline const& pipeline)
+		void bind_render_pipeline(Pipeline const& pipeline)
 		{
-			cmd->SetPipelineState(pipeline.d3d12.get());
+			cmd->SetPipelineState(pipeline.d3d12.ptr());
 		}
 
-		void bind_render_root_signature(vt::RootSignature const& root_signature)
+		void bind_render_root_signature(RootSignature const& root_signature)
 		{
-			cmd->SetGraphicsRootSignature(root_signature.d3d12.get());
+			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
 		}
 
 		void bind_render_descriptors()
@@ -202,8 +202,8 @@ namespace vt::d3d12
 			cmd->SetGraphicsRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
 		}
 
-		void begin_render_pass(vt::RenderPass const&	   render_pass,
-							   vt::RenderTarget const&	   render_target,
+		void begin_render_pass(RenderPass const&		   render_pass,
+							   RenderTarget const&		   render_target,
 							   std::span<ClearValue const> clear_values = {})
 		{
 			this->active_render_pass   = &render_pass.d3d12;
@@ -211,12 +211,12 @@ namespace vt::d3d12
 
 			auto& pass	 = *this->active_render_pass;
 			auto& target = *this->active_render_target;
-			insert_render_pass_barriers(pass.subpasses[0]);
+			insert_render_pass_barriers(pass.get_subpass_transitions(0));
 
 			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MaxColorAttachments> rt_descs;
 
 			unsigned index = 0;
-			for(auto attachment : std::span(pass.attachments.begin(), pass.attachments.end() - pass.uses_depth_stencil))
+			for(auto attachment : pass.get_render_target_attachments())
 			{
 				D3D12_CLEAR_VALUE color_clear;
 				if(clear_values.empty())
@@ -244,7 +244,7 @@ namespace vt::d3d12
 			}
 
 			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds_desc;
-			if(pass.uses_depth_stencil)
+			if(pass.uses_depth_stencil())
 			{
 				D3D12_CLEAR_VALUE depth_clear, stencil_clear;
 				if(clear_values.empty())
@@ -252,11 +252,11 @@ namespace vt::d3d12
 				else
 				{
 					depth_clear = {
-						.Format		  = pass.attachments.back().format,
+						.Format		  = pass.get_depth_stencil_format(),
 						.DepthStencil = {.Depth = clear_values.back().depth},
 					};
 					stencil_clear = {
-						.Format		  = pass.attachments.back().format,
+						.Format		  = pass.get_depth_stencil_format(),
 						.DepthStencil = {.Stencil = clear_values.back().stencil},
 					};
 				}
@@ -264,43 +264,44 @@ namespace vt::d3d12
 				ds_desc = {
 					.cpuDescriptor = target.get_depth_stencil_view(),
 					.DepthBeginningAccess {
-						.Type  = pass.attachments.back().begin_access,
+						.Type  = pass.get_depth_begin_access(),
 						.Clear = {depth_clear},
 					},
 					.StencilBeginningAccess {
-						.Type  = pass.stencil_begin_access,
+						.Type  = pass.get_stencil_begin_access(),
 						.Clear = {stencil_clear},
 					},
-					.DepthEndingAccess	 = {.Type = pass.attachments.back().end_access},
-					.StencilEndingAccess = {.Type = pass.stencil_end_access},
+					.DepthEndingAccess	 = {.Type = pass.get_depth_end_access()},
+					.StencilEndingAccess = {.Type = pass.get_stencil_end_access()},
 				};
 			}
 
-			auto ds_desc_ptr = pass.uses_depth_stencil ? &ds_desc : nullptr;
+			auto ds_desc_ptr = pass.uses_depth_stencil() ? &ds_desc : nullptr;
 			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, D3D12_RENDER_PASS_FLAG_NONE);
 			this->subpass_index = 1;
 		}
 
 		void transition_to_next_subpass()
 		{
-			VT_ASSERT(this->subpass_index < this->active_render_pass->subpasses.size() - 1,
+			VT_ASSERT(this->subpass_index < this->active_render_pass->subpass_count() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
 
-			insert_render_pass_barriers(this->active_render_pass->subpasses[this->subpass_index++]);
+			auto& subpass_transitions = this->active_render_pass->get_subpass_transitions(this->subpass_index++);
+			insert_render_pass_barriers(subpass_transitions);
 		}
 
 		void end_render_pass()
 		{
 			cmd->EndRenderPass();
-			insert_render_pass_barriers(this->active_render_pass->final_transitions);
+
+			auto& final_transitions = this->active_render_pass->get_final_transitions();
+			insert_render_pass_barriers(final_transitions);
 #if VT_DEBUG
 			this->active_render_pass = nullptr;
 #endif
 		}
 
-		void bind_vertex_buffers(unsigned					 first_buffer,
-								 std::span<vt::Buffer const> buffers,
-								 std::span<unsigned const>	 byte_offsets)
+		void bind_vertex_buffers(unsigned first_buffer, std::span<Buffer const> buffers, std::span<unsigned const> byte_offsets)
 		{
 			FixedList<D3D12_VERTEX_BUFFER_VIEW, MaxVertexAttributes> views(first_buffer);
 
@@ -315,7 +316,7 @@ namespace vt::d3d12
 			cmd->IASetVertexBuffers(first_buffer, count(views), views.data());
 		}
 
-		void bind_index_buffer(vt::Buffer const& buffer, unsigned byte_offset)
+		void bind_index_buffer(Buffer const& buffer, unsigned byte_offset)
 		{
 			D3D12_INDEX_BUFFER_VIEW const view {
 				.BufferLocation = buffer.d3d12.get_gpu_address() + byte_offset,
@@ -370,7 +371,7 @@ namespace vt::d3d12
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
-		void insert_render_pass_barriers(FixedList<AttachmentTransition, MaxAttachments> const& transitions)
+		void insert_render_pass_barriers(TransitionList const& transitions)
 		{
 			FixedList<D3D12_RESOURCE_BARRIER, MaxAttachments> barriers;
 			for(auto transition : transitions)

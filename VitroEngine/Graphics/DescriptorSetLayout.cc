@@ -1,4 +1,6 @@
-﻿export module vt.Graphics.DescriptorSetLayout;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Graphics.DescriptorSetLayout;
 
 import vt.Graphics.DynamicGpuApi;
 
@@ -9,9 +11,5 @@ import vt.VT_GPU_API_MODULE.DescriptorSetLayout;
 
 namespace vt
 {
-	export using DescriptorSetLayout = ResourceVariant<
-#if VT_DYNAMIC_GPU_API
-		VT_GPU_API_NAME_PRIMARY::DescriptorSetLayout,
-#endif
-		VT_GPU_API_NAME::DescriptorSetLayout>;
+	export using DescriptorSetLayout = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSetLayout)>;
 }

@@ -6,7 +6,6 @@
 export module vt.Windows.Window;
 
 import vt.App.AppContextBase;
-import vt.App.WindowBase;
 import vt.Core.Rectangle;
 import vt.Core.Unique;
 import vt.Core.Vector;
@@ -14,11 +13,12 @@ import vt.Windows.Utils;
 
 namespace vt::windows
 {
-	export class Window : public WindowBase
+	export class Window
 	{
 	public:
 		static constexpr wchar_t const WindowClassName[] = TEXT(VT_ENGINE_NAME);
 
+	protected:
 		static constexpr Rectangle DefaultRect {
 			.x		= CW_USEDEFAULT,
 			.y		= CW_USEDEFAULT,
@@ -29,7 +29,7 @@ namespace vt::windows
 		Window(std::string_view title, Rectangle rect)
 		{
 			auto widened_title	 = widen_string(title);
-			auto instance_handle = static_cast<HINSTANCE>(AppContextBase::get().get_handle());
+			auto instance_handle = static_cast<HINSTANCE>(AppContextBase::get().get_system_window_owner());
 
 			HWND raw_window = ::CreateWindowExW(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
 												rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
@@ -37,46 +37,36 @@ namespace vt::windows
 			VT_ENSURE(raw_window, "Failed to create window.");
 		}
 
-		void open() final override
+		void open()
 		{
-			ensure_call_is_on_main_thread();
 			::ShowWindow(window.get(), SW_RESTORE);
 		}
 
-		void close() final override
+		void close()
 		{
-			ensure_call_is_on_main_thread();
 			::ShowWindow(window.get(), SW_HIDE);
 		}
 
-		void maximize() final override
+		void maximize()
 		{
-			ensure_call_is_on_main_thread();
 			::ShowWindow(window.get(), SW_MAXIMIZE);
 		}
 
-		void minimize() final override
+		void minimize()
 		{
-			ensure_call_is_on_main_thread();
 			::ShowWindow(window.get(), SW_MINIMIZE);
 		}
 
-		void enable_cursor() final override
+		void enable_cursor()
 		{
-			ensure_call_is_on_main_thread();
-
-			is_cursor_enabled = true;
 			while(::ShowCursor(true) < 0)
 			{}
 
 			::ClipCursor(nullptr);
 		}
 
-		void disable_cursor() final override
+		void disable_cursor()
 		{
-			ensure_call_is_on_main_thread();
-
-			is_cursor_enabled = false;
 			while(::ShowCursor(false) >= 0)
 			{}
 
@@ -86,10 +76,8 @@ namespace vt::windows
 			::ClipCursor(&rect);
 		}
 
-		Extent get_size() const final override
+		Extent get_size() const
 		{
-			ensure_call_is_on_main_thread();
-
 			RECT rect;
 			::GetWindowRect(window.get(), &rect);
 			return {
@@ -98,16 +86,13 @@ namespace vt::windows
 			};
 		}
 
-		void set_size(Extent size) final override
+		void set_size(Extent size)
 		{
-			ensure_call_is_on_main_thread();
 			::SetWindowPos(window.get(), nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
 		}
 
-		Int2 get_position() const final override
+		Int2 get_position() const
 		{
-			ensure_call_is_on_main_thread();
-
 			RECT rect;
 			::GetWindowRect(window.get(), &rect);
 			return {
@@ -116,16 +101,13 @@ namespace vt::windows
 			};
 		}
 
-		void set_position(Int2 position) final override
+		void set_position(Int2 position)
 		{
-			ensure_call_is_on_main_thread();
 			::SetWindowPos(window.get(), nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 		}
 
-		std::string get_title() const final override
+		std::string get_title() const
 		{
-			ensure_call_is_on_main_thread();
-
 			int length = ::GetWindowTextLengthW(window.get());
 
 			std::wstring title(length, L'\0');
@@ -134,18 +116,14 @@ namespace vt::windows
 			return narrow_string(title);
 		}
 
-		void set_title(std::string_view const title) final override
+		void set_title(std::string_view title)
 		{
-			ensure_call_is_on_main_thread();
-
 			auto widened_title = widen_string(title);
 			::SetWindowTextW(window.get(), widened_title.data());
 		}
 
-		Rectangle client_area() const final override
+		Rectangle client_area() const
 		{
-			ensure_call_is_on_main_thread();
-
 			RECT rect;
 			::GetClientRect(window.get(), &rect);
 			return {
@@ -156,7 +134,7 @@ namespace vt::windows
 			};
 		}
 
-		void* get_handle() final override
+		void* get_handle()
 		{
 			return window.get();
 		}

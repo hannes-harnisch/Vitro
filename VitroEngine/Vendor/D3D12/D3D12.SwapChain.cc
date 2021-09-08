@@ -16,26 +16,26 @@ import vt.Graphics.SwapChainBase;
 
 namespace vt::d3d12
 {
-	export class SwapChain final : public SwapChainBase
+	export class D3D12SwapChain final : public SwapChainBase
 	{
 	public:
-		SwapChain(vt::Driver const&		driver,
-				  vt::Device&			device,
-				  vt::RenderPass const& render_pass,
-				  void*					native_window,
-				  unsigned char			buffer_count = DefaultBufferCount) :
+		D3D12SwapChain(Driver const&	 driver,
+					   Device&			 device,
+					   RenderPass const& render_pass,
+					   void*			 native_window,
+					   unsigned char	 buffer_count = DefaultBufferCount) :
 			device(device.d3d12),
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
 			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0),
-			format(render_pass.d3d12.attachments[0].format)
+			format(render_pass.d3d12.get_render_target_format(0))
 		{
-			initialize_swap_chain(driver.d3d12.get(), native_window);
+			initialize_swap_chain(driver.d3d12.get_factory(), native_window);
 			initialize_render_target_heap();
 			recreate_render_targets();
 		}
 
-		vt::RenderTarget const& acquire_render_target() override
+		RenderTarget const& acquire_render_target() override
 		{
 			return render_targets[swap_chain->GetCurrentBackBufferIndex()];
 		}
@@ -75,14 +75,14 @@ namespace vt::d3d12
 		}
 
 	private:
-		Device&									device;
-		unsigned char							buffer_count;
-		bool									tearing_supported;
-		UINT									present_flags;
-		DXGI_FORMAT								format;
-		ComUnique<IDXGISwapChain3>				swap_chain;
-		ComUnique<ID3D12DescriptorHeap>			render_target_heap;
-		FixedList<vt::RenderTarget, MaxBuffers> render_targets;
+		D3D12Device&						device;
+		unsigned char						buffer_count;
+		bool								tearing_supported;
+		UINT								present_flags;
+		DXGI_FORMAT							format;
+		ComUnique<IDXGISwapChain3>			swap_chain;
+		ComUnique<ID3D12DescriptorHeap>		render_target_heap;
+		FixedList<RenderTarget, MaxBuffers> render_targets;
 
 		void initialize_swap_chain(IDXGIFactory5* factory, void* native_window)
 		{
@@ -100,7 +100,7 @@ namespace vt::d3d12
 				.Flags		 = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
 			IDXGISwapChain1* raw_swap_chain_prototype;
-			auto result = factory->CreateSwapChainForHwnd(device.get_render_queue_handle(), hwnd, &desc, nullptr, nullptr,
+			auto result = factory->CreateSwapChainForHwnd(device.get_render_queue_ptr(), hwnd, &desc, nullptr, nullptr,
 														  &raw_swap_chain_prototype);
 			ComUnique<IDXGISwapChain1> swap_chain_prototype(raw_swap_chain_prototype);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 proxy swap chain.");
@@ -122,14 +122,14 @@ namespace vt::d3d12
 			};
 			ID3D12DescriptorHeap* raw_heap;
 
-			auto result = device.get()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&raw_heap));
+			auto result = device.ptr()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&raw_heap));
 			render_target_heap.reset(raw_heap);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 render target descriptor heap.");
 		}
 
 		void recreate_render_targets()
 		{
-			UINT size	= device.get()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			UINT size	= device.ptr()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			auto handle = render_target_heap->GetCPUDescriptorHandleForHeapStart();
 			for(unsigned i = 0; i != buffer_count; ++i)
 			{
@@ -139,7 +139,7 @@ namespace vt::d3d12
 				VT_ENSURE_RESULT(result, "Failed to get D3D12 swap chain buffer.");
 				ComUnique<ID3D12Resource> render_target(render_target_ptr);
 
-				device.get()->CreateRenderTargetView(render_target.get(), nullptr, handle);
+				device.ptr()->CreateRenderTargetView(render_target.get(), nullptr, handle);
 				render_targets.emplace_back(std::move(render_target), handle);
 
 				handle.ptr += size;

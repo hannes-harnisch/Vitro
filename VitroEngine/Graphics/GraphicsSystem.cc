@@ -57,17 +57,21 @@ namespace vt
 
 		static RenderPassInfo fill_present_pass_info()
 		{
-			Subpass subpass {{AttachmentReference {
-				.used_layout = ImageLayout::ColorAttachment,
-			}}};
+			Subpass subpass {{
+				AttachmentReference {
+					.used_layout = ImageLayout::ColorAttachment,
+				},
+			}};
 			return RenderPassInfo {
-				.attachments {AttachmentInfo {
-					.format			= ImageFormat::R8_G8_B8_A8_UNorm,
-					.load_op		= ImageLoadOp::Clear,
-					.store_op		= ImageStoreOp::Store,
-					.initial_layout = ImageLayout::Undefined,
-					.final_layout	= ImageLayout::Presentable,
-				}},
+				.attachments {
+					AttachmentInfo {
+						.format			= ImageFormat::R8_G8_B8_A8_UNorm,
+						.load_op		= ImageLoadOp::Clear,
+						.store_op		= ImageStoreOp::Store,
+						.initial_layout = ImageLayout::Undefined,
+						.final_layout	= ImageLayout::Presentable,
+					},
+				},
 				.subpasses {subpass},
 			};
 		}
