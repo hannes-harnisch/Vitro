@@ -5,31 +5,27 @@
 #include <new>
 export module vt.Windows.AppContext;
 
-import vt.App.AppContextBase;
 import vt.App.EventSystem;
 import vt.App.Window;
 import vt.App.WindowEvent;
 import vt.Core.Array;
+import vt.Core.HashMap;
 import vt.Core.Rectangle;
+import vt.Core.Singleton;
 import vt.Core.Vector;
 import vt.Windows.Utils;
 
 namespace vt::windows
 {
-	export class AppContext final : public AppContextBase
+	export class WindowsAppContext : public Singleton<WindowsAppContext>
 	{
-	public:
-		static AppContext& get()
-		{
-			return static_cast<AppContext&>(AppContextBase::get());
-		}
-
-		AppContext() : instance_handle(::GetModuleHandle(nullptr))
+	protected:
+		WindowsAppContext()
 		{
 			WNDCLASS const window_class {
 				.style		   = CS_DBLCLKS,
 				.lpfnWndProc   = forward_messages,
-				.hInstance	   = instance_handle,
+				.hInstance	   = ::GetModuleHandleW(nullptr),
 				.lpszClassName = Window::WindowClassName,
 			};
 			ATOM registered = ::RegisterClassW(&window_class);
@@ -43,7 +39,7 @@ namespace vt::windows
 			VT_ENSURE(succeeded, "Failed to register raw input device.");
 		}
 
-		void poll_events() const override
+		void poll_events() const
 		{
 			MSG message;
 			while(::PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE))
@@ -53,16 +49,16 @@ namespace vt::windows
 			}
 		}
 
-		void* get_system_window_owner() override
+		HashMap<void*, Window*>& get_native_window_handle_map()
 		{
-			return instance_handle;
+			return hwnd_to_vitro_window;
 		}
 
 	private:
-		HINSTANCE instance_handle;
-		unsigned  key_repeats		  = 0;
-		KeyCode	  last_key_code		  = KeyCode::None;
-		Int2	  last_mouse_position = {};
+		HashMap<void*, Window*> hwnd_to_vitro_window;
+		unsigned				key_repeats			= 0;
+		KeyCode					last_key_code		= KeyCode::None;
+		Int2					last_mouse_position = {};
 
 		static LRESULT CALLBACK forward_messages(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
 		{
@@ -113,7 +109,17 @@ namespace vt::windows
 			VT_UNREACHABLE();
 		}
 
-		void on_window_move(HWND hwnd, LPARAM lp)
+		Window* find_window(HWND hwnd) const
+		{
+			auto it = hwnd_to_vitro_window.find(hwnd);
+
+			if(it == hwnd_to_vitro_window.end())
+				return nullptr;
+
+			return it->second;
+		}
+
+		void on_window_move(HWND hwnd, LPARAM lp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window)
@@ -126,7 +132,7 @@ namespace vt::windows
 			EventSystem::notify<WindowMoveEvent>(*window, position);
 		}
 
-		void on_window_size(HWND hwnd, LPARAM lp)
+		void on_window_size(HWND hwnd, LPARAM lp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window)
@@ -139,7 +145,7 @@ namespace vt::windows
 			EventSystem::notify<WindowSizeEvent>(*window, size);
 		}
 
-		void restore_window_cursor_state(HWND hwnd, WPARAM wp)
+		void restore_window_cursor_state(HWND hwnd, WPARAM wp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window || window->cursor_enabled())
@@ -149,21 +155,21 @@ namespace vt::windows
 				window->disable_cursor();
 		}
 
-		template<typename E> void on_window_event(HWND hwnd)
+		template<typename E> void on_window_event(HWND hwnd) const
 		{
 			auto window = find_window(hwnd);
 			if(window)
 				EventSystem::notify<E>(*window);
 		}
 
-		void on_window_close(HWND hwnd)
+		void on_window_close(HWND hwnd) const
 		{
 			auto window = find_window(hwnd);
 			if(window)
 				window->close();
 		}
 
-		void on_window_show(HWND hwnd, WPARAM wp)
+		void on_window_show(HWND hwnd, WPARAM wp) const
 		{
 			if(wp)
 				on_window_event<WindowOpenEvent>(hwnd);
@@ -171,15 +177,14 @@ namespace vt::windows
 				on_window_event<WindowCloseEvent>(hwnd);
 		}
 
-		void on_raw_input(HWND hwnd, LPARAM lp)
+		void on_raw_input(HWND hwnd, LPARAM lp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window)
 				return;
 
-			UINT size;
 			auto input_handle = reinterpret_cast<HRAWINPUT>(lp);
-
+			UINT size;
 			::GetRawInputData(input_handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
 			Array<BYTE> bytes(size);
 			::GetRawInputData(input_handle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
@@ -220,7 +225,7 @@ namespace vt::windows
 			EventSystem::notify<KeyUpEvent>(*window, key);
 		}
 
-		void on_key_text(HWND hwnd, WPARAM wp)
+		void on_key_text(HWND hwnd, WPARAM wp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window)
@@ -236,14 +241,14 @@ namespace vt::windows
 			last_mouse_position.y = GET_Y_LPARAM(lp);
 		}
 
-		template<typename E> void on_mouse_event(HWND hwnd, MouseCode button)
+		template<typename E> void on_mouse_event(HWND hwnd, MouseCode button) const
 		{
 			auto window = find_window(hwnd);
 			if(window)
 				EventSystem::notify<E>(*window, button);
 		}
 
-		void on_vertical_scroll(HWND hwnd, WPARAM wp)
+		void on_vertical_scroll(HWND hwnd, WPARAM wp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window)
@@ -255,7 +260,7 @@ namespace vt::windows
 			EventSystem::notify<MouseScrollEvent>(*window, offset);
 		}
 
-		void on_horizontal_scroll(HWND hwnd, WPARAM wp)
+		void on_horizontal_scroll(HWND hwnd, WPARAM wp) const
 		{
 			auto window = find_window(hwnd);
 			if(!window)

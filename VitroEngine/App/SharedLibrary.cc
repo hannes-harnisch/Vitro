@@ -1,4 +1,6 @@
 ﻿module;
+#include "Core/Macros.hh"
+
 #include <string_view>
 export module vt.App.SharedLibrary;
 
@@ -6,27 +8,28 @@ import vt.VT_SYSTEM_MODULE.SharedLibrary;
 
 namespace vt
 {
-	export class SharedLibrary : public VT_SYSTEM_NAME::SharedLibrary
-	{
-		using Base = VT_SYSTEM_NAME::SharedLibrary;
+	using SharedLibraryBase = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, SharedLibrary);
 
+	export class SharedLibrary : public SharedLibraryBase
+	{
 	public:
-		SharedLibrary(std::string_view path) : Base(path)
+		SharedLibrary(std::string_view path) : SharedLibraryBase(path)
 		{}
 
 		template<typename TSymbol> TSymbol* load_symbol(char const name[]) const
 		{
-			return static_cast<TSymbol*>(Base::load_symbol(name));
+			return static_cast<TSymbol*>(SharedLibraryBase::load_symbol(name));
 		}
 
-		[[nodiscard]] bool reload()
+		void reload()
 		{
-			return Base::reload();
+			unload();
+			try_reload();
 		}
 
-		void* get_handle()
+		auto native_handle()
 		{
-			return Base::get_handle();
+			return SharedLibraryBase::native_handle();
 		}
 	};
 }

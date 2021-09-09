@@ -1,11 +1,12 @@
 ﻿module;
 #include "Core/Macros.hh"
 #include "D3D12.API.hh"
+
+#include <vector>
 export module vt.D3D12.RootSignature;
 
 import vt.Core.Algorithm;
 import vt.Core.Enum;
-import vt.Core.FixedList;
 import vt.D3D12.DescriptorSetLayout;
 import vt.D3D12.Utils;
 import vt.Graphics.DescriptorBinding;
@@ -34,7 +35,7 @@ namespace vt::d3d12
 	public:
 		D3D12RootSignature(Device const& device, RootSignatureInfo const& info)
 		{
-			FixedList<D3D12_ROOT_PARAMETER1, D3D12_MAX_ROOT_COST> parameters;
+			std::vector<D3D12_ROOT_PARAMETER1> parameters(D3D12_MAX_ROOT_COST);
 			parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
 				.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
 				.Constants {

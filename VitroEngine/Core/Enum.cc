@@ -74,14 +74,14 @@ namespace vt
 		return 1 << position;
 	}
 
-	constexpr size_t floor_log2(size_t x)
+	consteval size_t floor_log2(size_t x)
 	{
 		return x == 1 ? 0 : 1 + floor_log2(x >> 1);
 	}
 
 	export template<typename T>
 	requires std::is_enum_v<T>
-	constexpr size_t min_bit_field_size()
+	consteval size_t min_bit_field_size()
 	{
 		auto values = magic_enum::enum_values<T>();
 		auto max	= *std::max_element(values.begin(), values.end());

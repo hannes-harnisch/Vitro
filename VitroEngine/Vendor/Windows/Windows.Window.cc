@@ -5,7 +5,6 @@
 #include <string_view>
 export module vt.Windows.Window;
 
-import vt.App.AppContextBase;
 import vt.Core.Rectangle;
 import vt.Core.Unique;
 import vt.Core.Vector;
@@ -13,7 +12,7 @@ import vt.Windows.Utils;
 
 namespace vt::windows
 {
-	export class Window
+	export class WindowsWindow
 	{
 	public:
 		static constexpr wchar_t const WindowClassName[] = TEXT(VT_ENGINE_NAME);
@@ -26,10 +25,10 @@ namespace vt::windows
 			.height = static_cast<unsigned>(CW_USEDEFAULT),
 		};
 
-		Window(std::string_view title, Rectangle rect)
+		WindowsWindow(std::string_view title, Rectangle rect)
 		{
 			auto widened_title	 = widen_string(title);
-			auto instance_handle = static_cast<HINSTANCE>(AppContextBase::get().get_system_window_owner());
+			auto instance_handle = ::GetModuleHandleW(nullptr);
 
 			HWND raw_window = ::CreateWindowExW(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
 												rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
@@ -134,7 +133,7 @@ namespace vt::windows
 			};
 		}
 
-		void* get_handle()
+		HWND native_handle()
 		{
 			return window.get();
 		}

@@ -196,49 +196,43 @@ namespace vt
 	public:
 		class Window& window;
 
+		WindowEvent(Window& window) : window(window)
+		{}
+
 		std::string to_string() const override
 		{
 			return std::format("{}: Window({})", Event::to_string(), static_cast<void*>(&window));
 		}
-
-	protected:
-		WindowEvent(Window& window) : window(window)
-		{}
 	};
 
 	export class WindowOpenEvent final : public WindowEvent
 	{
 	public:
-		WindowOpenEvent(Window& window) : WindowEvent(window)
-		{}
+		using WindowEvent::WindowEvent;
 	};
 
 	export class WindowCloseEvent final : public WindowEvent
 	{
 	public:
-		WindowCloseEvent(Window& window) : WindowEvent(window)
-		{}
+		using WindowEvent::WindowEvent;
 	};
 
 	export class WindowPaintEvent final : public WindowEvent
 	{
 	public:
-		WindowPaintEvent(Window& window) : WindowEvent(window)
-		{}
+		using WindowEvent::WindowEvent;
 	};
 
 	export class WindowFocusEvent final : public WindowEvent
 	{
 	public:
-		WindowFocusEvent(Window& window) : WindowEvent(window)
-		{}
+		using WindowEvent::WindowEvent;
 	};
 
 	export class WindowUnfocusEvent final : public WindowEvent
 	{
 	public:
-		WindowUnfocusEvent(Window& window) : WindowEvent(window)
-		{}
+		using WindowEvent::WindowEvent;
 	};
 
 	export class WindowSizeEvent final : public WindowEvent
@@ -274,14 +268,13 @@ namespace vt
 	public:
 		KeyCode const key;
 
+		KeyEvent(Window& window, KeyCode key) : WindowEvent(window), key(key)
+		{}
+
 		std::string to_string() const override
 		{
 			return std::format("{}, Key({})", WindowEvent::to_string(), enum_name(key));
 		}
-
-	protected:
-		KeyEvent(Window& window, KeyCode key) : WindowEvent(window), key(key)
-		{}
 	};
 
 	export class KeyDownEvent final : public KeyEvent
@@ -301,8 +294,7 @@ namespace vt
 	export class KeyUpEvent final : public KeyEvent
 	{
 	public:
-		KeyUpEvent(Window& window, KeyCode key) : KeyEvent(window, key)
-		{}
+		using KeyEvent::KeyEvent;
 	};
 
 	export class KeyTextEvent final : public KeyEvent
@@ -324,14 +316,13 @@ namespace vt
 	public:
 		MouseCode const button;
 
+		MouseEvent(Window& window, MouseCode button) : WindowEvent(window), button(button)
+		{}
+
 		std::string to_string() const override
 		{
 			return std::format("{}, Button({})", WindowEvent::to_string(), enum_name(button));
 		}
-
-	protected:
-		MouseEvent(Window& window, MouseCode button) : WindowEvent(window), button(button)
-		{}
 	};
 
 	export class MouseMoveEvent final : public MouseEvent
@@ -353,22 +344,19 @@ namespace vt
 	export class MouseDownEvent final : public MouseEvent
 	{
 	public:
-		MouseDownEvent(Window& window, MouseCode button) : MouseEvent(window, button)
-		{}
+		using MouseEvent::MouseEvent;
 	};
 
 	export class MouseUpEvent final : public MouseEvent
 	{
 	public:
-		MouseUpEvent(Window& window, MouseCode button) : MouseEvent(window, button)
-		{}
+		using MouseEvent::MouseEvent;
 	};
 
 	export class DoubleClickEvent final : public MouseEvent
 	{
 	public:
-		DoubleClickEvent(Window& window, MouseCode button) : MouseEvent(window, button)
-		{}
+		using MouseEvent::MouseEvent;
 	};
 
 	export class MouseScrollEvent final : public MouseEvent

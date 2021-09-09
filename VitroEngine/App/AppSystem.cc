@@ -3,11 +3,11 @@
 #include <vector>
 export module vt.App.AppSystem;
 
+import vt.App.AppContext;
 import vt.App.EventListener;
 import vt.App.Input;
 import vt.App.Window;
 import vt.App.WindowEvent;
-import vt.VT_SYSTEM_MODULE.AppContext;
 
 namespace vt
 {
@@ -25,10 +25,10 @@ namespace vt
 		}
 
 	private:
-		std::atomic_bool&		   engine_running_status;
-		std::vector<Window*>	   open_windows;
-		VT_SYSTEM_NAME::AppContext app_context;
-		Input					   input;
+		std::atomic_bool&	 engine_running_status;
+		std::vector<Window*> open_windows;
+		AppContext			 app_context;
+		Input				 input;
 
 		void on_window_open(WindowOpenEvent& event)
 		{

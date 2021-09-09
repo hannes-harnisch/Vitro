@@ -5,6 +5,8 @@
 export module vt.Graphics.GraphicsSystem;
 
 import vt.App.EventListener;
+import vt.App.ObjectEvent;
+import vt.App.Window;
 import vt.App.WindowEvent;
 import vt.Core.HashMap;
 import vt.Core.Singleton;
@@ -26,25 +28,10 @@ namespace vt
 		GraphicsSystem() :
 			device(driver, select_adapter()), present_pass(device, fill_present_pass_info()), renderer(device, present_pass)
 		{
-			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize>();
-		}
-
-		void notify_window_construction(class Window const& window, void* native_window_handle)
-		{
-			swap_chains.try_emplace(&window, driver, device, present_pass, native_window_handle);
-		}
-
-		void notify_window_replacement(Window const& old_window, Window const& new_window)
-		{
-			auto node  = swap_chains.extract(&old_window);
-			node.key() = &new_window;
-			swap_chains.insert(std::move(node));
-		}
-
-		void notify_window_destruction(Window const& window)
-		{
-			device->flush_render_queue();
-			swap_chains.erase(&window);
+			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize,
+									&GraphicsSystem::on_window_object_construct,
+									&GraphicsSystem::on_window_object_move_construct, &GraphicsSystem::on_window_object_destroy,
+									&GraphicsSystem::on_window_object_move_assign>();
 		}
 
 	private:
@@ -95,6 +82,45 @@ namespace vt
 		void on_window_resize(WindowSizeEvent& event)
 		{
 			swap_chains.at(&event.window)->resize(event);
+		}
+
+		void on_window_object_construct(ObjectConstructEvent<Window>& event)
+		{
+			emplace_swap_chain(event.object);
+		}
+
+		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& event)
+		{
+			replace_key_to_swap_chain(event.moved, event.constructed);
+		}
+
+		void on_window_object_destroy(ObjectDestroyEvent<Window>& event)
+		{
+			remove_swap_chain(event.object);
+		}
+
+		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& event)
+		{
+			remove_swap_chain(event.left);
+			replace_key_to_swap_chain(event.right, event.left);
+		}
+
+		void emplace_swap_chain(Window& window)
+		{
+			swap_chains.try_emplace(&window, driver, device, present_pass, window.native_handle());
+		}
+
+		void remove_swap_chain(Window const& window)
+		{
+			device->flush_render_queue();
+			swap_chains.erase(&window);
+		}
+
+		void replace_key_to_swap_chain(Window const& old_window, Window const& new_window)
+		{
+			auto node  = swap_chains.extract(&old_window);
+			node.key() = &new_window;
+			swap_chains.insert(std::move(node));
 		}
 	};
 }

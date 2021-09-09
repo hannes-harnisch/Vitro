@@ -11,8 +11,14 @@ namespace vt::d3d12
 	export class D3D12DescriptorPool
 	{
 	public:
-		D3D12DescriptorPool(Device const&)
-		{}
+		D3D12DescriptorPool(Device const& in_device)
+		{
+			auto device = in_device.d3d12.ptr();
+
+			D3D12_DESCRIPTOR_HEAP_DESC const view_heap_desc {
+				.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+			};
+		}
 
 	private:
 		ComUnique<ID3D12DescriptorHeap> view_heap;

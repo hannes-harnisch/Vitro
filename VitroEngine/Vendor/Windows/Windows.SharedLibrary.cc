@@ -10,12 +10,12 @@ import vt.Windows.Utils;
 
 namespace vt::windows
 {
-	export class SharedLibrary
+	export class WindowsSharedLibrary
 	{
 	protected:
-		SharedLibrary(std::string_view path) : path(widen_string(path))
+		WindowsSharedLibrary(std::string_view path) : path(widen_string(path))
 		{
-			initialize_library();
+			try_reload();
 		}
 
 		void* load_symbol(char const name[]) const
@@ -23,13 +23,18 @@ namespace vt::windows
 			return ::GetProcAddress(library.get(), name);
 		}
 
-		[[nodiscard]] bool reload()
+		void unload()
 		{
-			initialize_library();
-			return library.get() != nullptr;
+			library.reset();
 		}
 
-		void* get_handle()
+		void try_reload()
+		{
+			library.reset(::LoadLibraryW(path.data()));
+			VT_ENSURE(library, "Failed to find shared library '{}'.", narrow_string(path));
+		}
+
+		HMODULE native_handle()
 		{
 			return library.get();
 		}
@@ -37,11 +42,5 @@ namespace vt::windows
 	private:
 		std::wstring				   path;
 		Unique<HMODULE, ::FreeLibrary> library;
-
-		void initialize_library()
-		{
-			library.reset(::LoadLibraryW(path.data()));
-			VT_ENSURE(library, "Failed to find shared library '{}'.", narrow_string(path));
-		}
 	};
 }
