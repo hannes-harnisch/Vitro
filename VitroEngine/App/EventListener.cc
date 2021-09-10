@@ -1,15 +1,18 @@
 ﻿module;
+#include <any>
 #include <type_traits>
 export module vt.App.EventListener;
 
 import vt.App.EventSystem;
-import vt.App.Event;
+import vt.App.WindowEvent;
+import vt.Core.Reflect;
+import vt.Trace.Log;
 
 namespace vt
 {
 	export class EventListener
 	{
-	public:
+	protected:
 		EventListener() = default;
 
 		EventListener(EventListener const& that)
@@ -41,7 +44,6 @@ namespace vt
 			return *this;
 		}
 
-	protected:
 		template<auto... Handlers> void register_event_handlers()
 		{
 			(register_handler<Handlers>(), ...);
@@ -66,10 +68,13 @@ namespace vt
 			using HandlerTraits = FunctionTraits<decltype(Handler)>;
 			using TReturn		= HandlerTraits::Return;
 			using TClass		= HandlerTraits::Class;
-			using TEvent		= HandlerTraits::Param;
+			using TEvent		= std::remove_const_t<std::remove_reference_t<HandlerTraits::Param>>;
 
-			auto func = [](EventListener& listener, Event& e) {
-				auto& event	 = static_cast<TEvent&>(e);
+			auto func = [](EventListener& listener, std::any& stored_event) {
+				auto& event = std::any_cast<TEvent&>(stored_event);
+				if constexpr(!std::same_as<TEvent, WindowPaintEvent>)
+					Log().verbose("Handling ", name_of(event), ": ", event);
+
 				auto& object = static_cast<TClass&>(listener);
 				if constexpr(std::is_same_v<TReturn, void>)
 				{
@@ -79,7 +84,7 @@ namespace vt
 				else
 					return (object.*Handler)(event);
 			};
-			EventSystem::get().submit_handler(func, this, typeid(TEvent));
+			EventSystem::get().submit_handler(typeid(TEvent), func, this);
 		}
 	};
 }

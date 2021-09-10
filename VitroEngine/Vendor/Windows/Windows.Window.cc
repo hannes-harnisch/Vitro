@@ -27,11 +27,12 @@ namespace vt::windows
 
 		WindowsWindow(std::string_view title, Rectangle rect)
 		{
-			auto widened_title	 = widen_string(title);
-			auto instance_handle = ::GetModuleHandleW(nullptr);
+			auto widened_title = widen_string(title);
 
+			auto instance_handle = ::GetModuleHandleW(nullptr);
 			HWND raw_window = ::CreateWindowExW(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
 												rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
+
 			window.reset(raw_window);
 			VT_ENSURE(raw_window, "Failed to create window.");
 		}
@@ -133,7 +134,7 @@ namespace vt::windows
 			};
 		}
 
-		HWND native_handle()
+		HWND native_handle() const
 		{
 			return window.get();
 		}

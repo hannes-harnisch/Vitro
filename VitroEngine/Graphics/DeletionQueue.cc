@@ -1,6 +1,6 @@
 ﻿module;
 #include <any>
-#include <vector>
+#include <deque>
 export module vt.Graphics.DeletionQueue;
 
 namespace vt
@@ -19,6 +19,6 @@ namespace vt
 		}
 
 	private:
-		std::vector<std::any> resources;
+		std::deque<std::any> resources;
 	};
 }

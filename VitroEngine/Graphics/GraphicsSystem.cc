@@ -2,14 +2,13 @@
 #include "Core/Macros.hh"
 
 #include <algorithm>
+#include <unordered_map>
 export module vt.Graphics.GraphicsSystem;
 
 import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.App.Window;
 import vt.App.WindowEvent;
-import vt.Core.HashMap;
-import vt.Core.Singleton;
 import vt.Graphics.Adapter;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
@@ -22,7 +21,7 @@ import vt.Graphics.TextureInfo;
 
 namespace vt
 {
-	export class GraphicsSystem : public Singleton<GraphicsSystem>, public EventListener
+	export class GraphicsSystem : public EventListener
 	{
 	public:
 		GraphicsSystem() :
@@ -35,12 +34,12 @@ namespace vt
 		}
 
 	private:
-		DynamicGpuApi					  dynamic_gpu_api;
-		Driver							  driver;
-		Device							  device;
-		HashMap<Window const*, SwapChain> swap_chains;
-		RenderPass						  present_pass;
-		ForwardRenderer					  renderer;
+		DynamicGpuApi								 dynamic_gpu_api;
+		Driver										 driver;
+		Device										 device;
+		std::unordered_map<Window const*, SwapChain> swap_chains;
+		RenderPass									 present_pass;
+		ForwardRenderer								 renderer;
 
 		static RenderPassInfo fill_present_pass_info()
 		{

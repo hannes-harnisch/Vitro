@@ -1,90 +1,103 @@
 ﻿module;
 #include <algorithm>
+#include <any>
 #include <atomic>
-#include <memory>
+#include <queue>
 #include <ranges>
 #include <typeindex>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 export module vt.App.EventSystem;
 
-import vt.App.Event;
-import vt.App.WindowEvent;
 import vt.Core.Singleton;
-import vt.Trace.Log;
 
 namespace vt
 {
+	export template<typename T> constexpr bool AllowAsyncEventDispatchFor = false;
+
 	export class EventSystem : public Singleton<EventSystem>
 	{
-		friend class Engine;
+		friend class AppSystem;
 		friend class EventListener;
 
 	public:
-		static void notify(std::unique_ptr<Event> event)
+		template<typename T, typename... Ts> static void notify(Ts&&... ts)
 		{
-			get().dispatch_event(std::move(event));
+			get().dispatch_event(T {std::forward<Ts>(ts)...});
 		}
 
-		template<typename TEvent, typename... Ts> static void notify(Ts&&... ts)
+		template<typename T, typename... Ts> static void notify_async(Ts&&... ts)
 		{
-			notify(std::make_unique<TEvent>(std::forward<Ts>(ts)...));
+			if constexpr(!AllowAsyncEventDispatchFor<T>)
+				static_assert(false, "This type is not allowed to be used as an async event.");
+
+			get().async_events.emplace(T {std::forward<Ts>(ts)...});
 		}
 
 	private:
+		using Callback = bool (*)(class EventListener&, std::any&);
 		struct EventHandler
 		{
-			bool (*function)(class EventListener&, Event&);
-			EventListener*	listener;
-			std::type_index event_type;
+			Callback	   callback;
+			EventListener* listener;
 		};
-		std::vector<EventHandler> handlers;
+		std::unordered_map<std::type_index, std::vector<EventHandler>> handlers;
+
+		std::queue<std::any> async_events; // replace any with unsafely castable type?
 
 		EventSystem() = default;
 
-		void dispatch_event(std::unique_ptr<Event> event)
+		void dispatch_event(std::any event) const
 		{
-			std::type_index event_type = typeid(*event);
-			for(auto handler : std::views::reverse(handlers))
+			auto handlers_for_type = handlers.find(event.type());
+			if(handlers_for_type == handlers.end())
+				return;
+
+			for(auto handler : std::views::reverse(handlers_for_type->second))
 			{
-				if(handler.event_type == event_type)
-				{
-					bool consumed = handler.function(*handler.listener, *event);
-					if(consumed)
-						break;
-				}
+				bool consumed = handler.callback(*handler.listener, event);
+				if(consumed)
+					break;
 			}
-			if(event_type != typeid(WindowPaintEvent))
-				Log().verbose(*event);
 		}
 
-		template<typename... Ts> void submit_handler(Ts&&... ts)
+		void submit_handler(std::type_index event_type, Callback callback, EventListener* listener)
 		{
-			handlers.emplace_back(std::forward<Ts>(ts)...);
+			handlers[event_type].emplace_back(callback, listener);
 		}
 
 		void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener)
 		{
-			for(size_t i = 0; i != handlers.size(); ++i)
+			for(auto& [type, list] : handlers)
 			{
-				auto handler = handlers[i];
-				if(handler.listener == &old_listener)
-					handlers.emplace_back(handler.function, &new_listener, handler.event_type);
+				for(size_t i = 0; i != list.size(); ++i)
+				{
+					auto handler = list[i];
+					if(handler.listener == &old_listener)
+						list.emplace_back(handler.callback, &new_listener);
+				}
 			}
 		}
 
 		void replace_listener(EventListener& new_listener, EventListener& old_listener)
 		{
-			for(auto& handler : handlers)
-				if(handler.listener == &old_listener)
-					handler.listener = &new_listener;
+			for(auto& [type, list] : handlers)
+			{
+				for(auto& handler : list)
+					if(handler.listener == &old_listener)
+						handler.listener = &new_listener;
+			}
 		}
 
 		void remove_handlers_with_listener(EventListener& listener)
 		{
-			std::erase_if(handlers, [&](auto handler) {
-				return handler.listener == &listener;
-			});
+			for(auto& [type, list] : handlers)
+			{
+				std::erase_if(list, [&](EventHandler handler) {
+					return handler.listener == &listener;
+				});
+			}
 		}
 	};
 }

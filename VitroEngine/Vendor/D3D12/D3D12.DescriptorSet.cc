@@ -8,7 +8,12 @@ namespace vt
 	{
 	public:
 	private:
-		ID3D12DescriptorHeap* owning_heap;
-		unsigned char		  root_parameter_index;
+		unsigned char root_parameter_index;
+		bool		  holds_descriptor_table;
+		union
+		{
+			D3D12_GPU_DESCRIPTOR_HANDLE descriptor_table_start;
+			D3D12_GPU_VIRTUAL_ADDRESS	root_descriptor_address;
+		};
 	};
 }

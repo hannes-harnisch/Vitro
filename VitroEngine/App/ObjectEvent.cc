@@ -1,126 +1,129 @@
 ﻿module;
-#include <concepts>
+#include <format>
+#include <string>
+#include <type_traits>
 export module vt.App.ObjectEvent;
 
-import vt.App.Event;
 import vt.App.EventSystem;
 
 namespace vt
 {
-	export template<typename T> class ObjectEventSource
+	template<typename T> class ObjectEventSentinel
 	{
-	public:
-		ObjectEventSource()
+	protected:
+		ObjectEventSentinel()
 		{
-			EventSystem::notify<ObjectConstructEvent<T>>(cast(*this));
+			EventSystem::notify<ObjectConstructEvent<T>>((T&)*this);
 		}
 
-		ObjectEventSource(ObjectEventSource const& that)
+		ObjectEventSentinel(ObjectEventSentinel const& that)
 		{
-			EventSystem::notify<ObjectCopyConstructEvent<T>>(cast(*this), cast(that));
+			EventSystem::notify<ObjectCopyConstructEvent<T>>((T&)*this, (T const&)that);
 		}
 
-		ObjectEventSource(ObjectEventSource&& that) noexcept
+		ObjectEventSentinel(ObjectEventSentinel&& that) noexcept
 		{
-			EventSystem::notify<ObjectMoveConstructEvent<T>>(cast(*this), cast(that));
+			EventSystem::notify<ObjectMoveConstructEvent<T>>((T&)*this, (T const&)that);
 		}
 
-		~ObjectEventSource()
+		~ObjectEventSentinel()
 		{
-			EventSystem::notify<ObjectDestroyEvent<T>>(cast(*this));
+			EventSystem::notify<ObjectDestroyEvent<T>>((T&)*this);
 		}
 
-		ObjectEventSource& operator=(ObjectEventSource const& that)
+		ObjectEventSentinel& operator=(ObjectEventSentinel const& that)
 		{
-			EventSystem::notify<ObjectCopyAssignEvent<T>>(cast(*this), cast(that));
+			EventSystem::notify<ObjectCopyAssignEvent<T>>((T&)*this, (T const&)that);
 			return *this;
 		}
 
-		ObjectEventSource& operator=(ObjectEventSource&& that) noexcept
+		ObjectEventSentinel& operator=(ObjectEventSentinel&& that) noexcept
 		{
-			EventSystem::notify<ObjectMoveAssignEvent<T>>(cast(*this), cast(that));
+			EventSystem::notify<ObjectMoveAssignEvent<T>>((T&)*this, (T const&)that);
 			return *this;
 		}
-
-	private:
-		static T& cast(ObjectEventSource& src)
-		{
-			return static_cast<T&>(src);
-		}
-
-		static T const& cast(ObjectEventSource const& src)
-		{
-			return static_cast<T const&>(src);
-		}
 	};
 
-	export template<typename T>
-	requires std::derived_from<T, ObjectEventSource<T>>
-	class ObjectConstructEvent final : public Event
+	export template<typename T> class ObjectEventSender : public T, private ObjectEventSentinel<ObjectEventSender<T>>
 	{
 	public:
+		using T::T;
+	};
+
+	template<typename T>
+	concept InheritsSentinel = std::is_base_of_v<ObjectEventSentinel<T>, T>;
+
+	export template<InheritsSentinel T> struct ObjectConstructEvent
+	{
 		T& object;
 
-		ObjectConstructEvent(T& object) : object(object)
-		{}
+		std::string to_string() const
+		{
+			auto addr = static_cast<void*>(&object);
+			return std::format("Object({})", addr);
+		}
 	};
 
-	export template<typename T>
-	requires std::derived_from<T, ObjectEventSource<T>>
-	class ObjectDestroyEvent final : public Event
+	export template<InheritsSentinel T> struct ObjectDestroyEvent
 	{
-	public:
 		T& object;
 
-		ObjectDestroyEvent(T& object) : object(object)
-		{}
+		std::string to_string() const
+		{
+			auto addr = static_cast<void*>(&object);
+			return std::format("Object({})", addr);
+		}
 	};
 
-	export template<typename T>
-	requires std::derived_from<T, ObjectEventSource<T>>
-	class ObjectCopyConstructEvent final : public Event
+	export template<InheritsSentinel T> struct ObjectCopyConstructEvent
 	{
-	public:
 		T&		 constructed;
 		T const& copied;
 
-		ObjectCopyConstructEvent(T& constructed, T const& copied) : constructed(constructed), copied(copied)
-		{}
+		std::string to_string() const
+		{
+			auto constructed_addr = static_cast<void*>(&constructed);
+			auto copied_addr	  = static_cast<void*>(&copied);
+			return std::format("Constructed({}), Copied({})", constructed_addr, copied_addr);
+		}
 	};
 
-	export template<typename T>
-	requires std::derived_from<T, ObjectEventSource<T>>
-	class ObjectMoveConstructEvent final : public Event
+	export template<InheritsSentinel T> struct ObjectMoveConstructEvent
 	{
-	public:
 		T& constructed;
 		T& moved;
 
-		ObjectMoveConstructEvent(T& constructed, T& moved) : constructed(constructed), moved(moved)
-		{}
+		std::string to_string() const
+		{
+			auto constructed_addr = static_cast<void*>(&constructed);
+			auto moved_addr		  = static_cast<void*>(&moved);
+			return std::format("Constructed({}), Moved({})", constructed_addr, moved_addr);
+		}
 	};
 
-	export template<typename T>
-	requires std::derived_from<T, ObjectEventSource<T>>
-	class ObjectCopyAssignEvent final : public Event
+	export template<InheritsSentinel T> struct ObjectCopyAssignEvent
 	{
-	public:
 		T&		 left;
 		T const& right;
 
-		ObjectCopyAssignEvent(T& left, T const& right) : left(left), right(right)
-		{}
+		std::string to_string() const
+		{
+			auto left_addr	= static_cast<void*>(&left);
+			auto right_addr = static_cast<void*>(&right);
+			return std::format("Left({}), Right({})", left_addr, right_addr);
+		}
 	};
 
-	export template<typename T>
-	requires std::derived_from<T, ObjectEventSource<T>>
-	class ObjectMoveAssignEvent final : public Event
+	export template<InheritsSentinel T> struct ObjectMoveAssignEvent
 	{
-	public:
 		T& left;
 		T& right;
 
-		ObjectMoveAssignEvent(T& left, T& right) : left(left), right(right)
-		{}
+		std::string to_string() const
+		{
+			auto left_addr	= static_cast<void*>(&left);
+			auto right_addr = static_cast<void*>(&right);
+			return std::format("Left({}), Right({})", left_addr, right_addr);
+		}
 	};
 }

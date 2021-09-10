@@ -2,7 +2,6 @@
 #include "Core/Macros.hh"
 
 #include <string_view>
-#include <thread>
 export module vt.App.Window;
 
 import vt.App.ObjectEvent;
@@ -12,44 +11,44 @@ import vt.VT_SYSTEM_MODULE.Window;
 
 namespace vt
 {
-	using WindowBase = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, Window);
+	using SystemWindow = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, Window);
 
-	export class Window : public WindowBase, public ObjectEventSource<Window>
+	class WindowImpl : private SystemWindow
 	{
 	public:
-		Window(std::string_view title, Rectangle rect = WindowBase::DefaultRect) : WindowBase(title, rect)
+		WindowImpl(std::string_view title, Rectangle rect = SystemWindow::DefaultRect) : SystemWindow(title, rect)
 		{}
 
 		void open()
 		{
-			WindowBase::open();
+			SystemWindow::open();
 		}
 
 		void close()
 		{
-			WindowBase::close();
+			SystemWindow::close();
 		}
 
 		void maximize()
 		{
-			WindowBase::maximize();
+			SystemWindow::maximize();
 		}
 
 		void minimize()
 		{
-			WindowBase::minimize();
+			SystemWindow::minimize();
 		}
 
 		void enable_cursor()
 		{
 			is_cursor_enabled = true;
-			WindowBase::enable_cursor();
+			SystemWindow::enable_cursor();
 		}
 
 		void disable_cursor()
 		{
 			is_cursor_enabled = false;
-			WindowBase::disable_cursor();
+			SystemWindow::disable_cursor();
 		}
 
 		bool cursor_enabled() const
@@ -59,45 +58,47 @@ namespace vt
 
 		Extent get_size() const
 		{
-			return WindowBase::get_size();
+			return SystemWindow::get_size();
 		}
 
 		void set_size(Extent size)
 		{
-			WindowBase::set_size(size);
+			SystemWindow::set_size(size);
 		}
 
 		Int2 get_position() const
 		{
-			return WindowBase::get_position();
+			return SystemWindow::get_position();
 		}
 
 		void set_position(Int2 position)
 		{
-			WindowBase::set_position(position);
+			SystemWindow::set_position(position);
 		}
 
 		std::string get_title() const
 		{
-			return WindowBase::get_title();
+			return SystemWindow::get_title();
 		}
 
 		void set_title(std::string_view title)
 		{
-			WindowBase::set_title(title);
+			SystemWindow::set_title(title);
 		}
 
 		Rectangle client_area() const
 		{
-			return WindowBase::client_area();
+			return SystemWindow::client_area();
 		}
 
-		auto native_handle()
+		auto native_handle() const
 		{
-			return WindowBase::native_handle();
+			return SystemWindow::native_handle();
 		}
 
 	private:
 		bool is_cursor_enabled = true;
 	};
+
+	export using Window = ObjectEventSender<WindowImpl>;
 }

@@ -8,17 +8,17 @@ import vt.VT_SYSTEM_MODULE.SharedLibrary;
 
 namespace vt
 {
-	using SharedLibraryBase = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, SharedLibrary);
+	using SystemSharedLibrary = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, SharedLibrary);
 
-	export class SharedLibrary : public SharedLibraryBase
+	export class SharedLibrary : private SystemSharedLibrary
 	{
 	public:
-		SharedLibrary(std::string_view path) : SharedLibraryBase(path)
+		SharedLibrary(std::string_view path) : SystemSharedLibrary(path)
 		{}
 
 		template<typename TSymbol> TSymbol* load_symbol(char const name[]) const
 		{
-			return static_cast<TSymbol*>(SharedLibraryBase::load_symbol(name));
+			return static_cast<TSymbol*>(SystemSharedLibrary::load_symbol(name));
 		}
 
 		void reload()
@@ -29,7 +29,7 @@ namespace vt
 
 		auto native_handle()
 		{
-			return SharedLibraryBase::native_handle();
+			return SystemSharedLibrary::native_handle();
 		}
 	};
 }
