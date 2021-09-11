@@ -2,9 +2,12 @@
 #include <span>
 export module vt.Graphics.CommandListBase;
 
+import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
 import vt.Core.Vector;
+import vt.Graphics.DescriptorPool;
+import vt.Graphics.DescriptorSet;
 import vt.Graphics.Driver;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassInfo;
@@ -44,9 +47,10 @@ namespace vt
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
+		virtual void bind_descriptor_pool(DescriptorPool const& pool)														= 0;
 		virtual void bind_compute_pipeline(Pipeline const& pipeline)														= 0;
 		virtual void bind_compute_root_signature(RootSignature const& root_signature)										= 0;
-		virtual void bind_compute_descriptors()																				= 0;
+		virtual void bind_compute_descriptors(CSpan<DescriptorSet> descriptors)												= 0;
 		virtual void push_compute_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units) = 0;
 		virtual void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)											= 0;
 	};
@@ -56,20 +60,18 @@ namespace vt
 	public:
 		virtual void bind_render_pipeline(Pipeline const& pipeline)														   = 0;
 		virtual void bind_render_root_signature(RootSignature const& root_signature)									   = 0;
-		virtual void bind_render_descriptors()																			   = 0;
+		virtual void bind_render_descriptors(CSpan<DescriptorSet> descriptors)											   = 0;
 		virtual void push_render_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units) = 0;
-		virtual void begin_render_pass(RenderPass const&		   render_pass,
-									   RenderTarget const&		   render_target,
-									   std::span<ClearValue const> clear_values = {})									   = 0;
+		virtual void begin_render_pass(RenderPass const&   render_pass,
+									   RenderTarget const& render_target,
+									   CSpan<ClearValue>   clear_values = {})												   = 0;
 		virtual void transition_to_next_subpass()																		   = 0;
 		virtual void end_render_pass()																					   = 0;
-		virtual void bind_vertex_buffers(unsigned				   first_buffer,
-										 std::span<Buffer const>   buffers,
-										 std::span<unsigned const> byte_offsets)										   = 0;
+		virtual void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<unsigned> byte_offsets)	   = 0;
 		virtual void bind_index_buffer(Buffer const& buffer, unsigned byte_offset)										   = 0;
 		virtual void bind_primitive_topology(PrimitiveTopology topology)												   = 0;
-		virtual void bind_viewports(std::span<Viewport const> viewports)												   = 0;
-		virtual void bind_scissors(std::span<Rectangle const> scissors)													   = 0;
+		virtual void bind_viewports(CSpan<Viewport> viewports)															   = 0;
+		virtual void bind_scissors(CSpan<Rectangle> scissors)															   = 0;
 		virtual void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)  = 0;
 		virtual void draw_indexed(unsigned index_count,
 								  unsigned instance_count,

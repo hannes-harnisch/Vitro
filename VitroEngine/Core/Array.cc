@@ -6,9 +6,12 @@
 #endif
 #define HH_ASSERT(condition, message) VT_ASSERT_PURE(condition, message)
 #include <Array/Include/Array.hpp>
+
+#include <span>
 export module vt.Core.Array;
 
 namespace vt
 {
 	export template<typename T> using Array = hh::Array<T>;
+	export template<typename T> using CSpan = std::span<T const>;
 }

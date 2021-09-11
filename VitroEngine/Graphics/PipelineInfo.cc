@@ -6,6 +6,7 @@ import vt.Core.FixedList;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassInfo;
 import vt.Graphics.RootSignature;
+import vt.Graphics.SamplerInfo;
 
 namespace vt
 {
@@ -107,17 +108,6 @@ namespace vt
 		int				depth_bias		  = 0;
 		float			depth_bias_clamp  = 0;
 		float			depth_bias_slope  = 0;
-	};
-
-	export enum class CompareOp : unsigned char {
-		Never,
-		Less,
-		Equal,
-		LessOrEqual,
-		Greater,
-		NotEqual,
-		GreaterOrEqual,
-		Always,
 	};
 
 	export enum class StencilOp : unsigned char {

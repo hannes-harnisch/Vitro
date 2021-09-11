@@ -127,6 +127,11 @@ namespace vt::windows
 			case VK_NUMPAD7: return Pad7;
 			case VK_NUMPAD8: return Pad8;
 			case VK_NUMPAD9: return Pad9;
+			case VK_OEM_102: return AngleBracket;
+			case VK_OEM_PLUS: return Plus;
+			case VK_OEM_COMMA: return Comma;
+			case VK_OEM_MINUS: return Minus;
+			case VK_OEM_PERIOD: return Period;
 		}
 		Log().error("Encountered unknown Windows virtual key code: ", virtual_key);
 		return None;

@@ -111,7 +111,7 @@ namespace vt
 
 	export template<typename T1, typename T2, int D> constexpr bool operator==(Vector<T1, D> left, Vector<T2, D> right) noexcept
 	{
-		return std::equal(left.arr.begin(), left.arr.end(), right.arr.begin());
+		return std::equal(std::begin(left.arr), std::end(left.arr), std::begin(right.arr));
 	}
 
 	export template<typename T1, typename T2, int D> constexpr bool operator!=(Vector<T1, D> left, Vector<T2, D> right) noexcept

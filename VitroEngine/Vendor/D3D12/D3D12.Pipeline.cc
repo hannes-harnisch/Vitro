@@ -5,6 +5,7 @@ export module vt.D3D12.Pipeline;
 
 import vt.Core.Algorithm;
 import vt.Core.FixedList;
+import vt.D3D12.Sampler;
 import vt.D3D12.Utils;
 import vt.Graphics.Device;
 import vt.Graphics.PipelineInfo;
@@ -121,23 +122,6 @@ namespace vt::d3d12
 			case CullMode::None: return D3D12_CULL_MODE_NONE;
 			case CullMode::Front: return D3D12_CULL_MODE_FRONT;
 			case CullMode::Back: return D3D12_CULL_MODE_BACK;
-		}
-		VT_UNREACHABLE();
-	}
-
-	D3D12_COMPARISON_FUNC convert_compare_op(CompareOp op)
-	{
-		using enum CompareOp;
-		switch(op)
-		{
-			case Never: return D3D12_COMPARISON_FUNC_NEVER;
-			case Less: return D3D12_COMPARISON_FUNC_LESS;
-			case Equal: return D3D12_COMPARISON_FUNC_EQUAL;
-			case LessOrEqual: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			case Greater: return D3D12_COMPARISON_FUNC_GREATER;
-			case NotEqual: return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-			case GreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-			case Always: return D3D12_COMPARISON_FUNC_ALWAYS;
 		}
 		VT_UNREACHABLE();
 	}

@@ -2,11 +2,11 @@
 #include "Core/Macros.hh"
 #include "Windows.API.hh"
 
+#include <memory>
 #include <string_view>
 export module vt.Windows.Window;
 
 import vt.Core.Rectangle;
-import vt.Core.Unique;
 import vt.Core.Vector;
 import vt.Windows.Utils;
 
@@ -140,6 +140,14 @@ namespace vt::windows
 		}
 
 	private:
-		Unique<HWND, ::DestroyWindow> window;
+		struct WindowDeleter
+		{
+			using pointer = HWND;
+			void operator()(HWND hwnd) const
+			{
+				::DestroyWindow(hwnd);
+			}
+		};
+		std::unique_ptr<HWND, WindowDeleter> window;
 	};
 }

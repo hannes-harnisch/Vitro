@@ -7,6 +7,7 @@
 export module vt.D3D12.Device;
 
 import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.D3D12.Utils;
 import vt.Graphics.Adapter;
 import vt.Graphics.DeviceBase;
@@ -42,7 +43,7 @@ namespace vt::d3d12
 			wait_for_fence_value(signal());
 		}
 
-		uint64_t submit(std::span<CommandListHandle const> command_lists)
+		uint64_t submit(CSpan<CommandListHandle> command_lists)
 		{
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(command_lists.data());
 			queue->ExecuteCommandLists(count(command_lists), lists);
@@ -96,7 +97,7 @@ namespace vt::d3d12
 					  "graphics drivers. If the problem persists, you may need to switch to a newer GPU.");
 		}
 
-		Receipt submit_render_commands(std::span<CommandListHandle const> command_lists) override
+		Receipt submit_render_commands(CSpan<CommandListHandle> command_lists) override
 		{
 #if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -104,7 +105,7 @@ namespace vt::d3d12
 			return {render_queue.submit(command_lists)};
 		}
 
-		Receipt submit_compute_commands(std::span<CommandListHandle const> command_lists) override
+		Receipt submit_compute_commands(CSpan<CommandListHandle> command_lists) override
 		{
 #if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COMPUTE);
@@ -112,7 +113,7 @@ namespace vt::d3d12
 			return {compute_queue.submit(command_lists)};
 		}
 
-		Receipt submit_copy_commands(std::span<CommandListHandle const> command_lists) override
+		Receipt submit_copy_commands(CSpan<CommandListHandle> command_lists) override
 		{
 #if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COPY);
@@ -185,7 +186,7 @@ namespace vt::d3d12
 			return fresh_device;
 		}
 
-		static void validate_command_lists(std::span<CommandListHandle const> command_lists, D3D12_COMMAND_LIST_TYPE type)
+		static void validate_command_lists(CSpan<CommandListHandle> command_lists, D3D12_COMMAND_LIST_TYPE type)
 		{
 			for(auto list : command_lists)
 			{

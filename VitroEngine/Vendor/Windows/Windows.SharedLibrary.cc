@@ -2,10 +2,10 @@
 #include "Core/Macros.hh"
 #include "Windows.API.hh"
 
+#include <memory>
 #include <string_view>
 export module vt.Windows.SharedLibrary;
 
-import vt.Core.Unique;
 import vt.Windows.Utils;
 
 namespace vt::windows
@@ -40,7 +40,16 @@ namespace vt::windows
 		}
 
 	private:
-		std::wstring				   path;
-		Unique<HMODULE, ::FreeLibrary> library;
+		std::wstring path;
+
+		struct LibraryDeleter
+		{
+			using pointer = HMODULE;
+			void operator()(HMODULE module) const
+			{
+				::FreeLibrary(module);
+			}
+		};
+		std::unique_ptr<HMODULE, LibraryDeleter> library;
 	};
 }

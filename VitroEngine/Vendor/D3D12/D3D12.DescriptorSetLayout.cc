@@ -7,6 +7,7 @@
 export module vt.D3D12.DescriptorSetLayout;
 
 import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Device;
 
@@ -24,7 +25,7 @@ namespace vt::d3d12
 			case ReadWriteBuffer:
 			case StructuredBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			case UniformBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			case Sampler: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			case DynamicSampler: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 		}
 		VT_UNREACHABLE();
 	}
@@ -56,8 +57,11 @@ namespace vt::d3d12
 	export class D3D12DescriptorSetLayout
 	{
 	public:
-		D3D12DescriptorSetLayout(Device const&, std::span<DescriptorSetBinding const> bindings, ShaderStage visibility) :
-			ranges(bindings.size()), visibility(convert_shader_stage(visibility))
+		D3D12DescriptorSetLayout(Device const&,
+								 CSpan<DescriptorSetBinding> bindings,
+								 ShaderStage				 visibility,
+								 unsigned					 update_frequency) :
+			ranges(bindings.size()), visibility(convert_shader_stage(visibility)), update_frequency(update_frequency)
 		{
 			for(auto binding : bindings)
 				ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
@@ -83,8 +87,14 @@ namespace vt::d3d12
 			return visibility;
 		}
 
+		unsigned get_update_frequency() const
+		{
+			return update_frequency;
+		}
+
 	private:
 		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
 		D3D12_SHADER_VISIBILITY				 visibility;
+		unsigned							 update_frequency;
 	};
 }

@@ -3,6 +3,7 @@
 namespace vt
 {
 	export enum class DescriptorType : unsigned char {
+		None,
 		Texture,
 		ReadWriteTexture,
 		Buffer,
@@ -10,7 +11,7 @@ namespace vt
 		ByteAddressBuffer,
 		StructuredBuffer,
 		UniformBuffer,
-		Sampler,
+		DynamicSampler
 	};
 
 	export struct DescriptorPoolSize
@@ -40,14 +41,15 @@ namespace vt
 	export struct DescriptorSetBinding
 	{
 		unsigned char  slot	 = 0;
-		DescriptorType type	 = {};
+		DescriptorType type	 = DescriptorType::None;
 		unsigned short count = 1;
 	};
 
 	export struct RootDescriptorBinding
 	{
-		unsigned char  slot		  = 0;
-		DescriptorType type		  = {};
-		ShaderStage	   visibility = {};
+		unsigned char  slot				= 0;
+		unsigned char  update_frequency = 0;
+		DescriptorType type				= DescriptorType::None;
+		ShaderStage	   visibility		= ShaderStage::All;
 	};
 }

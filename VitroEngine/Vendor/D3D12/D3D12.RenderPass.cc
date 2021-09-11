@@ -6,6 +6,7 @@
 #include <vector>
 export module vt.D3D12.RenderPass;
 
+import vt.Core.Array;
 import vt.Core.Enum;
 import vt.Core.FixedList;
 import vt.D3D12.Texture;
@@ -97,7 +98,7 @@ namespace vt::d3d12
 			}
 		}
 
-		std::span<AttachmentAccess const> get_render_target_attachments() const
+		CSpan<AttachmentAccess> get_render_target_attachments() const
 		{
 			return {attachments.begin(), attachments.end() - is_using_depth_stencil};
 		}

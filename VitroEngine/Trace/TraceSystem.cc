@@ -1,21 +1,25 @@
-﻿export module vt.Trace.TraceSystem;
+﻿module;
+#include "Core/Macros.hh"
+export module vt.Trace.TraceSystem;
 
 import vt.Trace.CrashHandler;
 import vt.Trace.Log;
-import vt.VT_SYSTEM_MODULE.Trace;
+import vt.VT_SYSTEM_MODULE.TraceContext;
 
 namespace vt
 {
+	using TraceContext = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, TraceContext);
+
 	export class TraceSystem
 	{
 	public:
 		TraceSystem()
 		{
 			set_crash_handlers();
-			VT_SYSTEM_NAME::initialize_system_specific_tracing();
 		}
 
 	private:
-		Logger logger;
+		Logger		 logger;
+		TraceContext trace_context;
 	};
 }

@@ -14,6 +14,8 @@ import vt.D3D12.RenderPass;
 import vt.D3D12.RenderTarget;
 import vt.D3D12.Utils;
 import vt.Graphics.CommandListBase;
+import vt.Graphics.DescriptorPool;
+import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.PipelineInfo;
@@ -161,6 +163,12 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to end D3D12 command list.");
 		}
 
+		void bind_descriptor_pool(DescriptorPool const& pool)
+		{
+			auto heaps = pool.d3d12.get_shader_visible_heaps();
+			cmd->SetDescriptorHeaps(count(heaps), heaps.data());
+		}
+
 		void bind_compute_pipeline(Pipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.ptr());
@@ -171,8 +179,28 @@ namespace vt::d3d12
 			cmd->SetComputeRootSignature(root_signature.d3d12.ptr());
 		}
 
-		void bind_compute_descriptors()
-		{}
+		void bind_compute_descriptors(CSpan<DescriptorSet> descriptors)
+		{
+			for(auto& set : descriptors)
+			{
+				UINT index = set.d3d12.get_parameter_index();
+				switch(set.d3d12.get_parameter_type())
+				{
+					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+						cmd->SetComputeRootDescriptorTable(index, set.d3d12.get_table_base_handle());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_CBV:
+						cmd->SetComputeRootConstantBufferView(index, set.d3d12.get_gpu_address());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_SRV:
+						cmd->SetComputeRootShaderResourceView(index, set.d3d12.get_gpu_address());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_UAV:
+						cmd->SetComputeRootUnorderedAccessView(index, set.d3d12.get_gpu_address());
+						break;
+				}
+			}
+		}
 
 		void push_compute_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
 		{
@@ -194,17 +222,37 @@ namespace vt::d3d12
 			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
 		}
 
-		void bind_render_descriptors()
-		{}
+		void bind_render_descriptors(CSpan<DescriptorSet> descriptors)
+		{
+			for(auto& set : descriptors)
+			{
+				UINT index = set.d3d12.get_parameter_index();
+				switch(set.d3d12.get_parameter_type())
+				{
+					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+						cmd->SetGraphicsRootDescriptorTable(index, set.d3d12.get_table_base_handle());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_CBV:
+						cmd->SetGraphicsRootConstantBufferView(index, set.d3d12.get_gpu_address());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_SRV:
+						cmd->SetGraphicsRootShaderResourceView(index, set.d3d12.get_gpu_address());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_UAV:
+						cmd->SetGraphicsRootUnorderedAccessView(index, set.d3d12.get_gpu_address());
+						break;
+				}
+			}
+		}
 
 		void push_render_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
 		{
 			cmd->SetGraphicsRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
 		}
 
-		void begin_render_pass(RenderPass const&		   render_pass,
-							   RenderTarget const&		   render_target,
-							   std::span<ClearValue const> clear_values = {})
+		void begin_render_pass(RenderPass const&   render_pass,
+							   RenderTarget const& render_target,
+							   CSpan<ClearValue>   clear_values = {})
 		{
 			this->active_render_pass   = &render_pass.d3d12;
 			this->active_render_target = &render_target.d3d12;
@@ -248,7 +296,10 @@ namespace vt::d3d12
 			{
 				D3D12_CLEAR_VALUE depth_clear, stencil_clear;
 				if(clear_values.empty())
-					depth_clear = stencil_clear = {};
+				{
+					depth_clear	  = {};
+					stencil_clear = {};
+				}
 				else
 				{
 					depth_clear = {
@@ -301,7 +352,7 @@ namespace vt::d3d12
 #endif
 		}
 
-		void bind_vertex_buffers(unsigned first_buffer, std::span<Buffer const> buffers, std::span<unsigned const> byte_offsets)
+		void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<unsigned> byte_offsets)
 		{
 			FixedList<D3D12_VERTEX_BUFFER_VIEW, MaxVertexAttributes> views(first_buffer);
 
@@ -331,13 +382,13 @@ namespace vt::d3d12
 			cmd->IASetPrimitiveTopology(convert_primitive_topology(topology));
 		}
 
-		void bind_viewports(std::span<Viewport const> viewports)
+		void bind_viewports(CSpan<Viewport> viewports)
 		{
 			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(viewports.data());
 			cmd->RSSetViewports(count(viewports), data);
 		}
 
-		void bind_scissors(std::span<Rectangle const> scissors)
+		void bind_scissors(CSpan<Rectangle> scissors)
 		{
 			FixedList<D3D12_RECT, MaxAttachments> rects;
 			for(auto&& scissor : scissors)
