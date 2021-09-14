@@ -1,18 +1,16 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "Windows.API.hh"
+#include "WindowsAPI.hh"
 
 #include <any>
-#include <new>
-#include <unordered_map>
 export module vt.Windows.AppContext;
 
+import vt.App.AppContextBase;
 import vt.App.EventSystem;
 import vt.App.Window;
 import vt.App.WindowEvent;
 import vt.Core.Array;
 import vt.Core.Rectangle;
-import vt.Core.Singleton;
 import vt.Core.Vector;
 import vt.Trace.Log;
 import vt.Windows.Utils;
@@ -137,18 +135,18 @@ namespace vt::windows
 		return None;
 	}
 
-	export class WindowsAppContext : public Singleton<WindowsAppContext>
+	export class WindowsAppContext : public AppContextBase
 	{
 	protected:
-		WindowsAppContext()
+		WindowsAppContext() : AppContextBase(::GetModuleHandle(nullptr))
 		{
 			WNDCLASS const window_class {
 				.style		   = CS_DBLCLKS,
 				.lpfnWndProc   = forward_messages,
-				.hInstance	   = ::GetModuleHandleW(nullptr),
+				.hInstance	   = get_system_window_owner(),
 				.lpszClassName = WindowsWindow::WindowClassName,
 			};
-			ATOM registered = ::RegisterClassW(&window_class);
+			ATOM registered = ::RegisterClass(&window_class);
 			VT_ENSURE(registered, "Failed to register window class.");
 
 			RAWINPUTDEVICE const raw_input_device {
@@ -162,24 +160,22 @@ namespace vt::windows
 		void poll_events() const
 		{
 			MSG message;
-			while(::PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE))
+			while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
 			{
 				::TranslateMessage(&message);
-				::DispatchMessageW(&message);
+				::DispatchMessage(&message);
 			}
 		}
 
-		std::unordered_map<void*, Window*>& get_native_window_handle_map()
-		{
-			return hwnd_to_vitro_window;
-		}
-
 	private:
-		std::unordered_map<void*, Window*> hwnd_to_vitro_window;
-
 		unsigned key_repeats		 = 0;
 		KeyCode	 last_key_code		 = KeyCode::None;
 		Int2	 last_mouse_position = {};
+
+		static WindowsAppContext& get()
+		{
+			return static_cast<WindowsAppContext&>(AppContextBase::get());
+		}
 
 		static LRESULT CALLBACK forward_messages(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
 		{
@@ -217,7 +213,7 @@ namespace vt::windows
 				case WM_MOUSEWHEEL: get().on_vertical_scroll(hwnd, w_param); return 0;
 				case WM_MOUSEHWHEEL: get().on_horizontal_scroll(hwnd, w_param); return 0;
 			}
-			return ::DefWindowProcW(hwnd, message, w_param, l_param);
+			return ::DefWindowProc(hwnd, message, w_param, l_param);
 		}
 
 		static MouseCode convert_extra_button(WPARAM w_param)
@@ -228,16 +224,6 @@ namespace vt::windows
 				case XBUTTON2: return MouseCode::Extra2;
 			}
 			VT_UNREACHABLE();
-		}
-
-		Window* find_window(HWND hwnd) const
-		{
-			auto it = hwnd_to_vitro_window.find(hwnd);
-
-			if(it == hwnd_to_vitro_window.end())
-				return nullptr;
-
-			return it->second;
 		}
 
 		void on_window_move(HWND hwnd, LPARAM l_param) const
@@ -352,7 +338,7 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			wchar_t const chars[] {static_cast<wchar_t>(w_param), L'\0'};
+			TCHAR const chars[] {static_cast<TCHAR>(w_param), TEXT('\0')};
 			EventSystem::notify<KeyTextEvent>(*window, last_key_code, narrow_string(chars));
 		}
 

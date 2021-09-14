@@ -1,11 +1,12 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "Windows.API.hh"
+#include "WindowsAPI.hh"
 
 #include <memory>
 #include <string_view>
 export module vt.Windows.Window;
 
+import vt.App.AppContextBase;
 import vt.Core.Rectangle;
 import vt.Core.Vector;
 import vt.Windows.Utils;
@@ -15,23 +16,22 @@ namespace vt::windows
 	export class WindowsWindow
 	{
 	public:
-		static constexpr wchar_t const WindowClassName[] = TEXT(VT_ENGINE_NAME);
+		static constexpr TCHAR const WindowClassName[] = TEXT(VT_ENGINE_NAME);
+		static constexpr Rectangle	 DefaultRect {
+			  .x	  = CW_USEDEFAULT,
+			  .y	  = CW_USEDEFAULT,
+			  .width  = static_cast<unsigned>(CW_USEDEFAULT),
+			  .height = static_cast<unsigned>(CW_USEDEFAULT),
+		  };
 
 	protected:
-		static constexpr Rectangle DefaultRect {
-			.x		= CW_USEDEFAULT,
-			.y		= CW_USEDEFAULT,
-			.width	= static_cast<unsigned>(CW_USEDEFAULT),
-			.height = static_cast<unsigned>(CW_USEDEFAULT),
-		};
-
 		WindowsWindow(std::string_view title, Rectangle rect)
 		{
-			auto widened_title = widen_string(title);
+			auto widened_title	 = widen_string(title);
+			auto instance_handle = AppContextBase::get().get_system_window_owner();
 
-			auto instance_handle = ::GetModuleHandleW(nullptr);
-			HWND raw_window = ::CreateWindowExW(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
-												rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
+			HWND raw_window = ::CreateWindowEx(0, WindowClassName, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y,
+											   rect.width, rect.height, nullptr, nullptr, instance_handle, nullptr);
 
 			window.reset(raw_window);
 			VT_ENSURE(raw_window, "Failed to create window.");
@@ -108,10 +108,10 @@ namespace vt::windows
 
 		std::string get_title() const
 		{
-			int length = ::GetWindowTextLengthW(window.get());
+			int length = ::GetWindowTextLength(window.get());
 
 			std::wstring title(length, L'\0');
-			::GetWindowTextW(window.get(), title.data(), length + 1);
+			::GetWindowText(window.get(), title.data(), length + 1);
 
 			return narrow_string(title);
 		}
@@ -119,7 +119,7 @@ namespace vt::windows
 		void set_title(std::string_view title)
 		{
 			auto widened_title = widen_string(title);
-			::SetWindowTextW(window.get(), widened_title.data());
+			::SetWindowText(window.get(), widened_title.data());
 		}
 
 		Rectangle client_area() const
@@ -143,7 +143,7 @@ namespace vt::windows
 		struct WindowDeleter
 		{
 			using pointer = HWND;
-			void operator()(HWND hwnd) const
+			void operator()(HWND hwnd)
 			{
 				::DestroyWindow(hwnd);
 			}

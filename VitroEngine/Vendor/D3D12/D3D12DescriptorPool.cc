@@ -1,17 +1,20 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
+
+#include <vector>
 export module vt.D3D12.DescriptorPool;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
-import vt.D3D12.Utils;
 import vt.Graphics.DescriptorBinding;
+import vt.Graphics.DescriptorPoolBase;
+import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
 
 namespace vt::d3d12
 {
-	export class D3D12DescriptorPool
+	export class D3D12DescriptorPool : public DescriptorPoolBase
 	{
 	public:
 		static constexpr unsigned MaxSimultaneousHeaps = 2;
@@ -44,6 +47,11 @@ namespace vt::d3d12
 			result = device->CreateDescriptorHeap(&sampler_desc, IID_PPV_ARGS(&raw_sampler_heap));
 			gpu_sampler_heap.reset(raw_sampler_heap);
 			VT_ENSURE_RESULT(result, "Failed to create shader-visible D3D12 descriptor heap for samplers.");
+		}
+
+		std::vector<DescriptorSet> allocate_descriptors() override
+		{
+			return {};
 		}
 
 		FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> get_shader_visible_heaps() const

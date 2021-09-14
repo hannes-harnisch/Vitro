@@ -96,9 +96,15 @@ namespace vt
 			return SystemWindow::native_handle();
 		}
 
+	protected:
+		~WindowImpl() = default;
+
 	private:
 		bool is_cursor_enabled = true;
 	};
 
-	export using Window = ObjectEventSender<WindowImpl>;
+	export class Window : public WindowImpl, public ObjectEventSentinel<Window>
+	{
+		using WindowImpl::WindowImpl;
+	};
 }

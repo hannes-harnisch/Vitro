@@ -11,10 +11,9 @@ namespace vt
 {
 	export struct RootSignatureInfo
 	{
-		unsigned char				 push_constants_size_in_32bit_units;
-		ShaderStage					 push_constants_visibility;
-		CSpan<RootDescriptorBinding> root_descs;
-		CSpan<DescriptorSetLayout>	 desc_set_layouts;
-		CSpan<StaticSamplerInfo>	 static_samplers;
+		unsigned char			   push_constants_size_in_32bit_units;
+		ShaderStage				   push_constants_visibility;
+		CSpan<DescriptorSetLayout> layouts;
+		CSpan<StaticSamplerInfo>   static_samplers;
 	};
 }

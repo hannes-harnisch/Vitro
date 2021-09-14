@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <array>
 #include <string_view>
@@ -8,15 +8,12 @@
 #include <vector>
 export module vt.D3D12.Driver;
 
-import vt.D3D12.Utils;
-import vt.Graphics.Adapter;
+import vt.D3D12.Handle;
 import vt.Graphics.DriverBase;
 import vt.Windows.Utils;
 
 namespace vt::d3d12
 {
-	export using D3D12CommandListHandle = ID3D12CommandList*;
-
 	export class D3D12Driver final : public DriverBase
 	{
 	public:

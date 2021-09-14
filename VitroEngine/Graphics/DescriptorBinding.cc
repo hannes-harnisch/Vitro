@@ -1,5 +1,7 @@
 ﻿export module vt.Graphics.DescriptorBinding;
 
+import vt.Core.Array;
+
 namespace vt
 {
 	export enum class DescriptorType : unsigned char {
@@ -42,14 +44,13 @@ namespace vt
 	{
 		unsigned char  slot	 = 0;
 		DescriptorType type	 = DescriptorType::None;
-		unsigned short count = 1;
+		unsigned	   count = 1;
 	};
 
-	export struct RootDescriptorBinding
+	export struct DescriptorSetLayoutInfo
 	{
-		unsigned char  slot				= 0;
-		unsigned char  update_frequency = 0;
-		DescriptorType type				= DescriptorType::None;
-		ShaderStage	   visibility		= ShaderStage::All;
+		CSpan<DescriptorSetBinding> bindings;
+		ShaderStage					visibility		 = ShaderStage::All;
+		unsigned char				update_frequency = 0;
 	};
 }

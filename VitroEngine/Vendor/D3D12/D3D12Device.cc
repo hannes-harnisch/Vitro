@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <ranges>
 #include <span>
@@ -8,10 +8,10 @@ export module vt.D3D12.Device;
 
 import vt.Core.Algorithm;
 import vt.Core.Array;
-import vt.D3D12.Utils;
-import vt.Graphics.Adapter;
+import vt.D3D12.Handle;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.Driver;
+import vt.Graphics.Handle;
 
 namespace vt::d3d12
 {
@@ -178,7 +178,7 @@ namespace vt::d3d12
 		{
 			ID3D12Device4* raw_device;
 
-			auto result = D3D12CreateDevice(adapter.d3d12.ptr(), D3D12Driver::MinimumFeatureLevel, IID_PPV_ARGS(&raw_device));
+			auto result = D3D12CreateDevice(adapter.d3d12.get(), D3D12Driver::MinimumFeatureLevel, IID_PPV_ARGS(&raw_device));
 
 			ComUnique<ID3D12Device4> fresh_device(raw_device);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 device.");

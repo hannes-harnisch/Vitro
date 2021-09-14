@@ -8,7 +8,7 @@ import vt.Core.Rectangle;
 import vt.Core.Vector;
 import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
-import vt.Graphics.Driver;
+import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassInfo;
 import vt.Graphics.RenderTarget;

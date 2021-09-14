@@ -9,11 +9,11 @@ import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.App.Window;
 import vt.App.WindowEvent;
-import vt.Graphics.Adapter;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.ForwardRenderer;
+import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassInfo;
 import vt.Graphics.SwapChain;
@@ -34,20 +34,24 @@ namespace vt
 		}
 
 	private:
-		DynamicGpuApi								 dynamic_gpu_api;
-		Driver										 driver;
-		Device										 device;
 		std::unordered_map<Window const*, SwapChain> swap_chains;
-		RenderPass									 present_pass;
-		ForwardRenderer								 renderer;
+
+		DynamicGpuApi	dynamic_gpu_api;
+		Driver			driver;
+		Device			device;
+		RenderPass		present_pass;
+		ForwardRenderer renderer;
 
 		static RenderPassInfo fill_present_pass_info()
 		{
-			Subpass subpass {{
-				AttachmentReference {
-					.used_layout = ImageLayout::ColorAttachment,
+			Subpass subpass {
+				.output_refs {
+					AttachmentReference {
+						.index		 = 0,
+						.used_layout = ImageLayout::ColorAttachment,
+					},
 				},
-			}};
+			};
 			return RenderPassInfo {
 				.attachments {
 					AttachmentInfo {

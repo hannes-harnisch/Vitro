@@ -1,5 +1,5 @@
 ﻿module;
-#include "Windows.API.hh"
+#include "WindowsAPI.hh"
 
 #include <string_view>
 export module vt.Windows.Utils;
@@ -30,6 +30,6 @@ namespace vt::windows
 	{
 		auto wide_title = widen_string(title);
 		auto wide_msg	= widen_string(message);
-		::MessageBoxW(nullptr, wide_msg.data(), wide_title.data(), MB_OK | MB_ICONERROR);
+		::MessageBox(nullptr, wide_msg.data(), wide_title.data(), MB_OK | MB_ICONERROR);
 	}
 }

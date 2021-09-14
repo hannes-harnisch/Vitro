@@ -36,3 +36,9 @@
 
 #include <Windows.h>
 #include <Windowsx.h>
+
+namespace vt
+{
+	using SystemWindowOwnerHandle = HINSTANCE;
+	using SystemWindowHandle	  = HWND;
+}

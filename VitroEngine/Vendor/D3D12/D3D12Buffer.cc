@@ -1,8 +1,8 @@
 ﻿module;
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 export module vt.D3D12.Buffer;
 
-import vt.D3D12.Utils;
+import vt.D3D12.Handle;
 import vt.Graphics.Device;
 
 namespace vt::d3d12

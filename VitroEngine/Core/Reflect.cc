@@ -19,10 +19,10 @@ namespace vt
 #if VT_COMPILER_MSVC
 
 		std::string name(symbol);
-		remove_first_of(name, "class vt::");
-		remove_first_of(name, "struct vt::");
-		remove_first_of(name, "union vt::");
-		remove_first_of(name, "enum vt::");
+		remove_all_of(name, "class vt::");
+		remove_all_of(name, "struct vt::");
+		remove_all_of(name, "union vt::");
+		remove_all_of(name, "enum vt::");
 
 #else
 

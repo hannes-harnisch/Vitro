@@ -12,6 +12,5 @@ import vt.VT_GPU_API_MODULE.Driver;
 
 namespace vt
 {
-	export using Driver			   = InterfaceVariant<DriverBase, VT_GPU_API_VARIANT_ARGS(Driver)>;
-	export using CommandListHandle = ResourceVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
+	export using Driver = InterfaceVariant<DriverBase, VT_GPU_API_VARIANT_ARGS(Driver)>;
 }

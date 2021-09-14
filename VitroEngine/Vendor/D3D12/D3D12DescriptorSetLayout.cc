@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <span>
 #include <vector>
@@ -57,11 +57,10 @@ namespace vt::d3d12
 	export class D3D12DescriptorSetLayout
 	{
 	public:
-		D3D12DescriptorSetLayout(Device const&,
-								 CSpan<DescriptorSetBinding> bindings,
-								 ShaderStage				 visibility,
-								 unsigned					 update_frequency) :
-			ranges(bindings.size()), visibility(convert_shader_stage(visibility)), update_frequency(update_frequency)
+		D3D12DescriptorSetLayout(Device const&, DescriptorSetLayoutInfo const& info) :
+			is_root_descriptor(is_suitable_as_root_descriptor(info)),
+			visibility(convert_shader_stage(visibility)),
+			update_frequency(update_frequency)
 		{
 			for(auto binding : bindings)
 				ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
@@ -74,12 +73,24 @@ namespace vt::d3d12
 				});
 		}
 
-		D3D12_ROOT_DESCRIPTOR_TABLE1 get_descriptor_table() const
+		bool describes_root_descriptor() const
 		{
+			return is_root_descriptor;
+		}
+
+		D3D12_ROOT_DESCRIPTOR_TABLE1 get_descriptor_table_desc() const
+		{
+			VT_ASSERT(!is_root_descriptor, "This method can only be called on a descriptor set layout corresponding to a "
+										   "descriptor table.");
 			return {
-				.NumDescriptorRanges = count(ranges),
-				.pDescriptorRanges	 = ranges.data(),
+				.NumDescriptorRanges = count(table_ranges),
+				.pDescriptorRanges	 = table_ranges.data(),
 			};
+		}
+
+		D3D12_ROOT_DESCRIPTOR1 const& get_root_descriptor_desc() const
+		{
+			return root_descriptor;
 		}
 
 		D3D12_SHADER_VISIBILITY get_visibility() const
@@ -87,14 +98,41 @@ namespace vt::d3d12
 			return visibility;
 		}
 
-		unsigned get_update_frequency() const
+		unsigned char get_update_frequency() const
 		{
 			return update_frequency;
 		}
 
 	private:
-		std::vector<D3D12_DESCRIPTOR_RANGE1> ranges;
-		D3D12_SHADER_VISIBILITY				 visibility;
-		unsigned							 update_frequency;
+		union
+		{
+			std::vector<D3D12_DESCRIPTOR_RANGE1> table_ranges;
+			D3D12_ROOT_DESCRIPTOR1				 root_descriptor;
+		};
+		bool					is_root_descriptor;
+		D3D12_SHADER_VISIBILITY visibility : sizeof(char); // TODO: Replace with enum reflection
+		unsigned char			update_frequency;
+
+		static bool is_suitable_as_root_descriptor(DescriptorSetLayoutInfo const& info)
+		{
+			if(info.bindings.size() != 1)
+				return false;
+
+			auto& binding = info.bindings.front();
+			if(binding.count != 1)
+				return false;
+
+			using enum DescriptorType;
+			switch(binding.type)
+			{
+				case Buffer:
+				case ByteAddressBuffer:
+				case ReadWriteTexture:
+				case ReadWriteBuffer:
+				case StructuredBuffer:
+				case UniformBuffer: return true;
+			}
+			return false;
+		}
 	};
 }

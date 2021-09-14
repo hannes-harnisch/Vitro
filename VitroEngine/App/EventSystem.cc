@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <any>
 #include <atomic>
-#include <queue>
 #include <ranges>
 #include <typeindex>
 #include <unordered_map>
@@ -10,6 +9,7 @@
 #include <vector>
 export module vt.App.EventSystem;
 
+import vt.Core.ConcurrentQueue;
 import vt.Core.Singleton;
 
 namespace vt
@@ -24,7 +24,7 @@ namespace vt
 	public:
 		template<typename T, typename... Ts> static void notify(Ts&&... ts)
 		{
-			get().dispatch_event(T {std::forward<Ts>(ts)...});
+			get().dispatch_event(T {std::forward<Ts>(ts)...}, typeid(T));
 		}
 
 		template<typename T, typename... Ts> static void notify_async(Ts&&... ts)
@@ -32,7 +32,10 @@ namespace vt
 			if constexpr(!AllowAsyncEventDispatchFor<T>)
 				static_assert(false, "This type is not allowed to be used as an async event.");
 
-			get().async_events.emplace(T {std::forward<Ts>(ts)...});
+			auto& self = get();
+
+			thread_local ProducerToken const pro_token(self.async_events);
+			self.async_events.enqueue(pro_token, T {std::forward<Ts>(ts)...});
 		}
 
 	private:
@@ -44,13 +47,15 @@ namespace vt
 		};
 		std::unordered_map<std::type_index, std::vector<EventHandler>> handlers;
 
-		std::queue<std::any> async_events; // replace any with unsafely castable type?
+		ConsumerToken			  con_token;
+		ConcurrentQueue<std::any> async_events; // replace any with unsafely castable type?
 
-		EventSystem() = default;
+		EventSystem() : con_token(async_events)
+		{}
 
-		void dispatch_event(std::any event) const
+		void dispatch_event(std::any event, std::type_index type) const
 		{
-			auto handlers_for_type = handlers.find(event.type());
+			auto handlers_for_type = handlers.find(type);
 			if(handlers_for_type == handlers.end())
 				return;
 

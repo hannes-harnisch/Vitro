@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <cstdlib>
 #include <ranges>
@@ -10,9 +10,9 @@ export module vt.D3D12.CommandList;
 import vt.Core.Algorithm;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
+import vt.D3D12.Handle;
 import vt.D3D12.RenderPass;
 import vt.D3D12.RenderTarget;
-import vt.D3D12.Utils;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
@@ -286,7 +286,9 @@ namespace vt::d3d12
 						.Type  = attachment.begin_access,
 						.Clear = {color_clear},
 					},
-					.EndingAccess = {.Type = attachment.end_access},
+					.EndingAccess {
+						.Type = attachment.end_access,
+					},
 				});
 				++index;
 			}
@@ -303,12 +305,16 @@ namespace vt::d3d12
 				else
 				{
 					depth_clear = {
-						.Format		  = pass.get_depth_stencil_format(),
-						.DepthStencil = {.Depth = clear_values.back().depth},
+						.Format = pass.get_depth_stencil_format(),
+						.DepthStencil {
+							.Depth = clear_values.back().depth,
+						},
 					};
 					stencil_clear = {
-						.Format		  = pass.get_depth_stencil_format(),
-						.DepthStencil = {.Stencil = clear_values.back().stencil},
+						.Format = pass.get_depth_stencil_format(),
+						.DepthStencil {
+							.Stencil = clear_values.back().stencil,
+						},
 					};
 				}
 
@@ -322,8 +328,12 @@ namespace vt::d3d12
 						.Type  = pass.get_stencil_begin_access(),
 						.Clear = {stencil_clear},
 					},
-					.DepthEndingAccess	 = {.Type = pass.get_depth_end_access()},
-					.StencilEndingAccess = {.Type = pass.get_stencil_end_access()},
+					.DepthEndingAccess {
+						.Type = pass.get_depth_end_access(),
+					},
+					.StencilEndingAccess {
+						.Type = pass.get_stencil_end_access(),
+					},
 				};
 			}
 

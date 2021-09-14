@@ -54,31 +54,25 @@ namespace vt
 
 		void on_window_object_construct(ObjectConstructEvent<Window>& event)
 		{
-			auto& map = get_native_window_handle_map();
-			map.try_emplace(event.object.native_handle(), &event.object);
+			system_window_to_engine_window.try_emplace(event.object.native_handle(), &event.object);
 		}
 
 		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& event)
 		{
-			auto& map = get_native_window_handle_map();
-
-			map[event.constructed.native_handle()] = &event.constructed;
+			system_window_to_engine_window[event.constructed.native_handle()] = &event.constructed;
 		}
 
 		void on_window_object_destroy(ObjectDestroyEvent<Window>& event)
 		{
-			auto& map = get_native_window_handle_map();
-			map.erase(event.object.native_handle());
+			system_window_to_engine_window.erase(event.object.native_handle());
 		}
 
 		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& event)
 		{
-			auto& map = get_native_window_handle_map();
-
-			std::erase_if(map, [&](auto const& pair) {
+			std::erase_if(system_window_to_engine_window, [&](auto const& pair) {
 				return pair.second == &event.left;
 			});
-			map.try_emplace(event.left.native_handle(), &event.left);
+			system_window_to_engine_window.try_emplace(event.left.native_handle(), &event.left);
 		}
 	};
 }

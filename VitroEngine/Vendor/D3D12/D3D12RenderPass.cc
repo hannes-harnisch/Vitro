@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <algorithm>
 #include <vector>
@@ -38,7 +38,7 @@ namespace vt::d3d12
 
 	struct AttachmentAccess
 	{
-		DXGI_FORMAT								format : 8; // TODO: no magic numbers, use enum reflection once possible
+		DXGI_FORMAT								format : 8; // TODO: Replace with enum reflection
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE begin_access : 3;
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	end_access : 3;
 

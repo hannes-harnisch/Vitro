@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <algorithm>
 #include <ranges>
@@ -11,8 +11,8 @@ export module vt.D3D12.RootSignature;
 import vt.Core.Algorithm;
 import vt.Core.Enum;
 import vt.D3D12.DescriptorSetLayout;
+import vt.D3D12.Handle;
 import vt.D3D12.Sampler;
-import vt.D3D12.Utils;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;

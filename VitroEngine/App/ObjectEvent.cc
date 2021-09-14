@@ -8,46 +8,40 @@ import vt.App.EventSystem;
 
 namespace vt
 {
-	template<typename T> class ObjectEventSentinel
+	export template<typename T> class ObjectEventSentinel
 	{
 	protected:
 		ObjectEventSentinel()
 		{
-			EventSystem::notify<ObjectConstructEvent<T>>((T&)*this);
+			EventSystem::notify<ObjectConstructEvent<T>>(static_cast<T&>(*this));
 		}
 
 		ObjectEventSentinel(ObjectEventSentinel const& that)
 		{
-			EventSystem::notify<ObjectCopyConstructEvent<T>>((T&)*this, (T const&)that);
+			EventSystem::notify<ObjectCopyConstructEvent<T>>(static_cast<T&>(*this), static_cast<T const&>(that));
 		}
 
 		ObjectEventSentinel(ObjectEventSentinel&& that) noexcept
 		{
-			EventSystem::notify<ObjectMoveConstructEvent<T>>((T&)*this, (T const&)that);
+			EventSystem::notify<ObjectMoveConstructEvent<T>>(static_cast<T&>(*this), static_cast<T const&>(that));
 		}
 
 		~ObjectEventSentinel()
 		{
-			EventSystem::notify<ObjectDestroyEvent<T>>((T&)*this);
+			EventSystem::notify<ObjectDestroyEvent<T>>(static_cast<T&>(*this));
 		}
 
 		ObjectEventSentinel& operator=(ObjectEventSentinel const& that)
 		{
-			EventSystem::notify<ObjectCopyAssignEvent<T>>((T&)*this, (T const&)that);
+			EventSystem::notify<ObjectCopyAssignEvent<T>>(static_cast<T&>(*this), static_cast<T const&>(that));
 			return *this;
 		}
 
 		ObjectEventSentinel& operator=(ObjectEventSentinel&& that) noexcept
 		{
-			EventSystem::notify<ObjectMoveAssignEvent<T>>((T&)*this, (T const&)that);
+			EventSystem::notify<ObjectMoveAssignEvent<T>>(static_cast<T&>(*this), static_cast<T const&>(that));
 			return *this;
 		}
-	};
-
-	export template<typename T> class ObjectEventSender : public T, private ObjectEventSentinel<ObjectEventSender<T>>
-	{
-	public:
-		using T::T;
 	};
 
 	template<typename T>

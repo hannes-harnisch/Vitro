@@ -9,19 +9,34 @@ namespace vt
 	public:
 		static T& get()
 		{
-			return *instance;
+			VT_ASSERT(singleton, "Accessing a destroyed singleton.");
+			return *singleton;
 		}
-
-		Singleton(Singleton const&) = delete;
-		Singleton& operator=(Singleton const&) = delete;
 
 	protected:
-		static inline T* instance;
-
 		Singleton()
 		{
-			VT_ENSURE(!instance, "This type can only be instantiated once.");
-			instance = static_cast<T*>(this);
+			VT_ENSURE(!singleton, "This type can only be instantiated once.");
+			singleton = static_cast<T*>(this);
 		}
+
+		Singleton(Singleton&&) noexcept
+		{
+			singleton = static_cast<T*>(this);
+		}
+
+		~Singleton()
+		{
+			singleton = nullptr;
+		}
+
+		Singleton& operator=(Singleton&&) noexcept
+		{
+			singleton = static_cast<T*>(this);
+			return *this;
+		}
+
+	private:
+		static inline T* singleton;
 	};
 }

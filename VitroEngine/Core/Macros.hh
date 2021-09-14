@@ -92,6 +92,12 @@
 #define VT_PASTE_IMPL(first, second) first##second
 #define VT_PASTE(first, second)		 VT_PASTE_IMPL(first, second)
 
+#define VT_STRINGIFY_IMPL(token) #token
+#define VT_STRINGIFY(token)		 VT_STRINGIFY_IMPL(token)
+
+#define VT_EXPAND_MACRO(macro) macro
+#define VT_SYSTEM_HEADER	   <Vendor/##VT_EXPAND_MACRO(VT_SYSTEM_MODULE)##/##VT_EXPAND_MACRO(VT_SYSTEM_MODULE)##API.hh>
+
 #if VT_DYNAMIC_GPU_API
 
 	#define VT_GPU_API_VARIANT_ARGS(object)                                                                                    \

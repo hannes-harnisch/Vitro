@@ -232,8 +232,8 @@ namespace vt
 
 		RootSignature const& root_signature;
 		RenderPass const&	 render_pass;
-		Array<char> const&	 vertex_shader_bytecode;
-		Array<char> const&	 fragment_shader_bytecode;
+		CSpan<char>			 vertex_shader_bytecode;
+		CSpan<char>			 fragment_shader_bytecode;
 		VertexAttributeList	 vertex_attributes;
 		PrimitiveTopology	 primitive_topology		  = {};
 		bool				 enable_primitive_restart = false;
@@ -242,4 +242,7 @@ namespace vt
 		MultisampleState	 multisample;
 		BlendState			 blend;
 	};
+
+	export struct ComputePipelineInfo
+	{};
 }

@@ -2,7 +2,7 @@
 #include <vector>
 export module vt.Graphics.DriverBase;
 
-import vt.Graphics.Adapter;
+import vt.Graphics.Handle;
 
 namespace vt
 {

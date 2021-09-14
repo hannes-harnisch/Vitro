@@ -1,9 +1,7 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 export module vt.D3D12.DescriptorSet;
-
-import vt.Graphics.DescriptorPool;
 
 namespace vt::d3d12
 {

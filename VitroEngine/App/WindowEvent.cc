@@ -256,7 +256,28 @@ namespace vt
 		}
 	};
 
-	struct MouseEvent : WindowEvent
+	export struct MouseMoveEvent : WindowEvent
+	{
+		Int2 const position, direction;
+
+		std::string to_string() const
+		{
+			return std::format("{}, Position({}), Direction({})", WindowEvent::to_string(), position.to_string(),
+							   direction.to_string());
+		}
+	};
+
+	export struct MouseScrollEvent : WindowEvent
+	{
+		Float2 const offset;
+
+		std::string to_string() const
+		{
+			return std::format("{}, Offset({})", WindowEvent::to_string(), offset.to_string());
+		}
+	};
+
+	struct MouseClickEvent : WindowEvent
 	{
 		MouseCode const button;
 
@@ -266,40 +287,12 @@ namespace vt
 		}
 	};
 
-	export struct MouseMoveEvent : MouseEvent
-	{
-		Int2 const position, direction;
-
-		MouseMoveEvent(Window& window, Int2 position, Int2 direction) :
-			MouseEvent {window, MouseCode::None}, position(position), direction(direction)
-		{}
-
-		std::string to_string() const
-		{
-			return std::format("{}, Position({}), Direction({})", MouseEvent::to_string(), position.to_string(),
-							   direction.to_string());
-		}
-	};
-
-	export struct MouseDownEvent : MouseEvent
+	export struct MouseDownEvent : MouseClickEvent
 	{};
 
-	export struct MouseUpEvent : MouseEvent
+	export struct MouseUpEvent : MouseClickEvent
 	{};
 
-	export struct DoubleClickEvent : MouseEvent
+	export struct DoubleClickEvent : MouseClickEvent
 	{};
-
-	export struct MouseScrollEvent : MouseEvent
-	{
-		Float2 const offset;
-
-		MouseScrollEvent(Window& window, Float2 offset) : MouseEvent {window, MouseCode::Wheel}, offset(offset)
-		{}
-
-		std::string to_string() const
-		{
-			return std::format("{}, Offset({})", MouseEvent::to_string(), offset.to_string());
-		}
-	};
 }

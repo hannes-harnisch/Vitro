@@ -72,6 +72,7 @@ namespace vt
 
 			auto func = [](EventListener& listener, std::any& stored_event) {
 				auto& event = std::any_cast<TEvent&>(stored_event);
+
 				if constexpr(!std::same_as<TEvent, WindowPaintEvent>)
 					Log().verbose("Handling ", name_of(event), ": ", event);
 

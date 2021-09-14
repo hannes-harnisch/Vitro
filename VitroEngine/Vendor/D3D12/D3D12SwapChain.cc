@@ -1,13 +1,13 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "D3D12.API.hh"
+#include "D3D12API.hh"
 
 #include <utility>
 export module vt.D3D12.SwapChain;
 
 import vt.Core.FixedList;
 import vt.D3D12.Device;
-import vt.D3D12.Utils;
+import vt.D3D12.Handle;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.RenderPass;

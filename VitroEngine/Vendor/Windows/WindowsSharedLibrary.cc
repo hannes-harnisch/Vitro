@@ -1,6 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
-#include "Windows.API.hh"
+#include "WindowsAPI.hh"
 
 #include <memory>
 #include <string_view>
@@ -30,7 +30,7 @@ namespace vt::windows
 
 		void try_reload()
 		{
-			library.reset(::LoadLibraryW(path.data()));
+			library.reset(::LoadLibrary(path.data()));
 			VT_ENSURE(library, "Failed to find shared library '{}'.", narrow_string(path));
 		}
 
@@ -45,7 +45,7 @@ namespace vt::windows
 		struct LibraryDeleter
 		{
 			using pointer = HMODULE;
-			void operator()(HMODULE module) const
+			void operator()(HMODULE module)
 			{
 				::FreeLibrary(module);
 			}

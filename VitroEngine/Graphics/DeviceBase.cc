@@ -4,7 +4,7 @@
 export module vt.Graphics.DeviceBase;
 
 import vt.Core.Array;
-import vt.Graphics.Driver;
+import vt.Graphics.Handle;
 
 namespace vt
 {

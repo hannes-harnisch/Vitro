@@ -33,7 +33,9 @@ namespace vt
 			cmd->begin();
 
 			std::array clear_values {
-				ClearValue {{0.3, 0.5, 0.3, 1}},
+				ClearValue {
+					.color = {0.3, 0.5, 0.3, 1},
+				},
 			};
 			cmd->begin_render_pass(present_pass, swap_chain_render_target, clear_values);
 			cmd->end_render_pass();
@@ -47,16 +49,16 @@ namespace vt
 		}
 
 	private:
+		static constexpr unsigned FrameBufferCount = 2;
+
+		Device&			  device;
+		RenderPass const& present_pass;
+
 		struct FrameResources
 		{
 			RenderCommandList cmd;
 			Receipt			  frame_finished;
 		};
-
-		static constexpr unsigned FrameBufferCount = 2;
-
-		Device&						 device;
-		RenderPass const&			 present_pass;
 		FrameContext<FrameResources> context;
 	};
 }

@@ -2,18 +2,19 @@
 #include "Core/Macros.hh"
 
 #include <string_view>
-export module vt.Graphics.Adapter;
+export module vt.Graphics.Handle;
 
 import vt.Graphics.DynamicGpuApi;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.Adapter;
+import vt.VT_GPU_API_MODULE_PRIMARY.Handle;
 #endif
-import vt.VT_GPU_API_MODULE.Adapter;
+import vt.VT_GPU_API_MODULE.Handle;
 
 namespace vt
 {
-	export using AdapterResource = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
+	using AdapterResource		   = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
+	export using CommandListHandle = ResourceVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
 
 	export class Adapter : public AdapterResource
 	{
