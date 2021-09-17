@@ -8,9 +8,9 @@ export module vt.D3D12.Device;
 
 import vt.Core.Algorithm;
 import vt.Core.Array;
+import vt.D3D12.Driver;
 import vt.D3D12.Handle;
 import vt.Graphics.DeviceBase;
-import vt.Graphics.Driver;
 import vt.Graphics.Handle;
 
 namespace vt::d3d12
@@ -81,7 +81,7 @@ namespace vt::d3d12
 	export class D3D12Device final : public DeviceBase
 	{
 	public:
-		D3D12Device(Driver const&, Adapter adapter) :
+		D3D12Device(Adapter adapter) :
 			device(make_device(std::move(adapter))),
 			render_queue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
 			compute_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),

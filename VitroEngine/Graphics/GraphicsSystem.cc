@@ -25,7 +25,7 @@ namespace vt
 	{
 	public:
 		GraphicsSystem() :
-			device(driver, select_adapter()), present_pass(device, fill_present_pass_info()), renderer(device, present_pass)
+			device(select_adapter()), present_pass(device, fill_present_pass_info()), renderer(device, present_pass)
 		{
 			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize,
 									&GraphicsSystem::on_window_object_construct,

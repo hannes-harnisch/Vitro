@@ -26,10 +26,12 @@ namespace vt::vulkan
 		INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
 #endif
 		INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
+		INSTANCE_FUNC(vkDestroyDevice)
 		INSTANCE_FUNC(vkDestroyInstance)
 		INSTANCE_FUNC(vkDestroySurfaceKHR)
 		INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
 		INSTANCE_FUNC(vkEnumeratePhysicalDevices)
+		INSTANCE_FUNC(vkGetDeviceProcAddr)
 		INSTANCE_FUNC(vkGetPhysicalDeviceFeatures)
 		INSTANCE_FUNC(vkGetPhysicalDeviceProperties)
 		INSTANCE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
@@ -62,7 +64,12 @@ namespace vt::vulkan
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan instance.");
 		}
 
-		template<typename T> T load_device_func(VkDevice device, char const name[])
+		DeviceFunctionTable const* get_owner(void* resource) const
+		{
+			return resource_owners.find(resource)->second;
+		}
+
+		template<typename T> T load_device_func(VkDevice device, char const name[]) const
 		{
 			return reinterpret_cast<T>(api->vkGetDeviceProcAddr(device, name));
 		}
@@ -89,10 +96,10 @@ namespace vt::vulkan
 		};
 		std::unique_ptr<VkInstance, InstanceDeleter>		  instance;
 		std::unique_ptr<InstanceFunctionTable>				  api;
-		std::unordered_map<void*, DeviceFunctionTable const*> resource_ownership_map;
+		std::unordered_map<void*, DeviceFunctionTable const*> resource_owners;
 	};
 
-	struct DeviceFunctionTable
+	export struct DeviceFunctionTable
 	{
 		VkDevice device;
 
@@ -134,15 +141,13 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkCreateShaderModule)
 		DEVICE_FUNC(vkCreateSwapchainKHR)
 		DEVICE_FUNC(vkDestroyBuffer)
-		DEVICE_FUNC(vkDestroyDevice)
+		DEVICE_FUNC(vkDestroyCommandPool)
+		DEVICE_FUNC(vkDestroyDescriptorPool)
+		DEVICE_FUNC(vkDestroyDescriptorSetLayout)
 		DEVICE_FUNC(vkDestroyFence)
 		DEVICE_FUNC(vkDestroyFramebuffer)
 		DEVICE_FUNC(vkDestroyImage)
 		DEVICE_FUNC(vkDestroyImageView)
-		DEVICE_FUNC(vkDestroyCommandPool)
-		DEVICE_FUNC(vkDestroyDescriptorPool)
-		DEVICE_FUNC(vkDestroyDescriptorSetLayout)
-		DEVICE_FUNC(vkDestroyFramebuffer)
 		DEVICE_FUNC(vkDestroyPipeline)
 		DEVICE_FUNC(vkDestroyPipelineCache)
 		DEVICE_FUNC(vkDestroyPipelineLayout)
@@ -151,32 +156,50 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkDestroySemaphore)
 		DEVICE_FUNC(vkDestroyShaderModule)
 		DEVICE_FUNC(vkDestroySwapchainKHR)
+		DEVICE_FUNC(vkDeviceWaitIdle)
 		DEVICE_FUNC(vkEndCommandBuffer)
 		DEVICE_FUNC(vkGetSwapchainImagesKHR)
 		DEVICE_FUNC(vkQueuePresentKHR)
 		DEVICE_FUNC(vkQueueSubmit)
+		DEVICE_FUNC(vkQueueWaitIdle)
 		DEVICE_FUNC(vkResetCommandPool)
 		DEVICE_FUNC(vkResetDescriptorPool)
 		DEVICE_FUNC(vkUpdateDescriptorSets)
 		DEVICE_FUNC(vkWaitForFences)
 	};
 
-	export template<typename T, void (DeviceFunctionTable::*Deleter)(VkDevice, T, VkAllocationCallbacks const*)>
-	class UniqueDeviceResource
-	{
-	public:
-		T get() const noexcept
-		{
-			return ptr.get();
-		}
+	template<typename T>
+	using DeviceTableFunctionPointerMember = void (*DeviceFunctionTable::*)(VkDevice, T, VkAllocationCallbacks const*);
 
-	private:
-		struct ProxyDeleter
+	template<typename T, DeviceTableFunctionPointerMember<T> Deleter> struct DeviceResourceDeleter
+	{
+		using pointer = T;
+		void operator()(T ptr)
 		{
-			using pointer = T;
-			void operator()(T ptr)
-			{}
-		};
-		std::unique_ptr<T, ProxyDeleter> ptr;
+			auto table = VulkanDriver::get().get_owner(ptr);
+			(table->*Deleter)(table->device, ptr, nullptr);
+		}
 	};
+	template<typename T, DeviceTableFunctionPointerMember<T> Deleter>
+	using UniqueVulkanResource = std::unique_ptr<T, DeviceResourceDeleter<T, Deleter>>;
+
+#define EXPORT_UNIQUE_DEVICE_RESOURCE(resource)                                                                                \
+	export using UniqueVk##resource = UniqueVulkanResource<Vk##resource, &DeviceFunctionTable::vkDestroy##resource>;
+
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Buffer)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(CommandPool)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(DescriptorPool)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(DescriptorSetLayout)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Fence)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Framebuffer)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Image)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(ImageView)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Pipeline)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(PipelineCache)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(PipelineLayout)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(RenderPass)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Sampler)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(Semaphore)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(ShaderModule)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(SwapchainKHR)
 }

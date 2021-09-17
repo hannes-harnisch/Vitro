@@ -57,12 +57,10 @@ namespace vt::d3d12
 		FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> get_shader_visible_heaps() const
 		{
 			FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> heaps;
-
 			if(gpu_view_heap)
 				heaps.emplace_back(gpu_view_heap.get());
 			if(gpu_sampler_heap)
 				heaps.emplace_back(gpu_sampler_heap.get());
-
 			return heaps;
 		}
 

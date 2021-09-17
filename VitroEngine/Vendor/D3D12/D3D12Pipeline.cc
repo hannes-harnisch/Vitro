@@ -303,7 +303,23 @@ namespace vt::d3d12
 
 			auto result = device.d3d12.ptr()->CreateGraphicsPipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
 			pipeline.reset(raw_pipeline);
-			VT_ASSERT_RESULT(result, "Failed to create render pipeline.");
+			VT_ASSERT_RESULT(result, "Failed to create D3D12 render pipeline.");
+		}
+
+		D3D12Pipeline(Device const& device, ComputePipelineInfo const& info)
+		{
+			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
+				.pRootSignature = info.root_signature.d3d12.ptr(),
+				.CS {
+					.pShaderBytecode = info.compute_shader_bytecode.data(),
+					.BytecodeLength	 = info.compute_shader_bytecode.size(),
+				},
+			};
+			ID3D12PipelineState* raw_pipeline;
+
+			auto result = device.d3d12.ptr()->CreateComputePipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
+			pipeline.reset(raw_pipeline);
+			VT_ASSERT_RESULT(result, "Failed to create D3D12 compute pipeline.");
 		}
 
 		ID3D12PipelineState* ptr() const

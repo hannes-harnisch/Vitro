@@ -50,7 +50,7 @@ namespace vt
 		virtual void bind_descriptor_pool(DescriptorPool const& pool)														= 0;
 		virtual void bind_compute_pipeline(Pipeline const& pipeline)														= 0;
 		virtual void bind_compute_root_signature(RootSignature const& root_signature)										= 0;
-		virtual void bind_compute_descriptors(CSpan<DescriptorSet> descriptors)												= 0;
+		virtual void bind_compute_descriptors(CSpan<DescriptorSet> descriptor_sets)											= 0;
 		virtual void push_compute_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units) = 0;
 		virtual void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)											= 0;
 	};
@@ -60,7 +60,7 @@ namespace vt
 	public:
 		virtual void bind_render_pipeline(Pipeline const& pipeline)														   = 0;
 		virtual void bind_render_root_signature(RootSignature const& root_signature)									   = 0;
-		virtual void bind_render_descriptors(CSpan<DescriptorSet> descriptors)											   = 0;
+		virtual void bind_render_descriptors(CSpan<DescriptorSet> descriptor_sets)										   = 0;
 		virtual void push_render_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units) = 0;
 		virtual void begin_render_pass(RenderPass const&   render_pass,
 									   RenderTarget const& render_target,
@@ -79,4 +79,12 @@ namespace vt
 								  int	   vertex_offset,
 								  unsigned first_instance)																   = 0;
 	};
+
+	export template<CommandType Type>
+	using CommandListBase = std::conditional_t<
+		Type == CommandType::Render,
+		RenderCommandListBase,
+		std::conditional_t<Type == CommandType::Compute,
+						   ComputeCommandListBase,
+						   std::conditional_t<Type == CommandType::Copy, CopyCommandListBase, void>>>;
 }

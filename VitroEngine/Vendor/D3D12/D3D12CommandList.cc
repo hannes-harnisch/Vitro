@@ -17,7 +17,7 @@ import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
-import vt.Graphics.Driver;
+import vt.Graphics.Handle;
 import vt.Graphics.PipelineInfo;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
@@ -102,10 +102,10 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Copy>
 	{};
 
-	template<> class CommandListData<CommandType::Compute> : public CommandListData<CommandType::Copy>
+	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{};
 
-	template<> class CommandListData<CommandType::Render> : public CommandListData<CommandType::Compute>
+	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
 		D3D12RenderPass const*	 active_render_pass	  = nullptr;
@@ -113,15 +113,7 @@ namespace vt::d3d12
 		unsigned				 subpass_index		  = 1;
 	};
 
-	template<CommandType Type>
-	using CommandListBase = std::conditional_t<
-		Type == CommandType::Render,
-		RenderCommandListBase,
-		std::conditional_t<Type == CommandType::Compute,
-						   ComputeCommandListBase,
-						   std::conditional_t<Type == CommandType::Copy, CopyCommandListBase, void>>>;
-
-	export template<CommandType Type> class D3D12CommandList final : public CommandListBase<Type>, public CommandListData<Type>
+	export template<CommandType Type> class D3D12CommandList final : public CommandListBase<Type>, private CommandListData<Type>
 	{
 	public:
 		D3D12CommandList(Device const& in_device)
@@ -179,9 +171,9 @@ namespace vt::d3d12
 			cmd->SetComputeRootSignature(root_signature.d3d12.ptr());
 		}
 
-		void bind_compute_descriptors(CSpan<DescriptorSet> descriptors)
+		void bind_compute_descriptors(CSpan<DescriptorSet> descriptor_sets)
 		{
-			for(auto& set : descriptors)
+			for(auto& set : descriptor_sets)
 			{
 				UINT index = set.d3d12.get_parameter_index();
 				switch(set.d3d12.get_parameter_type())
@@ -222,9 +214,9 @@ namespace vt::d3d12
 			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
 		}
 
-		void bind_render_descriptors(CSpan<DescriptorSet> descriptors)
+		void bind_render_descriptors(CSpan<DescriptorSet> descriptor_sets)
 		{
-			for(auto& set : descriptors)
+			for(auto& set : descriptor_sets)
 			{
 				UINT index = set.d3d12.get_parameter_index();
 				switch(set.d3d12.get_parameter_type())

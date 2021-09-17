@@ -16,32 +16,18 @@ import vt.D3D12.Sampler;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
-import vt.Graphics.RootSignatureInfo;
 
 namespace stdv = std::views;
 
 namespace vt::d3d12
 {
-	D3D12_ROOT_PARAMETER_TYPE convert_to_root_signature_parameter_type(DescriptorType type)
-	{
-		using enum DescriptorType;
-		switch(type)
-		{
-			case Buffer:
-			case ByteAddressBuffer: return D3D12_ROOT_PARAMETER_TYPE_SRV;
-			case ReadWriteTexture:
-			case ReadWriteBuffer:
-			case StructuredBuffer: return D3D12_ROOT_PARAMETER_TYPE_UAV;
-			case UniformBuffer: return D3D12_ROOT_PARAMETER_TYPE_CBV;
-		}
-		throw std::runtime_error(std::format("Descriptor type '{}' cannot be used for root descriptors.", enum_name(type)));
-	}
-
 	export class D3D12RootSignature
 	{
 	public:
 		D3D12RootSignature(Device const& device, RootSignatureInfo const& info)
 		{
+			validate_unique_update_frequencies(info);
+
 			std::vector<D3D12_ROOT_PARAMETER1> parameters;
 			parameters.reserve(D3D12_MAX_ROOT_COST);
 			parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
@@ -53,45 +39,31 @@ namespace vt::d3d12
 				},
 				.ShaderVisibility = convert_shader_stage(info.push_constants_visibility),
 			});
-			validate_unique_update_frequencies(info);
 
-			std::vector<RootDescriptorBinding> root_descs(info.root_descs.begin(), info.root_descs.end());
-			std::sort(root_descs.begin(), root_descs.end(), [](RootDescriptorBinding left, RootDescriptorBinding right) {
-				return left.update_frequency < right.update_frequency;
+			auto layout_freqs = stdv::transform(info.layouts, [](DescriptorSetLayout const& layout) {
+				return &layout.d3d12;
 			});
-			for(auto binding : root_descs)
-				parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
-					.ParameterType = convert_to_root_signature_parameter_type(binding.type),
-					.Descriptor {
-						.ShaderRegister = binding.slot,
-						.RegisterSpace	= 0,
-						.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
-					},
-					.ShaderVisibility = convert_shader_stage(binding.visibility),
-				});
-
-			auto d3d12_layouts = stdv::transform(info.desc_set_layouts, [](DescriptorSetLayout const& layout) {
-				return layout.d3d12;
-			});
-			std::vector<D3D12DescriptorSetLayout> desc_set_layouts(d3d12_layouts.begin(), d3d12_layouts.end());
-			std::sort(desc_set_layouts.begin(), desc_set_layouts.end(),
-					  [](D3D12DescriptorSetLayout const& left, D3D12DescriptorSetLayout const& right) {
-						  return left.get_update_frequency() < right.get_update_frequency();
+			std::vector<D3D12DescriptorSetLayout const*> layouts(layout_freqs.begin(), layout_freqs.end());
+			std::sort(layouts.begin(), layouts.end(),
+					  [](D3D12DescriptorSetLayout const* left, D3D12DescriptorSetLayout const* right) {
+						  return left->get_update_frequency() < right->get_update_frequency();
 					  });
-			for(auto& set_layout : desc_set_layouts)
-				parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
-					.ParameterType	  = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
-					.DescriptorTable  = set_layout.get_descriptor_table(),
-					.ShaderVisibility = set_layout.get_visibility(),
-				});
+			for(auto& layout : layouts)
+				parameters.emplace_back(layout->get_root_parameter());
+
+			auto static_sampler_infos = stdv::transform(info.static_samplers, [](StaticSamplerInfo const& static_sampler) {
+				D3D12Sampler sampler(static_sampler.sampler_info);
+				return sampler.get_static_sampler_desc(static_sampler.slot, 0, static_sampler.visibility);
+			});
+			std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers(static_sampler_infos.begin(), static_sampler_infos.end());
 
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC const desc {
 				.Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
 				.Desc_1_1 {
 					.NumParameters	   = count(parameters),
 					.pParameters	   = parameters.data(),
-					.NumStaticSamplers = 0,
-					.pStaticSamplers   = nullptr,
+					.NumStaticSamplers = count(static_samplers),
+					.pStaticSamplers   = static_samplers.data(),
 					.Flags			   = D3D12_ROOT_SIGNATURE_FLAG_NONE,
 				},
 			};
@@ -122,15 +94,10 @@ namespace vt::d3d12
 			std::vector<unsigned char> freqs;
 			freqs.reserve(D3D12_MAX_ROOT_COST);
 
-			auto root_desc_freqs = stdv::transform(info.root_descs, [](RootDescriptorBinding binding) {
-				return binding.update_frequency;
+			auto layout_freqs = stdv::transform(info.layouts, [](DescriptorSetLayout const& layout) {
+				return layout.d3d12.get_update_frequency();
 			});
-			freqs.insert(freqs.end(), root_desc_freqs.begin(), root_desc_freqs.end());
-
-			auto desc_set_freqs = stdv::transform(info.desc_set_layouts, [](DescriptorSetLayout const& layout) {
-				return static_cast<unsigned char>(layout.d3d12.get_update_frequency());
-			});
-			freqs.insert(freqs.end(), desc_set_freqs.begin(), desc_set_freqs.end());
+			freqs.insert(freqs.end(), layout_freqs.begin(), layout_freqs.end());
 
 			std::sort(freqs.begin(), freqs.end());
 			bool out_of_range = std::any_of(freqs.begin(), freqs.end(), [](unsigned char freq) {
@@ -139,7 +106,7 @@ namespace vt::d3d12
 			if(out_of_range)
 				throw std::invalid_argument("Root signature parameters must have update frequencies between 1 and 64 "
 											"(D3D12_MAX_ROOT_COST).");
-			// Store hash(?) of descriptor set layout?
+
 			auto adjacent = std::adjacent_find(freqs.begin(), freqs.end());
 			if(adjacent != freqs.end())
 				throw std::invalid_argument("Root signature parameters must not contain duplicate update frequencies.");

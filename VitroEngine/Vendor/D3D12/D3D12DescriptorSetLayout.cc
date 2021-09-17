@@ -2,6 +2,7 @@
 #include "Core/Macros.hh"
 #include "D3D12API.hh"
 
+#include <memory>
 #include <span>
 #include <vector>
 export module vt.D3D12.DescriptorSetLayout;
@@ -58,44 +59,82 @@ namespace vt::d3d12
 	{
 	public:
 		D3D12DescriptorSetLayout(Device const&, DescriptorSetLayoutInfo const& info) :
-			is_root_descriptor(is_suitable_as_root_descriptor(info)),
-			visibility(convert_shader_stage(visibility)),
-			update_frequency(update_frequency)
+			update_frequency(info.update_frequency),
+			parameter_type(determine_parameter_type(info.bindings)),
+			visibility(convert_shader_stage(info.visibility))
 		{
-			for(auto binding : bindings)
-				ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
-					.RangeType						   = convert_descriptor_type(binding.type),
-					.NumDescriptors					   = binding.count,
-					.BaseShaderRegister				   = binding.slot,
-					.RegisterSpace					   = 0,
-					.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
-					.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
-				});
+			if(holds_descriptor_table())
+			{
+				std::construct_at(&table_ranges);
+				table_ranges.reserve(info.bindings.size());
+
+				for(auto binding : info.bindings)
+					table_ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
+						.RangeType						   = convert_descriptor_type(binding.type),
+						.NumDescriptors					   = binding.count,
+						.BaseShaderRegister				   = binding.slot,
+						.RegisterSpace					   = 0,
+						.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
+						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+					});
+			}
+			else
+			{
+				D3D12_ROOT_DESCRIPTOR1 desc {
+					.ShaderRegister = info.bindings.front().slot,
+					.RegisterSpace	= 0,
+					.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
+				};
+				std::construct_at(&root_descriptor, desc);
+			}
 		}
 
-		bool describes_root_descriptor() const
+		D3D12DescriptorSetLayout(D3D12DescriptorSetLayout&& that) noexcept :
+			update_frequency(that.update_frequency), parameter_type(that.parameter_type), visibility(that.visibility)
 		{
-			return is_root_descriptor;
+			if(holds_descriptor_table())
+				std::construct_at(&table_ranges, std::move(that.table_ranges));
+			else
+				std::construct_at(&root_descriptor, std::move(that.root_descriptor));
 		}
 
-		D3D12_ROOT_DESCRIPTOR_TABLE1 get_descriptor_table_desc() const
+		~D3D12DescriptorSetLayout()
 		{
-			VT_ASSERT(!is_root_descriptor, "This method can only be called on a descriptor set layout corresponding to a "
-										   "descriptor table.");
-			return {
-				.NumDescriptorRanges = count(table_ranges),
-				.pDescriptorRanges	 = table_ranges.data(),
-			};
+			if(holds_descriptor_table())
+				table_ranges.~vector();
 		}
 
-		D3D12_ROOT_DESCRIPTOR1 const& get_root_descriptor_desc() const
+		D3D12DescriptorSetLayout& operator=(D3D12DescriptorSetLayout&& that) noexcept
 		{
-			return root_descriptor;
+			update_frequency = that.update_frequency;
+			parameter_type	 = that.parameter_type;
+			visibility		 = that.visibility;
+
+			if(holds_descriptor_table())
+				table_ranges = std::move(that.table_ranges);
+			else
+				root_descriptor = std::move(that.root_descriptor);
+
+			return *this;
 		}
 
-		D3D12_SHADER_VISIBILITY get_visibility() const
+		D3D12_ROOT_PARAMETER1 get_root_parameter() const
 		{
-			return visibility;
+			if(holds_descriptor_table())
+				return {
+					.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+					.DescriptorTable {
+						.NumDescriptorRanges = count(table_ranges),
+						.pDescriptorRanges	 = table_ranges.data(),
+					},
+					.ShaderVisibility = visibility,
+				};
+			else
+				return {
+					.ParameterType	  = parameter_type,
+					.Descriptor		  = root_descriptor,
+					.ShaderVisibility = visibility,
+				};
 		}
 
 		unsigned char get_update_frequency() const
@@ -104,35 +143,40 @@ namespace vt::d3d12
 		}
 
 	private:
+		unsigned char			  update_frequency;
+		D3D12_ROOT_PARAMETER_TYPE parameter_type : sizeof(char); // TODO: Replace with enum reflection
+		D3D12_SHADER_VISIBILITY	  visibility : sizeof(char);
 		union
 		{
 			std::vector<D3D12_DESCRIPTOR_RANGE1> table_ranges;
 			D3D12_ROOT_DESCRIPTOR1				 root_descriptor;
 		};
-		bool					is_root_descriptor;
-		D3D12_SHADER_VISIBILITY visibility : sizeof(char); // TODO: Replace with enum reflection
-		unsigned char			update_frequency;
 
-		static bool is_suitable_as_root_descriptor(DescriptorSetLayoutInfo const& info)
+		static D3D12_ROOT_PARAMETER_TYPE determine_parameter_type(CSpan<DescriptorSetBinding> bindings)
 		{
-			if(info.bindings.size() != 1)
-				return false;
+			if(bindings.size() != 1)
+				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-			auto& binding = info.bindings.front();
+			auto& binding = bindings.front();
 			if(binding.count != 1)
-				return false;
+				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
 			using enum DescriptorType;
 			switch(binding.type)
 			{
 				case Buffer:
-				case ByteAddressBuffer:
+				case ByteAddressBuffer: return D3D12_ROOT_PARAMETER_TYPE_SRV;
 				case ReadWriteTexture:
 				case ReadWriteBuffer:
-				case StructuredBuffer:
-				case UniformBuffer: return true;
+				case StructuredBuffer: return D3D12_ROOT_PARAMETER_TYPE_UAV;
+				case UniformBuffer: return D3D12_ROOT_PARAMETER_TYPE_CBV;
 			}
-			return false;
+			return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		}
+
+		bool holds_descriptor_table() const
+		{
+			return parameter_type == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		}
 	};
 }

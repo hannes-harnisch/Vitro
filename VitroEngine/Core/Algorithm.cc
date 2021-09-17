@@ -7,25 +7,25 @@ export module vt.Core.Algorithm;
 namespace vt
 {
 	// Helper for API calls that expect array sizes as unsigned int instead of size_t.
-	export constexpr unsigned count(auto const& container) noexcept
+	export unsigned count(auto const& container) noexcept
 	{
 		return static_cast<unsigned>(std::size(container));
 	}
 
-	export constexpr void remove_first_of(std::string& str, std::string_view pattern)
+	export void remove_first_of(std::string& str, std::string_view pattern)
 	{
 		size_t i = str.find(pattern);
 		if(i != std::string::npos)
 			str.erase(i, pattern.length());
 	}
 
-	export constexpr void remove_all_of(std::string& str, std::string_view pattern)
+	export void remove_all_of(std::string& str, std::string_view pattern)
 	{
 		for(size_t i = str.find(pattern); i != std::string::npos; i = str.find(pattern))
 			str.erase(i, pattern.length());
 	}
 
-	export constexpr std::vector<std::string_view> split(std::string_view str, std::string_view delimiter)
+	export std::vector<std::string_view> split(std::string_view str, std::string_view delimiter)
 	{
 		std::vector<std::string_view> tokens;
 

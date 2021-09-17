@@ -8,7 +8,7 @@ import vt.Core.Singleton;
 
 namespace vt
 {
-	export enum class GpuApi {
+	export enum class GpuApi : unsigned char {
 		VT_GPU_API_MODULE,
 #if VT_DYNAMIC_GPU_API
 		VT_GPU_API_MODULE_PRIMARY
@@ -37,17 +37,17 @@ namespace vt
 		template<typename... Ts> InterfaceVariant(Ts&&... ts)
 		{
 			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE_PRIMARY)
-				new(&VT_GPU_API_NAME_PRIMARY) TImpl1(std::forward<Ts>(ts)...);
+				std::construct_at(&VT_GPU_API_NAME_PRIMARY, std::forward<Ts>(ts)...);
 			else
-				new(&VT_GPU_API_NAME) TImpl2(std::forward<Ts>(ts)...);
+				std::construct_at(&VT_GPU_API_NAME, std::forward<Ts>(ts)...);
 		}
 
 		InterfaceVariant(InterfaceVariant&& other) noexcept
 		{
 			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE_PRIMARY)
-				new(&VT_GPU_API_NAME_PRIMARY) TImpl1(std::move(other.VT_GPU_API_NAME_PRIMARY));
+				std::construct_at(&VT_GPU_API_NAME_PRIMARY, std::move(other.VT_GPU_API_NAME_PRIMARY));
 			else
-				new(&VT_GPU_API_NAME) TImpl2(std::move(other.VT_GPU_API_NAME));
+				std::construct_at(&VT_GPU_API_NAME, std::move(other.VT_GPU_API_NAME));
 		}
 
 		~InterfaceVariant()
@@ -84,17 +84,17 @@ namespace vt
 		template<typename... Ts> ResourceVariant(Ts&&... ts)
 		{
 			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE_PRIMARY)
-				new(&VT_GPU_API_NAME_PRIMARY) TImpl1(std::forward<Ts>(ts)...);
+				std::construct_at(&VT_GPU_API_NAME_PRIMARY, std::forward<Ts>(ts)...);
 			else
-				new(&VT_GPU_API_NAME) TImpl2(std::forward<Ts>(ts)...);
+				std::construct_at(&VT_GPU_API_NAME, std::forward<Ts>(ts)...);
 		}
 
 		ResourceVariant(ResourceVariant&& other) noexcept
 		{
 			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE_PRIMARY)
-				new(&VT_GPU_API_NAME_PRIMARY) TImpl1(std::move(other.VT_GPU_API_NAME_PRIMARY));
+				std::construct_at(&VT_GPU_API_NAME_PRIMARY, std::move(other.VT_GPU_API_NAME_PRIMARY));
 			else
-				new(&VT_GPU_API_NAME) TImpl2(std::move(other.VT_GPU_API_NAME));
+				std::construct_at(&VT_GPU_API_NAME, std::move(other.VT_GPU_API_NAME));
 		}
 
 		~ResourceVariant()

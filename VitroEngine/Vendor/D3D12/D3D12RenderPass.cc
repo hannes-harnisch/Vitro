@@ -61,6 +61,7 @@ namespace vt::d3d12
 	export class D3D12RenderPass
 	{
 	public:
+		// Unused device parameter is kept for compatibility with APIs where samplers are first-class device-created objects.
 		D3D12RenderPass(Device const&, RenderPassInfo const& info) :
 			attachments(info.attachments.begin(), info.attachments.end()),
 			is_using_depth_stencil(contains_depth_stencil_attachment(info.attachments)),

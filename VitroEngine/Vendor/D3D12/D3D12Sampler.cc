@@ -4,8 +4,10 @@
 export module vt.D3D12.Sampler;
 
 import vt.Core.Vector;
+import vt.D3D12.DescriptorSetLayout;
+import vt.Graphics.DescriptorBinding;
+import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
-import vt.Graphics.SamplerInfo;
 
 namespace vt::d3d12
 {
@@ -103,7 +105,11 @@ namespace vt::d3d12
 	export class D3D12Sampler
 	{
 	public:
-		D3D12Sampler(Device const&, SamplerInfo const& info)
+		// Unused device parameter is kept for compatibility with APIs where samplers are first-class device-created objects.
+		D3D12Sampler(Device const&, SamplerInfo const& info) : D3D12Sampler(info)
+		{}
+
+		D3D12Sampler(SamplerInfo const& info)
 		{
 			auto border = convert_border_color(info.border_color);
 
@@ -131,19 +137,24 @@ namespace vt::d3d12
 			return desc;
 		}
 
-		D3D12_STATIC_SAMPLER_DESC get_static_sampler_desc() const
+		D3D12_STATIC_SAMPLER_DESC get_static_sampler_desc(UINT		  shader_register,
+														  UINT		  register_space,
+														  ShaderStage shader_visibility) const
 		{
 			return {
-				.Filter			= desc.Filter,
-				.AddressU		= desc.AddressU,
-				.AddressV		= desc.AddressV,
-				.AddressW		= desc.AddressW,
-				.MipLODBias		= desc.MipLODBias,
-				.MaxAnisotropy	= desc.MaxAnisotropy,
-				.ComparisonFunc = desc.ComparisonFunc,
-				.BorderColor	= convert_to_static_border_color(desc.BorderColor),
-				.MinLOD			= desc.MinLOD,
-				.MaxLOD			= desc.MaxLOD,
+				.Filter			  = desc.Filter,
+				.AddressU		  = desc.AddressU,
+				.AddressV		  = desc.AddressV,
+				.AddressW		  = desc.AddressW,
+				.MipLODBias		  = desc.MipLODBias,
+				.MaxAnisotropy	  = desc.MaxAnisotropy,
+				.ComparisonFunc	  = desc.ComparisonFunc,
+				.BorderColor	  = convert_to_static_border_color(desc.BorderColor),
+				.MinLOD			  = desc.MinLOD,
+				.MaxLOD			  = desc.MaxLOD,
+				.ShaderRegister	  = shader_register,
+				.RegisterSpace	  = register_space,
+				.ShaderVisibility = convert_shader_stage(shader_visibility),
 			};
 		}
 
