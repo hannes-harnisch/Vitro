@@ -4,11 +4,11 @@ export module vt.Graphics.Driver;
 
 import vt.Graphics.DriverBase;
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.Driver;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.Driver;
+import vt.VT_GPU_API_MODULE_SECONDARY.Driver;
 #endif
-import vt.VT_GPU_API_MODULE.Driver;
 
 namespace vt
 {

@@ -105,7 +105,7 @@ namespace vt::d3d12
 	export class D3D12Sampler
 	{
 	public:
-		// Unused device parameter is kept for compatibility with APIs where samplers are first-class device-created objects.
+		// Unused parameter is kept for compatibility with APIs where samplers are first-class device-created objects.
 		D3D12Sampler(Device const&, SamplerInfo const& info) : D3D12Sampler(info)
 		{}
 

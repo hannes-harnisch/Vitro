@@ -8,6 +8,7 @@
 #include <vector>
 export module vt.D3D12.Driver;
 
+import vt.Core.Version;
 import vt.D3D12.Handle;
 import vt.Graphics.DriverBase;
 import vt.Windows.Utils;
@@ -17,9 +18,10 @@ namespace vt::d3d12
 	export class D3D12Driver final : public DriverBase
 	{
 	public:
-		static constexpr D3D_FEATURE_LEVEL MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+		static constexpr D3D_FEATURE_LEVEL MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_1;
 
-		D3D12Driver()
+		// The unused parameters are kept for compatibility with Vulkan, which takes an application name and versions.
+		D3D12Driver(std::string const&, Version, Version)
 		{
 #if VT_DEBUG
 			initialize_debug_interface();

@@ -3,11 +3,11 @@
 export module vt.Graphics.RootSignature;
 
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.RootSignature;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.RootSignature;
+import vt.VT_GPU_API_MODULE_SECONDARY.RootSignature;
 #endif
-import vt.VT_GPU_API_MODULE.RootSignature;
 
 namespace vt
 {

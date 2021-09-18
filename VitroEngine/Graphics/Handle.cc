@@ -5,11 +5,11 @@
 export module vt.Graphics.Handle;
 
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.Handle;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.Handle;
+import vt.VT_GPU_API_MODULE_SECONDARY.Handle;
 #endif
-import vt.VT_GPU_API_MODULE.Handle;
 
 namespace vt
 {

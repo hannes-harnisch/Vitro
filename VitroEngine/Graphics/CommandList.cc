@@ -4,11 +4,11 @@ export module vt.Graphics.CommandList;
 
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.CommandList;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.CommandList;
+import vt.VT_GPU_API_MODULE_SECONDARY.CommandList;
 #endif
-import vt.VT_GPU_API_MODULE.CommandList;
 
 namespace vt
 {

@@ -3,11 +3,11 @@
 export module vt.Graphics.RenderTarget;
 
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.RenderTarget;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.RenderTarget;
+import vt.VT_GPU_API_MODULE_SECONDARY.RenderTarget;
 #endif
-import vt.VT_GPU_API_MODULE.RenderTarget;
 
 namespace vt
 {

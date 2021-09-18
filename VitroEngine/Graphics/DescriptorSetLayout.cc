@@ -5,11 +5,11 @@ export module vt.Graphics.DescriptorSetLayout;
 import vt.Core.Array;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.DescriptorSetLayout;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.DescriptorSetLayout;
+import vt.VT_GPU_API_MODULE_SECONDARY.DescriptorSetLayout;
 #endif
-import vt.VT_GPU_API_MODULE.DescriptorSetLayout;
 
 namespace vt
 {

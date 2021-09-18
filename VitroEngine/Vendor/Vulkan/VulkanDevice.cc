@@ -13,12 +13,15 @@ namespace vt::vulkan
 	export class VulkanDevice final : public DeviceBase
 	{
 	public:
-		DeviceFunctionTable const* get_function_table() const
+		VulkanDevice()
+		{}
+
+		DeviceFunctionTable const* api() const
 		{
-			return api.get();
+			return function_table.get();
 		}
 
 	private:
-		std::unique_ptr<DeviceFunctionTable> api;
+		std::unique_ptr<DeviceFunctionTable> function_table;
 	};
 }

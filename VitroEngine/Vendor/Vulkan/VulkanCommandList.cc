@@ -5,12 +5,13 @@ export module vt.Vulkan.CommandList;
 
 import vt.Core.Algorithm;
 import vt.Core.Array;
+import vt.Core.FixedList;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
+import vt.Graphics.PipelineInfo;
 import vt.Graphics.Resource;
 import vt.Graphics.RootSignature;
-import vt.Vulkan.DeviceChild;
 import vt.Vulkan.Driver;
 
 namespace vt::vulkan
@@ -33,10 +34,10 @@ namespace vt::vulkan
 	};
 
 	export template<CommandType Type>
-	class VulkanCommandList final : public CommandListBase<Type>, private CommandListData<Type>, private DeviceChild
+	class VulkanCommandList final : public CommandListBase<Type>, private CommandListData<Type>
 	{
 	public:
-		VulkanCommandList(Device const& device) : DeviceChild(device)
+		VulkanCommandList(Device const& device) : api(device.vulkan.api())
 		{
 			VkCommandPoolCreateInfo const pool_info {
 				.sType			  = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -107,7 +108,7 @@ namespace vt::vulkan
 										 count(descriptor_sets), descriptor_sets.data(), 0, nullptr);
 		}
 
-		void push_compute_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
+		void push_compute_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
 		{
 			unsigned offset = offset_in_32bit_units / 4;
 			unsigned size	= size_in_32bit_units / 4;
@@ -135,15 +136,63 @@ namespace vt::vulkan
 										 count(descriptor_sets), descriptor_sets.data(), 0, nullptr);
 		}
 
-		void push_render_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
+		void push_render_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
 		{
 			unsigned offset = offset_in_32bit_units / 4;
 			unsigned size	= size_in_32bit_units / 4;
 			api->vkCmdPushConstants(cmd, this->current_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS, offset, size, data);
 		}
 
+		void begin_render_pass(RenderPass const&   render_pass,
+							   RenderTarget const& render_target,
+							   CSpan<ClearValue>   clear_values = {})
+		{
+			VkRenderPassBeginInfo const begin_info {
+				.sType		 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+				.renderPass	 = render_pass.vulkan.ptr(),
+				.framebuffer = render_target.vulkan.get_frame_buffer(),
+				.renderArea {
+					.offset {
+						.x = 0,
+						.y = 0,
+					},
+					.extent {
+						.width	= render_target.vulkan.get_width(),
+						.height = render_target.vulkan.get_height(),
+					},
+				},
+				.clearValueCount = count(clear_values),
+				.pClearValues	 = reinterpret_cast<VkClearValue const*>(clear_values.data()),
+			};
+			api->vkCmdBeginRenderPass(cmd, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+		}
+
+		void transition_to_next_subpass()
+		{
+			api->vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
+		}
+
+		void end_render_pass()
+		{
+			api->vkCmdEndRenderPass(cmd);
+		}
+
+		void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<unsigned> byte_offsets)
+		{
+			FixedList<VkBuffer, MaxVertexAttributes> vertex_buffers;
+			for()
+				;
+			api->vkCmdBindVertexBuffers(cmd, first_buffer, count(buffers), , );
+		}
+
+		void bind_index_buffer(Buffer const& buffer, unsigned byte_offset)
+		{
+			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, );
+		}
+
 	private:
-		UniqueVkCommandPool pool;
-		VkCommandBuffer		cmd;
+		DeviceFunctionTable const* api;
+		UniqueVkCommandPool		   pool;
+		VkCommandBuffer			   cmd;
 	};
 }

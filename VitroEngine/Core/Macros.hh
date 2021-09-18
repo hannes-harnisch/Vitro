@@ -101,8 +101,8 @@
 #if VT_DYNAMIC_GPU_API
 
 	#define VT_GPU_API_VARIANT_ARGS(object)                                                                                    \
-		VT_GPU_API_NAME_PRIMARY::VT_PASTE(VT_GPU_API_MODULE_PRIMARY, object),                                                  \
-			VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, object)
+		VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, object),                                                                  \
+			VT_GPU_API_NAME_SECONDARY::VT_PASTE(VT_GPU_API_MODULE_SECONDARY, object)
 
 #else
 

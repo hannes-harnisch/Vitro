@@ -98,10 +98,10 @@ project 'VitroEngine'
 	filter 'platforms:D3D12+Vulkan'
 		defines			{
 							'VT_DYNAMIC_GPU_API',
-							'VT_GPU_API_MODULE_PRIMARY=D3D12',
-							'VT_GPU_API_NAME_PRIMARY=d3d12',
-							'VT_GPU_API_MODULE=Vulkan',
-							'VT_GPU_API_NAME=vulkan'
+							'VT_GPU_API_MODULE=D3D12',
+							'VT_GPU_API_NAME=d3d12',
+							'VT_GPU_API_MODULE_SECONDARY=Vulkan',
+							'VT_GPU_API_NAME_SECONDARY=vulkan'
 						}
 
 group 'Dependencies'

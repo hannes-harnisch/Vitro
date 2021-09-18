@@ -194,7 +194,7 @@ namespace vt::d3d12
 			}
 		}
 
-		void push_compute_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
+		void push_compute_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
 		{
 			cmd->SetComputeRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
 		}
@@ -237,7 +237,7 @@ namespace vt::d3d12
 			}
 		}
 
-		void push_render_constants(unsigned size_in_32bit_units, void const* data, unsigned offset_in_32bit_units)
+		void push_render_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
 		{
 			cmd->SetGraphicsRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
 		}
@@ -305,7 +305,7 @@ namespace vt::d3d12
 					stencil_clear = {
 						.Format = pass.get_depth_stencil_format(),
 						.DepthStencil {
-							.Stencil = clear_values.back().stencil,
+							.Stencil = static_cast<uint8_t>(clear_values.back().stencil),
 						},
 					};
 				}
@@ -386,7 +386,9 @@ namespace vt::d3d12
 
 		void bind_viewports(CSpan<Viewport> viewports)
 		{
+			static_assert(std::is_layout_compatible_v<Viewport, D3D12_VIEWPORT>);
 			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(viewports.data());
+
 			cmd->RSSetViewports(count(viewports), data);
 		}
 

@@ -3,11 +3,11 @@
 export module vt.Graphics.DescriptorSet;
 
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.DescriptorSet;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.DescriptorSet;
+import vt.VT_GPU_API_MODULE_SECONDARY.DescriptorSet;
 #endif
-import vt.VT_GPU_API_MODULE.DescriptorSet;
 
 namespace vt
 {

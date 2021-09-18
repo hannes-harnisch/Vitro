@@ -3,11 +3,11 @@
 export module vt.Graphics.Sampler;
 
 import vt.Graphics.DynamicGpuApi;
+import vt.VT_GPU_API_MODULE.Sampler;
 
 #if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.Sampler;
+import vt.VT_GPU_API_MODULE_SECONDARY.Sampler;
 #endif
-import vt.VT_GPU_API_MODULE.Sampler;
 
 namespace vt
 {

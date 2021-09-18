@@ -2,6 +2,7 @@
 #include "Core/Macros.hh"
 
 #include <algorithm>
+#include <string>
 #include <unordered_map>
 export module vt.Graphics.GraphicsSystem;
 
@@ -9,6 +10,7 @@ import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.App.Window;
 import vt.App.WindowEvent;
+import vt.Core.Version;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.DynamicGpuApi;
@@ -24,8 +26,11 @@ namespace vt
 	export class GraphicsSystem : public EventListener
 	{
 	public:
-		GraphicsSystem() :
-			device(select_adapter()), present_pass(device, fill_present_pass_info()), renderer(device, present_pass)
+		GraphicsSystem(std::string const& app_name, Version app_version, Version engine_version) :
+			driver(app_name, app_version, engine_version),
+			device(select_adapter()),
+			present_pass(device, fill_present_pass_info()),
+			renderer(device, present_pass)
 		{
 			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize,
 									&GraphicsSystem::on_window_object_construct,

@@ -19,7 +19,7 @@ namespace vt::d3d12
 	public:
 		static constexpr unsigned MaxSimultaneousHeaps = 2;
 
-		D3D12DescriptorPool(Device const& in_device, CSpan<DescriptorPoolSize> pool_sizes)
+		D3D12DescriptorPool(Device const& in_device, CSpan<DescriptorPoolSize> pool_sizes) : device(in_device.d3d12.ptr())
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC view_heap_desc {
 				.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
@@ -37,8 +37,6 @@ namespace vt::d3d12
 					view_heap_desc.NumDescriptors += size.descriptor_count;
 			}
 			ID3D12DescriptorHeap *raw_view_heap, *raw_sampler_heap;
-
-			auto device = in_device.d3d12.ptr();
 
 			auto result = device->CreateDescriptorHeap(&view_heap_desc, IID_PPV_ARGS(&raw_view_heap));
 			gpu_view_heap.reset(raw_view_heap);
@@ -65,6 +63,7 @@ namespace vt::d3d12
 		}
 
 	private:
+		ID3D12Device4*					device;
 		ComUnique<ID3D12DescriptorHeap> gpu_view_heap;
 		ComUnique<ID3D12DescriptorHeap> gpu_sampler_heap;
 		ComUnique<ID3D12DescriptorHeap> view_staging_heap;

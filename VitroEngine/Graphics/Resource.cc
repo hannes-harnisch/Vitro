@@ -4,14 +4,14 @@ export module vt.Graphics.Resource;
 
 import vt.Graphics.DynamicGpuApi;
 
-#if VT_DYNAMIC_GPU_API
-import vt.VT_GPU_API_MODULE_PRIMARY.Buffer;
-import vt.VT_GPU_API_MODULE_PRIMARY.Pipeline;
-import vt.VT_GPU_API_MODULE_PRIMARY.Texture;
-#else
 import vt.VT_GPU_API_MODULE.Buffer;
 import vt.VT_GPU_API_MODULE.Pipeline;
 import vt.VT_GPU_API_MODULE.Texture;
+
+#if VT_DYNAMIC_GPU_API
+import vt.VT_GPU_API_MODULE_SECONDARY.Buffer;
+import vt.VT_GPU_API_MODULE_SECONDARY.Pipeline;
+import vt.VT_GPU_API_MODULE_SECONDARY.Texture;
 #endif
 
 namespace vt
