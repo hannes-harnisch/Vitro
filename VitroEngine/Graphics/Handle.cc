@@ -13,9 +13,7 @@ import vt.VT_GPU_API_MODULE_SECONDARY.Handle;
 
 namespace vt
 {
-	using AdapterResource		   = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
-	export using CommandListHandle = ResourceVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
-
+	using AdapterResource = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
 	export class Adapter : public AdapterResource
 	{
 	public:
@@ -37,4 +35,7 @@ namespace vt
 		std::string name;
 		size_t		vram;
 	};
+
+	export using CommandListHandle = ResourceVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
+	export using SyncValue		   = ResourceVariant<VT_GPU_API_VARIANT_ARGS(SyncValue)>;
 }

@@ -9,6 +9,7 @@ import vt.Core.Vector;
 import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Handle;
+import vt.Graphics.PipelineInfo;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassInfo;
 import vt.Graphics.RenderTarget;
@@ -47,6 +48,8 @@ namespace vt
 	export class ComputeCommandListBase : public CopyCommandListBase
 	{
 	public:
+		static constexpr unsigned BytesPerPushConstantsUnit = 4;
+
 		virtual void bind_descriptor_pool(DescriptorPool const& pool)														= 0;
 		virtual void bind_compute_pipeline(Pipeline const& pipeline)														= 0;
 		virtual void bind_compute_root_signature(RootSignature const& root_signature)										= 0;
@@ -67,8 +70,8 @@ namespace vt
 									   CSpan<ClearValue>   clear_values = {})												   = 0;
 		virtual void transition_to_next_subpass()																		   = 0;
 		virtual void end_render_pass()																					   = 0;
-		virtual void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<unsigned> byte_offsets)	   = 0;
-		virtual void bind_index_buffer(Buffer const& buffer, unsigned byte_offset)										   = 0;
+		virtual void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<size_t> byte_offsets)		   = 0;
+		virtual void bind_index_buffer(Buffer const& buffer, size_t byte_offset)										   = 0;
 		virtual void bind_primitive_topology(PrimitiveTopology topology)												   = 0;
 		virtual void bind_viewports(CSpan<Viewport> viewports)															   = 0;
 		virtual void bind_scissors(CSpan<Rectangle> scissors)															   = 0;

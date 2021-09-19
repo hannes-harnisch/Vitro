@@ -15,7 +15,7 @@ namespace vt::vulkan
 
 		VkPipeline ptr() const
 		{
-			pipeline.get();
+			return pipeline.get();
 		}
 
 	private:

@@ -1,5 +1,6 @@
 ﻿module;
 #include "Core/Macros.hh"
+#include VT_SYSTEM_HEADER
 #include "D3D12API.hh"
 
 #include <utility>
@@ -19,11 +20,11 @@ namespace vt::d3d12
 	export class D3D12SwapChain final : public SwapChainBase
 	{
 	public:
-		D3D12SwapChain(Driver const&	 driver,
-					   Device&			 device,
-					   RenderPass const& render_pass,
-					   void*			 native_window,
-					   unsigned char	 buffer_count = DefaultBufferCount) :
+		D3D12SwapChain(Driver const&	  driver,
+					   Device&			  device,
+					   RenderPass const&  render_pass,
+					   SystemWindowHandle native_window,
+					   unsigned char	  buffer_count = DefaultBufferCount) :
 			device(device.d3d12),
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
@@ -84,10 +85,8 @@ namespace vt::d3d12
 		ComUnique<ID3D12DescriptorHeap>		render_target_heap;
 		FixedList<RenderTarget, MaxBuffers> render_targets;
 
-		void initialize_swap_chain(IDXGIFactory5* factory, void* native_window)
+		void initialize_swap_chain(IDXGIFactory5* factory, SystemWindowHandle hwnd)
 		{
-			HWND hwnd = static_cast<HWND>(native_window);
-
 			DXGI_SWAP_CHAIN_DESC1 const desc {
 				.Format		 = format,
 				.Stereo		 = false,

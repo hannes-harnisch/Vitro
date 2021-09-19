@@ -1,5 +1,11 @@
 ﻿module;
 #include "Core/Macros.hh"
+
+#if VT_SYSTEM_MODULE == Windows
+	#define VK_USE_PLATFORM_WIN32_KHR
+#elif VT_SYSTEM_MODULE == Linux
+	#define VK_USE_PLATFORM_XCB_KHR
+#endif
 #include "VulkanAPI.hh"
 
 #include <memory>
@@ -19,45 +25,50 @@ import vt.Trace.Log;
 
 namespace vt::vulkan
 {
-	struct InstanceFunctionTable
-	{
-		VkInstance instance;
-
-#define INSTANCE_FUNC(func) PFN_##func func = reinterpret_cast<PFN_##func>(vkGetInstanceProcAddr(instance, #func));
-
-		INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT)
-		INSTANCE_FUNC(vkCreateDevice)
-#if VT_SYSTEM_MODULE == Windows
-		INSTANCE_FUNC(vkCreateWin32SurfaceKHR)
-#elif VT_SYSTEM_MODULE == Linux
-		INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
-#endif
-		INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
-		INSTANCE_FUNC(vkDestroyDevice)
-		INSTANCE_FUNC(vkDestroyInstance)
-		INSTANCE_FUNC(vkDestroySurfaceKHR)
-		INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
-		INSTANCE_FUNC(vkEnumeratePhysicalDevices)
-		INSTANCE_FUNC(vkGetDeviceProcAddr)
-		INSTANCE_FUNC(vkGetPhysicalDeviceFeatures)
-		INSTANCE_FUNC(vkGetPhysicalDeviceMemoryProperties)
-		INSTANCE_FUNC(vkGetPhysicalDeviceProperties)
-		INSTANCE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
-		INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
-		INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
-		INSTANCE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
-		INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
-
-		InstanceFunctionTable(VkInstance instance) : instance(instance)
-		{}
-	};
-
 	export class VulkanDriver final : public Singleton<VulkanDriver>, public DriverBase
 	{
 	public:
+		struct InstanceFunctionTable
+		{
+#define INSTANCE_FUNC(func) PFN_##func func = VulkanDriver::get().load_instance_func<PFN_##func>(#func);
+
+			INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT)
+			INSTANCE_FUNC(vkCreateDevice)
+#if VT_SYSTEM_MODULE == Windows
+			INSTANCE_FUNC(vkCreateWin32SurfaceKHR)
+#elif VT_SYSTEM_MODULE == Linux
+			INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
+#endif
+			INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
+			INSTANCE_FUNC(vkDestroyDevice)
+			INSTANCE_FUNC(vkDestroyInstance)
+			INSTANCE_FUNC(vkDestroySurfaceKHR)
+			INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
+			INSTANCE_FUNC(vkEnumeratePhysicalDevices)
+			INSTANCE_FUNC(vkGetDeviceProcAddr)
+			INSTANCE_FUNC(vkGetPhysicalDeviceFeatures)
+			INSTANCE_FUNC(vkGetPhysicalDeviceMemoryProperties)
+			INSTANCE_FUNC(vkGetPhysicalDeviceProperties)
+			INSTANCE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
+			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
+			INSTANCE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
+			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
+		};
+
 		static InstanceFunctionTable const* get_api()
 		{
 			return get().api.get();
+		}
+
+		static VkInstance get_vk_instance()
+		{
+			return get().instance.get();
+		}
+
+		static void notify_new_resource(void* resource, struct DeviceFunctionTable const* owner)
+		{
+			get().resource_owners.try_emplace(resource, owner);
 		}
 
 		VulkanDriver(std::string const& app_name, Version app_version, Version engine_version)
@@ -110,7 +121,7 @@ namespace vt::vulkan
 			instance.reset(raw_instance);
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan instance.");
 
-			api = std::make_unique<InstanceFunctionTable>(instance.get());
+			api = std::make_unique<InstanceFunctionTable>();
 #if VT_DEBUG
 			VkDebugUtilsMessengerEXT raw_messenger;
 			result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, &raw_messenger);
@@ -155,9 +166,14 @@ namespace vt::vulkan
 			return resource_owners.find(resource)->second;
 		}
 
-		template<typename T> T load_device_func(VkDevice device, char const name[]) const
+		template<typename F> F load_instance_func(char const name[]) const
 		{
-			return reinterpret_cast<T>(api->vkGetDeviceProcAddr(device, name));
+			return reinterpret_cast<F>(vkGetInstanceProcAddr(instance.get(), name));
+		}
+
+		template<typename F> F load_device_func(VkDevice device, char const name[]) const
+		{
+			return reinterpret_cast<F>(api->vkGetDeviceProcAddr(device, name));
 		}
 
 	private:
@@ -189,6 +205,7 @@ namespace vt::vulkan
 		INSTANCE_NULL_FUNC(vkCreateInstance)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceExtensionProperties)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceLayerProperties)
+		std::unique_ptr<InstanceFunctionTable const> api;
 
 		struct InstanceDeleter
 		{
@@ -199,19 +216,19 @@ namespace vt::vulkan
 			}
 		};
 		std::unique_ptr<VkInstance, InstanceDeleter> instance;
-		std::unique_ptr<InstanceFunctionTable const> api;
 
-		struct DebugUtilsMessengerDeleter
+		struct MessengerDeleter
 		{
 			using pointer = VkDebugUtilsMessengerEXT;
 			void operator()(VkDebugUtilsMessengerEXT messenger)
 			{
-				auto api = VulkanDriver::get_api();
-				api->vkDestroyDebugUtilsMessengerEXT(api->instance, messenger, nullptr);
+				auto vk_api = VulkanDriver::get_api();
+				auto inst	= VulkanDriver::get_vk_instance();
+				vk_api->vkDestroyDebugUtilsMessengerEXT(inst, messenger, nullptr);
 			}
 		};
-		std::unique_ptr<VkDebugUtilsMessengerEXT, DebugUtilsMessengerDeleter> debug_messenger;
-		std::unordered_map<void*, DeviceFunctionTable const*>				  resource_owners;
+		std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter> debug_messenger;
+		std::unordered_map<void*, DeviceFunctionTable const*>		resource_owners;
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL log_vulkan_validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 																	VkDebugUtilsMessageTypeFlagsEXT,
@@ -238,12 +255,12 @@ namespace vt::vulkan
 			result = vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
-			for(auto requiredExtension : RequiredInstanceExtensions)
+			for(auto required_ext : RequiredInstanceExtensions)
 			{
 				bool found = false;
 				for(auto& extension : extensions)
 				{
-					if(extension.extensionName == std::string_view(requiredExtension))
+					if(extension.extensionName == std::string_view(required_ext))
 					{
 						found = true;
 						break;
@@ -312,6 +329,7 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkCreateImageView)
 		DEVICE_FUNC(vkCreatePipelineCache)
 		DEVICE_FUNC(vkCreatePipelineLayout)
+		DEVICE_FUNC(vkCreateQueryPool)
 		DEVICE_FUNC(vkCreateRenderPass)
 		DEVICE_FUNC(vkCreateSampler)
 		DEVICE_FUNC(vkCreateSemaphore)
@@ -328,6 +346,7 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkDestroyPipeline)
 		DEVICE_FUNC(vkDestroyPipelineCache)
 		DEVICE_FUNC(vkDestroyPipelineLayout)
+		DEVICE_FUNC(vkDestroyQueryPool)
 		DEVICE_FUNC(vkDestroyRenderPass)
 		DEVICE_FUNC(vkDestroySampler)
 		DEVICE_FUNC(vkDestroySemaphore)
@@ -374,6 +393,7 @@ namespace vt::vulkan
 	EXPORT_UNIQUE_DEVICE_RESOURCE(Pipeline)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(PipelineCache)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(PipelineLayout)
+	EXPORT_UNIQUE_DEVICE_RESOURCE(QueryPool)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(RenderPass)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(Sampler)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(Semaphore)

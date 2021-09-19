@@ -15,6 +15,15 @@ import vt.Graphics.Handle;
 
 namespace vt::d3d12
 {
+	void wait_for_fence_value(ID3D12Fence* fence, uint64_t value_to_await)
+	{
+		if(!fence || fence->GetCompletedValue() >= value_to_await)
+			return;
+
+		auto result = fence->SetEventOnCompletion(value_to_await, nullptr);
+		VT_ASSERT_RESULT(result, "Failed to wait for queue workload completion.");
+	}
+
 	class Queue
 	{
 	public:
@@ -24,7 +33,6 @@ namespace vt::d3d12
 				.Type	  = command_type,
 				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
-				.NodeMask = 0,
 			};
 			ID3D12CommandQueue* raw_queue;
 
@@ -40,23 +48,25 @@ namespace vt::d3d12
 
 		void wait_for_idle()
 		{
-			wait_for_fence_value(signal());
+			wait_for_fence_value(fence.get(), signal());
 		}
 
-		uint64_t submit(CSpan<CommandListHandle> command_lists)
+		D3D12SyncValue submit(CSpan<CommandListHandle> command_lists, D3D12SyncValue gpu_sync)
 		{
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(command_lists.data());
 			queue->ExecuteCommandLists(count(command_lists), lists);
-			return signal();
-		}
+			uint64_t new_fence_value = signal();
 
-		void wait_for_fence_value(uint64_t value_to_await) const
-		{
-			if(fence->GetCompletedValue() >= value_to_await)
-				return;
+			if(gpu_sync.wait_fence)
+			{
+				auto result = queue->Wait(gpu_sync.wait_fence, gpu_sync.wait_fence_value);
+				VT_ASSERT_RESULT(result, "Failed to insert queue wait for workload.");
+			}
 
-			auto result = fence->SetEventOnCompletion(value_to_await, nullptr);
-			VT_ASSERT_RESULT(result, "Failed to wait for queue workload completion.");
+			return {
+				.wait_fence		  = fence.get(),
+				.wait_fence_value = new_fence_value,
+			};
 		}
 
 		ID3D12CommandQueue* ptr() const
@@ -97,43 +107,27 @@ namespace vt::d3d12
 					  "graphics drivers. If the problem persists, you may need to switch to a newer GPU.");
 		}
 
-		Receipt submit_render_commands(CSpan<CommandListHandle> command_lists) override
+		SyncValue submit_render_commands(CSpan<CommandListHandle> command_lists, SyncValue const& gpu_sync = {}) override
 		{
-#if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_DIRECT);
-#endif
-			return {render_queue.submit(command_lists)};
+			return {render_queue.submit(command_lists, gpu_sync.d3d12)};
 		}
 
-		Receipt submit_compute_commands(CSpan<CommandListHandle> command_lists) override
+		SyncValue submit_compute_commands(CSpan<CommandListHandle> command_lists, SyncValue const& gpu_sync = {}) override
 		{
-#if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-#endif
-			return {compute_queue.submit(command_lists)};
+			return {compute_queue.submit(command_lists, gpu_sync.d3d12)};
 		}
 
-		Receipt submit_copy_commands(CSpan<CommandListHandle> command_lists) override
+		SyncValue submit_copy_commands(CSpan<CommandListHandle> command_lists, SyncValue const& gpu_sync = {}) override
 		{
-#if VT_DEBUG
 			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COPY);
-#endif
-			return {copy_queue.submit(command_lists)};
+			return {copy_queue.submit(command_lists, gpu_sync.d3d12)};
 		}
 
-		void wait_for_render_workload(Receipt receipt) override
+		void wait_for_workload(SyncValue const& cpu_sync) override
 		{
-			render_queue.wait_for_fence_value(receipt.host_wait_value);
-		}
-
-		void wait_for_compute_workload(Receipt receipt) override
-		{
-			compute_queue.wait_for_fence_value(receipt.host_wait_value);
-		}
-
-		void wait_for_copy_workload(Receipt receipt) override
-		{
-			copy_queue.wait_for_fence_value(receipt.host_wait_value);
+			wait_for_fence_value(cpu_sync.d3d12.wait_fence, cpu_sync.d3d12.wait_fence_value);
 		}
 
 		void flush_render_queue() override
@@ -186,13 +180,16 @@ namespace vt::d3d12
 			return fresh_device;
 		}
 
-		static void validate_command_lists(CSpan<CommandListHandle> command_lists, D3D12_COMMAND_LIST_TYPE type)
+		static void validate_command_lists([[maybe_unused]] CSpan<CommandListHandle> command_lists,
+										   [[maybe_unused]] D3D12_COMMAND_LIST_TYPE	 type)
 		{
+#if VT_DEBUG
 			for(auto list : command_lists)
 			{
 				bool is_right_type = list.d3d12->GetType() == type;
 				VT_ASSERT(is_right_type, "The type of this command list does not match the type of queue it was submitted to.");
 			}
+#endif
 		}
 	};
 }

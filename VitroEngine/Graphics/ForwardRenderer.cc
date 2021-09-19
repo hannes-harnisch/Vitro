@@ -9,6 +9,7 @@ import vt.Graphics.CommandListBase;
 import vt.Graphics.Device;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.FrameContext;
+import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
 import vt.Graphics.SwapChain;
 import vt.Trace.Log;
@@ -26,7 +27,7 @@ namespace vt
 		{
 			auto& cmd = context->cmd;
 
-			device->wait_for_render_workload(context->frame_finished);
+			device->wait_for_workload(context->frame_finished);
 			auto& swap_chain_render_target = swap_chain->acquire_render_target();
 			cmd->reset();
 
@@ -57,7 +58,7 @@ namespace vt
 		struct FrameResources
 		{
 			RenderCommandList cmd;
-			Receipt			  frame_finished;
+			SyncValue		  frame_finished;
 		};
 		FrameContext<FrameResources> context;
 	};

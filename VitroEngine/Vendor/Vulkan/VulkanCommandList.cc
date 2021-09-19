@@ -1,15 +1,23 @@
 ﻿module;
 #include "Core/Macros.hh"
 #include "VulkanAPI.hh"
+
+#include <ranges>
+#include <type_traits>
 export module vt.Vulkan.CommandList;
 
 import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Core.Rectangle;
 import vt.Graphics.CommandListBase;
+import vt.Graphics.DescriptorPool;
+import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
 import vt.Graphics.PipelineInfo;
+import vt.Graphics.RenderPass;
+import vt.Graphics.RenderTarget;
 import vt.Graphics.Resource;
 import vt.Graphics.RootSignature;
 import vt.Vulkan.Driver;
@@ -37,7 +45,7 @@ namespace vt::vulkan
 	class VulkanCommandList final : public CommandListBase<Type>, private CommandListData<Type>
 	{
 	public:
-		VulkanCommandList(Device const& device) : api(device.vulkan.api())
+		VulkanCommandList(Device const& device) : api(device.vulkan.get_api())
 		{
 			VkCommandPoolCreateInfo const pool_info {
 				.sType			  = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -110,8 +118,8 @@ namespace vt::vulkan
 
 		void push_compute_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
 		{
-			unsigned offset = offset_in_32bit_units / 4;
-			unsigned size	= size_in_32bit_units / 4;
+			unsigned offset = offset_in_32bit_units * BytesPerPushConstantsUnit;
+			unsigned size	= size_in_32bit_units * BytesPerPushConstantsUnit;
 			api->vkCmdPushConstants(cmd, this->current_compute_layout, VK_SHADER_STAGE_COMPUTE_BIT, offset, size, data);
 		}
 
@@ -138,8 +146,8 @@ namespace vt::vulkan
 
 		void push_render_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
 		{
-			unsigned offset = offset_in_32bit_units / 4;
-			unsigned size	= size_in_32bit_units / 4;
+			unsigned offset = offset_in_32bit_units * BytesPerPushConstantsUnit;
+			unsigned size	= size_in_32bit_units * BytesPerPushConstantsUnit;
 			api->vkCmdPushConstants(cmd, this->current_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS, offset, size, data);
 		}
 
@@ -177,22 +185,69 @@ namespace vt::vulkan
 			api->vkCmdEndRenderPass(cmd);
 		}
 
-		void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<unsigned> byte_offsets)
+		void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<size_t> byte_offsets)
 		{
-			FixedList<VkBuffer, MaxVertexAttributes> vertex_buffers;
-			for()
-				;
-			api->vkCmdBindVertexBuffers(cmd, first_buffer, count(buffers), , );
+			FixedList<VkBuffer, MaxVertexAttributes> handles(first_buffer);
+			for(auto& buffer : std::views::take(buffers, first_buffer))
+				handles.emplace_back(buffer.vulkan.ptr());
+
+			api->vkCmdBindVertexBuffers(cmd, first_buffer, count(handles), handles.data(), byte_offsets.data());
 		}
 
-		void bind_index_buffer(Buffer const& buffer, unsigned byte_offset)
+		void bind_index_buffer(Buffer const& buffer, size_t byte_offset)
 		{
-			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, );
+			auto index_type = get_index_type_from_stride(buffer.get_stride());
+			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, index_type);
+		}
+
+		void bind_primitive_topology(PrimitiveTopology)
+		{
+			// Do nothing, as Vulkan covers binding the primitive topology when binding a pipeline.
+		}
+
+		void bind_viewports(CSpan<Viewport> viewports)
+		{
+			static_assert(std::is_layout_compatible_v<Viewport, VkViewport>);
+			auto data = reinterpret_cast<VkViewport const*>(viewports.data());
+
+			api->vkCmdSetViewport(cmd, 0, count(viewports), data);
+		}
+
+		void bind_scissors(CSpan<Rectangle> scissors)
+		{
+			static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>);
+			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());
+
+			api->vkCmdSetScissor(cmd, 0, count(scissors), data);
+		}
+
+		void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)
+		{
+			api->vkCmdDraw(cmd, vertex_count, instance_count, first_vertex, first_buffer);
+		}
+
+		void draw_indexed(unsigned index_count,
+						  unsigned instance_count,
+						  unsigned first_index,
+						  int	   vertex_offset,
+						  unsigned first_instance)
+		{
+			api->vkCmdDrawIndexed(cmd, index_count, instance_count, first_index, vertex_offset, first_instance);
 		}
 
 	private:
 		DeviceFunctionTable const* api;
 		UniqueVkCommandPool		   pool;
 		VkCommandBuffer			   cmd;
+
+		static VkIndexType get_index_type_from_stride(unsigned stride)
+		{
+			switch(stride)
+			{
+				case 2: return VK_INDEX_TYPE_UINT16;
+				case 4: return VK_INDEX_TYPE_UINT32;
+			}
+			VT_UNREACHABLE();
+		}
 	};
 }

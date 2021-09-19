@@ -16,7 +16,25 @@ import vt.VT_GPU_API_MODULE_SECONDARY.Texture;
 
 namespace vt
 {
-	export using Buffer	  = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Buffer)>;
+	export using BufferResource = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Buffer)>;
+	export class Buffer : public BufferResource
+	{
+	public:
+		unsigned get_size() const
+		{
+			return size;
+		}
+
+		unsigned get_stride() const
+		{
+			return stride;
+		}
+
+	private:
+		unsigned size	= 0;
+		unsigned stride = 0;
+	};
+
 	export using Pipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Pipeline)>;
 	export using Texture  = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Texture)>;
 }

@@ -52,6 +52,9 @@ namespace vt::d3d12
 			return {};
 		}
 
+		void reset() override
+		{}
+
 		FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> get_shader_visible_heaps() const
 		{
 			FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> heaps;

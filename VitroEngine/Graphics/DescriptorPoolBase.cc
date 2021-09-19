@@ -12,5 +12,6 @@ namespace vt
 		virtual ~DescriptorPoolBase() = default;
 
 		virtual std::vector<DescriptorSet> allocate_descriptors() = 0;
+		virtual void					   reset()				  = 0;
 	};
 }

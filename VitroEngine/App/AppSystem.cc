@@ -1,10 +1,12 @@
 ﻿module;
 #include <atomic>
+#include <string>
 export module vt.App.AppSystem;
 
 import vt.App.AppContext;
 import vt.App.EventSystem;
 import vt.App.Input;
+import vt.Core.Version;
 
 namespace vt
 {
@@ -17,6 +19,16 @@ namespace vt
 		void update()
 		{
 			app_context.poll_events();
+		}
+
+		std::string get_current_app_name() const
+		{
+			return "VitroEditor";
+		}
+
+		Version get_current_app_version() const
+		{
+			return {0, 0, 1};
 		}
 
 	private:

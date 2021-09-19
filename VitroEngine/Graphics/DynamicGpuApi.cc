@@ -29,10 +29,10 @@ namespace vt
 
 #if VT_DYNAMIC_GPU_API
 
-	export template<typename TInterface, typename TImpl1, typename TImpl2> union InterfaceVariant
+	export template<typename I, typename T1, typename T2> union InterfaceVariant
 	{
-		TImpl1 VT_GPU_API_NAME;
-		TImpl2 VT_GPU_API_NAME_SECONDARY;
+		T1 VT_GPU_API_NAME;
+		T2 VT_GPU_API_NAME_SECONDARY;
 
 		template<typename... Ts> InterfaceVariant(Ts&&... ts)
 		{
@@ -52,8 +52,8 @@ namespace vt
 
 		~InterfaceVariant()
 		{
-			static_assert(std::has_virtual_destructor_v<TInterface>);
-			(*this)->~TInterface();
+			static_assert(std::has_virtual_destructor_v<I>);
+			(*this)->~I();
 		}
 
 		InterfaceVariant& operator=(InterfaceVariant&& other) noexcept
@@ -65,21 +65,21 @@ namespace vt
 			return *this;
 		}
 
-		TInterface* operator->() noexcept
+		I* operator->() noexcept
 		{
-			return std::launder(static_cast<TInterface*>(&VT_GPU_API_NAME));
+			return std::launder(static_cast<I*>(&VT_GPU_API_NAME));
 		}
 
-		TInterface const* operator->() const noexcept
+		I const* operator->() const noexcept
 		{
-			return std::launder(static_cast<TInterface const*>(&VT_GPU_API_NAME));
+			return std::launder(static_cast<I const*>(&VT_GPU_API_NAME));
 		}
 	};
 
-	export template<typename TImpl1, typename TImpl2> union ResourceVariant
+	export template<typename T1, typename T2> union ResourceVariant
 	{
-		TImpl1 VT_GPU_API_NAME;
-		TImpl2 VT_GPU_API_NAME_SECONDARY;
+		T1 VT_GPU_API_NAME;
+		T2 VT_GPU_API_NAME_SECONDARY;
 
 		template<typename... Ts> ResourceVariant(Ts&&... ts)
 		{
@@ -100,9 +100,9 @@ namespace vt
 		~ResourceVariant()
 		{
 			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE)
-				VT_GPU_API_NAME.~TImpl1();
+				VT_GPU_API_NAME.~T1();
 			else
-				VT_GPU_API_NAME_SECONDARY.~TImpl2();
+				VT_GPU_API_NAME_SECONDARY.~T2();
 		}
 
 		ResourceVariant& operator=(ResourceVariant&& other) noexcept
@@ -117,27 +117,27 @@ namespace vt
 
 #else
 
-	export template<typename TInterface, typename TImpl> struct InterfaceVariant
+	export template<typename I, typename T> struct InterfaceVariant
 	{
-		TImpl VT_GPU_API_NAME;
+		T VT_GPU_API_NAME;
 
 		template<typename... Ts> InterfaceVariant(Ts&&... ts) : VT_GPU_API_NAME(std::forward<Ts>(ts)...)
 		{}
 
-		TInterface* operator->() noexcept
+		I* operator->() noexcept
 		{
 			return &VT_GPU_API_NAME;
 		}
 
-		TInterface const* operator->() const noexcept
+		I const* operator->() const noexcept
 		{
 			return &VT_GPU_API_NAME;
 		}
 	};
 
-	export template<typename TImpl> struct ResourceVariant
+	export template<typename T> struct ResourceVariant
 	{
-		TImpl VT_GPU_API_NAME;
+		T VT_GPU_API_NAME;
 
 		template<typename... Ts> ResourceVariant(Ts&&... ts) : VT_GPU_API_NAME(std::forward<Ts>(ts)...)
 		{}
