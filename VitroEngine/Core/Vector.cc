@@ -7,22 +7,10 @@ export module vt.Core.Vector;
 
 namespace vt
 {
-	template<typename, int> union Vector;
-	template<typename, int, int> struct Matrix;
-
-	template<typename> struct IsScalar : std::true_type
-	{};
-	template<typename T, int D> struct IsScalar<Vector<T, D>> : std::false_type
-	{};
-	template<typename T, int R, int C> struct IsScalar<Matrix<T, R, C>> : std::false_type
-	{};
-	export template<typename T>
-	concept Scalar = IsScalar<T>::value;
-
-	export template<typename TFrom, typename TTo>
-	concept LosslesslyConvertibleTo = requires(TFrom from)
+	export template<typename From, typename To>
+	concept LosslesslyConvertibleTo = requires(From from)
 	{
-		TTo {from};
+		To {from};
 	};
 
 #define DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)                                                                             \
@@ -51,7 +39,7 @@ namespace vt
 	{                                                                                                                          \
 		auto str = std::format("[{}", arr[0]);                                                                                 \
                                                                                                                                \
-		for(unsigned i = 1; i != D; ++i)                                                                                       \
+		for(int i = 1; i != D; ++i)                                                                                            \
 			str += std::format(", {}", arr[i]);                                                                                \
                                                                                                                                \
 		return str + ']';                                                                                                      \
@@ -59,14 +47,14 @@ namespace vt
 
 	export template<typename T, int D> union Vector
 	{
-		T arr[D];
+		T arr[D] = {};
 
 		DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)
 	};
 
 	export template<typename T> union Vector<T, 2>
 	{
-		T arr[2];
+		T arr[2] = {};
 		struct
 		{
 			T x, y;
@@ -81,7 +69,7 @@ namespace vt
 
 	export template<typename T> union Vector<T, 3>
 	{
-		T arr[3];
+		T arr[3] = {};
 		struct
 		{
 			T x, y, z;
@@ -96,7 +84,7 @@ namespace vt
 
 	export template<typename T> union Vector<T, 4>
 	{
-		T arr[4];
+		T arr[4] = {};
 		struct
 		{
 			T x, y, z, w;
@@ -122,7 +110,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator+(Vector<T, D> vec) noexcept
 	{
 		Vector<decltype(+vec[0]), D> promoted;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			promoted.arr[i] = +vec.arr[i];
 		return promoted;
 	}
@@ -130,7 +118,7 @@ namespace vt
 	export template<typename T1, typename T2, int D> constexpr auto operator+(Vector<T1, D> left, Vector<T2, D> right) noexcept
 	{
 		Vector<decltype(left[0] + right[0]), D> sum;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			sum.arr[i] = left.arr[i] + right.arr[i];
 		return sum;
 	}
@@ -138,7 +126,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator+(Vector<T, D> vec, auto scalar) noexcept
 	{
 		Vector<decltype(vec[0] + scalar), D> sum;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			sum.arr[i] = vec.arr[i] + scalar;
 		return sum;
 	}
@@ -151,7 +139,7 @@ namespace vt
 	export template<typename T1, typename T2, int D>
 	constexpr Vector<T1, D>& operator+=(Vector<T1, D>& left, Vector<T2, D> right) noexcept
 	{
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			left.arr[i] += right.arr[i];
 		return left;
 	}
@@ -166,7 +154,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator-(Vector<T, D> vec) noexcept
 	{
 		Vector<decltype(-vec[0]), D> negated;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			negated.arr[i] = -vec.arr[i];
 		return negated;
 	}
@@ -174,7 +162,7 @@ namespace vt
 	export template<typename T1, typename T2, int D> constexpr auto operator-(Vector<T1, D> left, Vector<T2, D> right) noexcept
 	{
 		Vector<decltype(left[0] - right[0]), D> difference;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			difference.arr[i] = left.arr[i] - right.arr[i];
 		return difference;
 	}
@@ -182,7 +170,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator-(Vector<T, D> vec, auto scalar) noexcept
 	{
 		Vector<decltype(vec[0] - scalar), D> difference;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			difference.arr[i] = vec.arr[i] - scalar;
 		return difference;
 	}
@@ -190,7 +178,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator-(auto scalar, Vector<T, D> vec) noexcept
 	{
 		Vector<decltype(scalar - vec[0]), D> difference;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			difference.arr[i] = scalar - vec.arr[i];
 		return difference;
 	}
@@ -198,7 +186,7 @@ namespace vt
 	export template<typename T1, typename T2, int D>
 	constexpr Vector<T1, D>& operator-=(Vector<T1, D>& left, Vector<T2, D> right) noexcept
 	{
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			left.arr[i] -= right.arr[i];
 		return left;
 	}
@@ -213,7 +201,7 @@ namespace vt
 	export template<typename T1, typename T2, int D> constexpr auto operator*(Vector<T1, D> left, Vector<T2, D> right) noexcept
 	{
 		Vector<decltype(left[0] * right[0]), D> product;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			product.arr[i] = left.arr[i] * right.arr[i];
 		return product;
 	}
@@ -221,7 +209,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator*(Vector<T, D> vec, auto scalar) noexcept
 	{
 		Vector<decltype(vec[0] * scalar), D> product;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			product.arr[i] = vec.arr[i] * scalar;
 		return product;
 	}
@@ -234,7 +222,7 @@ namespace vt
 	export template<typename T1, typename T2, int D>
 	constexpr Vector<T1, D>& operator*=(Vector<T1, D>& left, Vector<T2, D> right) noexcept
 	{
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			left.arr[i] *= right.arr[i];
 		return left;
 	}
@@ -249,7 +237,7 @@ namespace vt
 	export template<typename T1, typename T2, int D> constexpr auto operator/(Vector<T1, D> left, Vector<T2, D> right) noexcept
 	{
 		Vector<decltype(left[0] / right[0]), D> quotient;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			quotient.arr[i] = left.arr[i] / right.arr[i];
 		return quotient;
 	}
@@ -257,7 +245,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator/(Vector<T, D> vec, auto scalar) noexcept
 	{
 		Vector<decltype(vec[0] / scalar), D> quotient;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			quotient.arr[i] = vec.arr[i] / scalar;
 		return quotient;
 	}
@@ -265,7 +253,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto operator/(auto scalar, Vector<T, D> vec) noexcept
 	{
 		Vector<decltype(scalar / vec[0]), D> quotient;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			quotient.arr[i] = scalar / vec.arr[i];
 		return quotient;
 	}
@@ -273,7 +261,7 @@ namespace vt
 	export template<typename T1, typename T2, int D>
 	constexpr Vector<T1, D>& operator/=(Vector<T1, D>& left, Vector<T2, D> right) noexcept
 	{
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			left.arr[i] /= right.arr[i];
 		return left;
 	}
@@ -287,8 +275,8 @@ namespace vt
 
 	export template<typename T1, typename T2, int D1, int D2> constexpr Vector<T2, D2> vector_cast(Vector<T1, D1> vec) noexcept
 	{
-		Vector<T2, D2> cast {};
-		for(unsigned i = 0; i != std::min(D1, D2); ++i)
+		Vector<T2, D2> cast;
+		for(int i = 0; i != std::min(D1, D2); ++i)
 			cast[i] = static_cast<T2>(vec.arr[i]);
 		return cast;
 	}
@@ -296,7 +284,7 @@ namespace vt
 	export template<typename T, int D> constexpr auto apply(Vector<T, D> vec, auto func) noexcept(noexcept(func(vec[0])))
 	{
 		Vector<decltype(func(vec[0])), D> result;
-		for(unsigned i = 0; i != D; ++i)
+		for(int i = 0; i != D; ++i)
 			result.arr[i] = func(vec.arr[i]);
 		return result;
 	}
@@ -349,6 +337,13 @@ namespace vt
 	{
 		return apply(vec, [](auto component) {
 			return std::cos(component);
+		});
+	}
+
+	export template<typename T, int D> constexpr auto abs(Vector<T, D> vec)
+	{
+		return apply(vec, [](auto component) {
+			return std::abs(component);
 		});
 	}
 

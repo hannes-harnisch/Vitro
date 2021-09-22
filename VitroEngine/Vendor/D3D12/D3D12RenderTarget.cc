@@ -4,8 +4,7 @@ export module vt.D3D12.RenderTarget;
 
 import vt.Core.FixedList;
 import vt.D3D12.Handle;
-import vt.Graphics.RenderPassInfo;
-import vt.Graphics.RenderTargetInfo;
+import vt.Graphics.TextureInfo;
 
 namespace vt::d3d12
 {

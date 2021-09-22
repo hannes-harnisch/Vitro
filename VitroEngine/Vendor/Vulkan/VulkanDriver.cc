@@ -119,9 +119,9 @@ namespace vt::vulkan
 
 			auto result = vkCreateInstance(&instance_info, nullptr, &raw_instance);
 			instance.reset(raw_instance);
+			api = std::make_unique<InstanceFunctionTable>();
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan instance.");
 
-			api = std::make_unique<InstanceFunctionTable>();
 #if VT_DEBUG
 			VkDebugUtilsMessengerEXT raw_messenger;
 			result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, &raw_messenger);

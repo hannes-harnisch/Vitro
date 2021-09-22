@@ -10,7 +10,9 @@ import vt.Core.FixedList;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorPoolBase;
 import vt.Graphics.DescriptorSet;
+import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
+import vt.Graphics.RootSignature;
 
 namespace vt::d3d12
 {
@@ -47,7 +49,8 @@ namespace vt::d3d12
 			VT_ENSURE_RESULT(result, "Failed to create shader-visible D3D12 descriptor heap for samplers.");
 		}
 
-		std::vector<DescriptorSet> allocate_descriptors() override
+		std::vector<DescriptorSet> allocate_descriptors(CSpan<DescriptorSetLayout> layouts,
+														RootSignature const&	   root_signature) override
 		{
 			return {};
 		}

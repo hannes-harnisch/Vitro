@@ -35,6 +35,7 @@ namespace vt
 		unsigned stride = 0;
 	};
 
-	export using Pipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Pipeline)>;
-	export using Texture  = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Texture)>;
+	export using ComputePipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(ComputePipeline)>;
+	export using RenderPipeline	 = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderPipeline)>;
+	export using Texture		 = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Texture)>;
 }

@@ -11,10 +11,10 @@ import vt.Graphics.DescriptorSet;
 import vt.Graphics.Handle;
 import vt.Graphics.PipelineInfo;
 import vt.Graphics.RenderPass;
-import vt.Graphics.RenderPassInfo;
 import vt.Graphics.RenderTarget;
 import vt.Graphics.Resource;
 import vt.Graphics.RootSignature;
+import vt.Graphics.TextureInfo;
 
 namespace vt
 {
@@ -51,7 +51,7 @@ namespace vt
 		static constexpr unsigned BytesPerPushConstantsUnit = 4;
 
 		virtual void bind_descriptor_pool(DescriptorPool const& pool)														= 0;
-		virtual void bind_compute_pipeline(Pipeline const& pipeline)														= 0;
+		virtual void bind_compute_pipeline(ComputePipeline const& pipeline)													= 0;
 		virtual void bind_compute_root_signature(RootSignature const& root_signature)										= 0;
 		virtual void bind_compute_descriptors(CSpan<DescriptorSet> descriptor_sets)											= 0;
 		virtual void push_compute_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data) = 0;
@@ -61,7 +61,7 @@ namespace vt
 	export class RenderCommandListBase : public ComputeCommandListBase
 	{
 	public:
-		virtual void bind_render_pipeline(Pipeline const& pipeline)														   = 0;
+		virtual void bind_render_pipeline(RenderPipeline const& pipeline)												   = 0;
 		virtual void bind_render_root_signature(RootSignature const& root_signature)									   = 0;
 		virtual void bind_render_descriptors(CSpan<DescriptorSet> descriptor_sets)										   = 0;
 		virtual void push_render_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data) = 0;

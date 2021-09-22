@@ -12,10 +12,10 @@ namespace vt::d3d12
 	public:
 		D3D12_GPU_VIRTUAL_ADDRESS get_gpu_address() const
 		{
-			return buffer->GetGPUVirtualAddress();
+			return buffer->GetResource()->GetGPUVirtualAddress();
 		}
 
 	private:
-		ComUnique<ID3D12Resource> buffer;
+		ComUnique<D3D12MA::Allocation> buffer;
 	};
 }

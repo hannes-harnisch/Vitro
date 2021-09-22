@@ -25,7 +25,7 @@ namespace vt
 									&AppContext::on_window_object_destroy, &AppContext::on_window_object_move_assign>();
 		}
 
-		void poll_events() const
+		void poll_events()
 		{
 			SystemAppContext::poll_events();
 		}

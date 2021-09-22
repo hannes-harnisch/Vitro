@@ -115,6 +115,12 @@ namespace vt
 		}
 	};
 
+	export template<typename T1, typename T2> union HandleVariant
+	{
+		T1 VT_GPU_API_NAME;
+		T2 VT_GPU_API_NAME_SECONDARY;
+	};
+
 #else
 
 	export template<typename I, typename T> struct InterfaceVariant
@@ -123,6 +129,9 @@ namespace vt
 
 		template<typename... Ts> InterfaceVariant(Ts&&... ts) : VT_GPU_API_NAME(std::forward<Ts>(ts)...)
 		{}
+
+		InterfaceVariant(InterfaceVariant&&) = default;
+		InterfaceVariant& operator=(InterfaceVariant&&) = default;
 
 		I* operator->() noexcept
 		{
@@ -133,6 +142,9 @@ namespace vt
 		{
 			return &VT_GPU_API_NAME;
 		}
+
+		InterfaceVariant(InterfaceVariant const&) = delete;
+		InterfaceVariant& operator=(InterfaceVariant const&) = delete;
 	};
 
 	export template<typename T> struct ResourceVariant
@@ -141,6 +153,17 @@ namespace vt
 
 		template<typename... Ts> ResourceVariant(Ts&&... ts) : VT_GPU_API_NAME(std::forward<Ts>(ts)...)
 		{}
+
+		ResourceVariant(ResourceVariant&&) = default;
+		ResourceVariant& operator=(ResourceVariant&&) = default;
+
+		ResourceVariant(ResourceVariant const&) = delete;
+		ResourceVariant& operator=(ResourceVariant const&) = delete;
+	};
+
+	export template<typename T> struct HandleVariant
+	{
+		T VT_GPU_API_NAME;
 	};
 
 #endif

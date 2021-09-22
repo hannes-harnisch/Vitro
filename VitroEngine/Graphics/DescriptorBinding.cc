@@ -42,9 +42,10 @@ namespace vt
 
 	export struct DescriptorSetBinding
 	{
-		unsigned char  slot	 = 0;
-		DescriptorType type	 = DescriptorType::None;
-		unsigned	   count = 1;
+		unsigned char  shader_register = 0;
+		unsigned char  space		   = 0;
+		DescriptorType type			   = DescriptorType::None;
+		unsigned	   count		   = 1;
 	};
 
 	export struct DescriptorSetLayoutInfo

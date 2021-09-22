@@ -5,8 +5,8 @@ import vt.Core.Enum;
 import vt.Core.FixedList;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.RenderPass;
-import vt.Graphics.RenderPassInfo;
 import vt.Graphics.RootSignature;
+import vt.Graphics.TextureInfo;
 
 namespace vt
 {

@@ -91,7 +91,7 @@ namespace vt
 			return SystemWindow::client_area();
 		}
 
-		auto native_handle() const
+		auto native_handle()
 		{
 			return SystemWindow::native_handle();
 		}

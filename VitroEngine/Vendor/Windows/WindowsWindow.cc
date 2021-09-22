@@ -134,7 +134,7 @@ namespace vt::windows
 			};
 		}
 
-		HWND native_handle() const
+		HWND native_handle()
 		{
 			return window.get();
 		}

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <ranges>
 #include <stdexcept>
+#include <unordered_map>
 #include <vector>
 export module vt.D3D12.RootSignature;
 
@@ -35,7 +36,7 @@ namespace vt::d3d12
 				.Constants {
 					.ShaderRegister = 0,
 					.RegisterSpace	= 0,
-					.Num32BitValues = info.push_constants_size_in_32bit_units,
+					.Num32BitValues = info.push_constants_32bit_unit_count,
 				},
 				.ShaderVisibility = convert_shader_stage(info.push_constants_visibility),
 			});
@@ -48,8 +49,13 @@ namespace vt::d3d12
 					  [](D3D12DescriptorSetLayout const* left, D3D12DescriptorSetLayout const* right) {
 						  return left->get_update_frequency() < right->get_update_frequency();
 					  });
+
+			unsigned index = 0;
 			for(auto& layout : layouts)
+			{
 				parameters.emplace_back(layout->get_root_parameter());
+				parameter_indices.try_emplace(layout->get_id(), index++);
+			}
 
 			auto static_sampler_infos = stdv::transform(info.static_samplers, [](StaticSamplerInfo const& static_sampler) {
 				D3D12Sampler sampler(static_sampler.sampler_info);
@@ -81,13 +87,19 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 root signature.");
 		}
 
+		unsigned get_parameter_index(unsigned layout_id) const
+		{
+			return parameter_indices.at(layout_id);
+		}
+
 		ID3D12RootSignature* ptr() const
 		{
 			return root_signature.get();
 		}
 
 	private:
-		ComUnique<ID3D12RootSignature> root_signature;
+		ComUnique<ID3D12RootSignature>		   root_signature;
+		std::unordered_map<unsigned, unsigned> parameter_indices;
 
 		static void validate_unique_update_frequencies(RootSignatureInfo const& info)
 		{

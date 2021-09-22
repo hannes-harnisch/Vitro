@@ -101,7 +101,7 @@ namespace vt::d3d12
 			cmd->SetDescriptorHeaps(count(heaps), heaps.data());
 		}
 
-		void bind_compute_pipeline(Pipeline const& pipeline)
+		void bind_compute_pipeline(ComputePipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.ptr());
 		}
@@ -144,7 +144,7 @@ namespace vt::d3d12
 			cmd->Dispatch(x_count, y_count, z_count);
 		}
 
-		void bind_render_pipeline(Pipeline const& pipeline)
+		void bind_render_pipeline(RenderPipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.ptr());
 		}
@@ -245,7 +245,7 @@ namespace vt::d3d12
 					stencil_clear = {
 						.Format = pass.get_depth_stencil_format(),
 						.DepthStencil {
-							.Stencil = static_cast<uint8_t>(clear_values.back().stencil),
+							.Stencil = static_cast<UINT8>(clear_values.back().stencil),
 						},
 					};
 				}

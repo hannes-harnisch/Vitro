@@ -2,6 +2,7 @@
 #include "Core/Macros.hh"
 #include "D3D12API.hh"
 
+#include <atomic>
 #include <memory>
 #include <span>
 #include <vector>
@@ -72,20 +73,20 @@ namespace vt::d3d12
 					table_ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
 						.RangeType						   = convert_descriptor_type(binding.type),
 						.NumDescriptors					   = binding.count,
-						.BaseShaderRegister				   = binding.slot,
-						.RegisterSpace					   = 0,
+						.BaseShaderRegister				   = binding.shader_register,
+						.RegisterSpace					   = binding.space,
 						.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
 						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
 					});
 			}
 			else
 			{
-				D3D12_ROOT_DESCRIPTOR1 desc {
-					.ShaderRegister = info.bindings.front().slot,
-					.RegisterSpace	= 0,
-					.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
-				};
-				std::construct_at(&root_descriptor, desc);
+				auto binding = info.bindings.front();
+				std::construct_at(&root_descriptor, D3D12_ROOT_DESCRIPTOR1 {
+														.ShaderRegister = binding.shader_register,
+														.RegisterSpace	= binding.space,
+														.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
+													});
 			}
 		}
 
@@ -118,6 +119,11 @@ namespace vt::d3d12
 			return *this;
 		}
 
+		unsigned get_id() const
+		{
+			return id;
+		}
+
 		D3D12_ROOT_PARAMETER1 get_root_parameter() const
 		{
 			if(holds_descriptor_table())
@@ -137,12 +143,23 @@ namespace vt::d3d12
 				};
 		}
 
+		UINT get_register_space(size_t table_index) const
+		{
+			if(holds_descriptor_table())
+				return table_ranges[table_index].RegisterSpace;
+			else
+				return root_descriptor.RegisterSpace;
+		}
+
 		unsigned char get_update_frequency() const
 		{
 			return update_frequency;
 		}
 
 	private:
+		static inline std::atomic_uint id_counter = 0;
+
+		unsigned				  id = id_counter++;
 		unsigned char			  update_frequency;
 		D3D12_ROOT_PARAMETER_TYPE parameter_type : sizeof(char); // TODO: Replace with enum reflection
 		D3D12_SHADER_VISIBILITY	  visibility : sizeof(char);
@@ -157,7 +174,7 @@ namespace vt::d3d12
 			if(bindings.size() != 1)
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-			auto& binding = bindings.front();
+			auto binding = bindings.front();
 			if(binding.count != 1)
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 

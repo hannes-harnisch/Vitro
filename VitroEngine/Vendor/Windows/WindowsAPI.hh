@@ -41,4 +41,7 @@ namespace vt
 {
 	using SystemWindowOwnerHandle = HINSTANCE;
 	using SystemWindowHandle	  = HWND;
+
+	class Window; // Forward-declaration to circumvent possible IFNDR cause when forward-declaring in the module purview of
+				  // AppContextBase.
 }

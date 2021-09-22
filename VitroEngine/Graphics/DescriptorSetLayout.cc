@@ -75,7 +75,7 @@ namespace vt
 
 	export struct RootSignatureInfo
 	{
-		unsigned char			   push_constants_size_in_32bit_units;
+		unsigned char			   push_constants_32bit_unit_count;
 		ShaderStage				   push_constants_visibility;
 		CSpan<DescriptorSetLayout> layouts;
 		CSpan<StaticSamplerInfo>   static_samplers;

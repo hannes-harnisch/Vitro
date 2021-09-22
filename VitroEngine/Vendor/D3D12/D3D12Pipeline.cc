@@ -233,10 +233,10 @@ namespace vt::d3d12
 		};
 	}
 
-	export class D3D12Pipeline
+	export class D3D12RenderPipeline
 	{
 	public:
-		D3D12Pipeline(Device const& device, RenderPipelineInfo const& info)
+		D3D12RenderPipeline(Device const& device, RenderPipelineInfo const& info)
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> input_element_descs;
 			for(auto attrib : info.vertex_attributes)
@@ -306,7 +306,19 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 render pipeline.");
 		}
 
-		D3D12Pipeline(Device const& device, ComputePipelineInfo const& info)
+		ID3D12PipelineState* ptr() const
+		{
+			return pipeline.get();
+		}
+
+	private:
+		ComUnique<ID3D12PipelineState> pipeline;
+	};
+
+	export class D3D12ComputePipeline
+	{
+	public:
+		D3D12ComputePipeline(Device const& device, ComputePipelineInfo const& info)
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
 				.pRootSignature = info.root_signature.d3d12.ptr(),

@@ -54,8 +54,8 @@ namespace vt::vulkan
 			VkCommandPool raw_pool;
 
 			auto result = api->vkCreateCommandPool(api->device, &pool_info, nullptr, &raw_pool);
-			VT_ASSERT_RESULT(result, "Failed to create Vulkan command pool.");
 			pool.reset(raw_pool);
+			VT_ASSERT_RESULT(result, "Failed to create Vulkan command pool.");
 
 			VkCommandBufferAllocateInfo const alloc_info {
 				.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -100,7 +100,7 @@ namespace vt::vulkan
 			// Do nothing, as Vulkan covers binding descriptor pools when binding descriptor sets.
 		}
 
-		void bind_compute_pipeline(Pipeline const& pipeline)
+		void bind_compute_pipeline(ComputePipeline const& pipeline)
 		{
 			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.vulkan.ptr());
 		}
@@ -128,7 +128,7 @@ namespace vt::vulkan
 			api->vkCmdDispatch(cmd, x_count, y_count, z_count);
 		}
 
-		void bind_render_pipeline(Pipeline const& pipeline)
+		void bind_render_pipeline(RenderPipeline const& pipeline)
 		{
 			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.vulkan.ptr());
 		}

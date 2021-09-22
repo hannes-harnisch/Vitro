@@ -17,7 +17,6 @@ import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.ForwardRenderer;
 import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
-import vt.Graphics.RenderPassInfo;
 import vt.Graphics.SwapChain;
 import vt.Graphics.TextureInfo;
 
@@ -115,7 +114,7 @@ namespace vt
 
 		void emplace_swap_chain(Window& window)
 		{
-			swap_chains.try_emplace(&window, driver, device, present_pass, window.native_handle());
+			swap_chains.try_emplace(&window, driver, device, present_pass, window);
 		}
 
 		void remove_swap_chain(Window const& window)

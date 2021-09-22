@@ -1,6 +1,7 @@
 ﻿module;
 #include "Core/Macros.hh"
 
+#include <concepts>
 #include <string_view>
 export module vt.App.SharedLibrary;
 
@@ -21,9 +22,10 @@ namespace vt
 			return static_cast<TSymbol*>(SystemSharedLibrary::load_symbol(name));
 		}
 
-		void reload()
+		void reload_after(std::invocable auto intermediate_operation)
 		{
 			unload();
+			intermediate_operation();
 			try_reload();
 		}
 

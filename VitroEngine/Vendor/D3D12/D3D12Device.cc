@@ -51,10 +51,10 @@ namespace vt::d3d12
 			wait_for_fence_value(fence.get(), signal());
 		}
 
-		D3D12SyncValue submit(CSpan<CommandListHandle> command_lists, D3D12SyncValue gpu_sync)
+		D3D12SyncValue submit(CSpan<CommandListHandle> cmd_lists, D3D12SyncValue gpu_sync)
 		{
-			auto lists = reinterpret_cast<ID3D12CommandList* const*>(command_lists.data());
-			queue->ExecuteCommandLists(count(command_lists), lists);
+			auto lists = reinterpret_cast<ID3D12CommandList* const*>(cmd_lists.data());
+			queue->ExecuteCommandLists(count(cmd_lists), lists);
 			uint64_t new_fence_value = signal();
 
 			if(gpu_sync.wait_fence)
@@ -107,25 +107,25 @@ namespace vt::d3d12
 					  "graphics drivers. If the problem persists, you may need to switch to a newer GPU.");
 		}
 
-		SyncValue submit_render_commands(CSpan<CommandListHandle> command_lists, SyncValue const& gpu_sync = {}) override
+		SyncValue submit_render_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync = {}) override
 		{
-			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_DIRECT);
-			return {render_queue.submit(command_lists, gpu_sync.d3d12)};
+			validate_command_lists(cmd_lists, D3D12_COMMAND_LIST_TYPE_DIRECT);
+			return {render_queue.submit(cmd_lists, gpu_sync.d3d12)};
 		}
 
-		SyncValue submit_compute_commands(CSpan<CommandListHandle> command_lists, SyncValue const& gpu_sync = {}) override
+		SyncValue submit_compute_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync = {}) override
 		{
-			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-			return {compute_queue.submit(command_lists, gpu_sync.d3d12)};
+			validate_command_lists(cmd_lists, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+			return {compute_queue.submit(cmd_lists, gpu_sync.d3d12)};
 		}
 
-		SyncValue submit_copy_commands(CSpan<CommandListHandle> command_lists, SyncValue const& gpu_sync = {}) override
+		SyncValue submit_copy_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync = {}) override
 		{
-			validate_command_lists(command_lists, D3D12_COMMAND_LIST_TYPE_COPY);
-			return {copy_queue.submit(command_lists, gpu_sync.d3d12)};
+			validate_command_lists(cmd_lists, D3D12_COMMAND_LIST_TYPE_COPY);
+			return {copy_queue.submit(cmd_lists, gpu_sync.d3d12)};
 		}
 
-		void wait_for_workload(SyncValue const& cpu_sync) override
+		void wait_for_workload(SyncValue cpu_sync) override
 		{
 			wait_for_fence_value(cpu_sync.d3d12.wait_fence, cpu_sync.d3d12.wait_fence_value);
 		}
@@ -180,11 +180,11 @@ namespace vt::d3d12
 			return fresh_device;
 		}
 
-		static void validate_command_lists([[maybe_unused]] CSpan<CommandListHandle> command_lists,
+		static void validate_command_lists([[maybe_unused]] CSpan<CommandListHandle> cmd_lists,
 										   [[maybe_unused]] D3D12_COMMAND_LIST_TYPE	 type)
 		{
 #if VT_DEBUG
-			for(auto list : command_lists)
+			for(auto list : cmd_lists)
 			{
 				bool is_right_type = list.d3d12->GetType() == type;
 				VT_ASSERT(is_right_type, "The type of this command list does not match the type of queue it was submitted to.");

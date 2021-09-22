@@ -27,15 +27,23 @@ namespace vt::vulkan
 			ensure_device_extensions_exist();
 
 			auto api = VulkanDriver::get_api();
+
+			unsigned count;
+			auto	 result = api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &count, nullptr);
+			VT_ENSURE_RESULT(result, "Failed to query Vulkan queue family count.");
+
+			std::vector<VkQueueFamilyProperties> properties(count);
+			result = api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &count, properties.data());
+			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan queue family properties.");
 		}
 
-		SyncValue submit_render_commands(CSpan<CommandListHandle> command_lists, SyncValue gpu_sync) override
+		SyncValue submit_render_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync) override
 		{}
 
-		SyncValue submit_compute_commands(CSpan<CommandListHandle> command_lists, SyncValue gpu_sync) override
+		SyncValue submit_compute_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync) override
 		{}
 
-		SyncValue submit_copy_commands(CSpan<CommandListHandle> command_lists, SyncValue gpu_sync) override
+		SyncValue submit_copy_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync) override
 		{}
 
 		void wait_for_workload(SyncValue cpu_sync) override
@@ -53,7 +61,7 @@ namespace vt::vulkan
 		void wait_for_idle() override
 		{}
 
-		DeviceFunctionTable const* get_api() const
+		DeviceFunctionTable const* api() const
 		{
 			return device_functions.get();
 		}

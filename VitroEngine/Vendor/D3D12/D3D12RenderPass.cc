@@ -11,7 +11,7 @@ import vt.Core.Enum;
 import vt.Core.FixedList;
 import vt.D3D12.Texture;
 import vt.Graphics.Device;
-import vt.Graphics.RenderPassInfo;
+import vt.Graphics.TextureInfo;
 
 namespace vt::d3d12
 {

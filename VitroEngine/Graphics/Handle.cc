@@ -36,6 +36,6 @@ namespace vt
 		size_t		vram;
 	};
 
-	export using CommandListHandle = ResourceVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
-	export using SyncValue		   = ResourceVariant<VT_GPU_API_VARIANT_ARGS(SyncValue)>;
+	export using CommandListHandle = HandleVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
+	export using SyncValue		   = HandleVariant<VT_GPU_API_VARIANT_ARGS(SyncValue)>;
 }

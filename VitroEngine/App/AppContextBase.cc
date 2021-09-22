@@ -18,7 +18,7 @@ namespace vt
 		}
 
 	protected:
-		std::unordered_map<SystemWindowHandle, class Window*> system_window_to_engine_window;
+		std::unordered_map<SystemWindowHandle, Window*> system_window_to_engine_window;
 
 		AppContextBase(SystemWindowOwnerHandle window_owner) : window_owner_handle(window_owner)
 		{}

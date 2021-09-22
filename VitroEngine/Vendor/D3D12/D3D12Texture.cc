@@ -113,10 +113,10 @@ namespace vt::d3d12
 	public:
 		ID3D12Resource* ptr() const
 		{
-			return texture.get();
+			return texture->GetResource();
 		}
 
 	private:
-		ComUnique<ID3D12Resource> texture;
+		ComUnique<D3D12MA::Allocation> texture;
 	};
 }
