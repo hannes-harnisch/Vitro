@@ -69,9 +69,9 @@ namespace vt
 		std::bitset<size_from_enum_max<T>()> bitset;
 	};
 
-	export constexpr auto bit(auto position)
+	export constexpr uint64_t bit(uint64_t position)
 	{
-		return 1 << position;
+		return 1ull << position;
 	}
 
 	consteval size_t floor_log2(size_t x)

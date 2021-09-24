@@ -11,8 +11,6 @@ import vt.D3D12.Device;
 import vt.D3D12.Handle;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
-import vt.Graphics.RenderPass;
-import vt.Graphics.RenderTarget;
 import vt.Graphics.SwapChainBase;
 
 namespace vt::d3d12
@@ -20,11 +18,7 @@ namespace vt::d3d12
 	export class D3D12SwapChain final : public SwapChainBase
 	{
 	public:
-		D3D12SwapChain(Driver const&	 driver,
-					   Device&			 device,
-					   RenderPass const& render_pass,
-					   Window&			 window,
-					   unsigned char	 buffer_count = DefaultBufferCount) :
+		D3D12SwapChain(Driver const& driver, Device& device, Window& window, uint8_t buffer_count) :
 			device(device.d3d12),
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
@@ -36,9 +30,9 @@ namespace vt::d3d12
 			recreate_render_targets();
 		}
 
-		RenderTarget const& acquire_render_target() override
+		unsigned get_current_image_index() override
 		{
-			return render_targets[swap_chain->GetCurrentBackBufferIndex()];
+			return swap_chain->GetCurrentBackBufferIndex();
 		}
 
 		void present() override
@@ -77,12 +71,11 @@ namespace vt::d3d12
 
 	private:
 		D3D12Device&						device;
-		unsigned char						buffer_count;
+		uint8_t								buffer_count;
 		bool								tearing_supported;
 		UINT								present_flags;
 		DXGI_FORMAT							format;
 		ComUnique<IDXGISwapChain3>			swap_chain;
-		ComUnique<ID3D12DescriptorHeap>		render_target_heap;
 		FixedList<RenderTarget, MaxBuffers> render_targets;
 
 		void initialize_swap_chain(IDXGIFactory5* factory, Window& window)
@@ -115,19 +108,6 @@ namespace vt::d3d12
 
 			result = factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 			VT_ENSURE_RESULT(result, "Failed to disable DXGI auto-fullscreen.");
-		}
-
-		void initialize_render_target_heap()
-		{
-			D3D12_DESCRIPTOR_HEAP_DESC const desc {
-				.Type			= D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
-				.NumDescriptors = buffer_count,
-			};
-			ID3D12DescriptorHeap* raw_heap;
-
-			auto result = device.ptr()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&raw_heap));
-			render_target_heap.reset(raw_heap);
-			VT_ENSURE_RESULT(result, "Failed to create D3D12 render target descriptor heap.");
 		}
 
 		void recreate_render_targets()

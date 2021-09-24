@@ -43,7 +43,7 @@ namespace vt::d3d12
 
 				DXGI_ADAPTER_DESC1 desc;
 				result = adapter->GetDesc1(&desc);
-				VT_ENSURE_RESULT(result, "Failed to get D3D12 adapter info.");
+				VT_ENSURE_RESULT(result, "Failed to get D3D12 adapter description.");
 
 				auto can_make_device = D3D12CreateDevice(adapter.get(), MinimumFeatureLevel, __uuidof(ID3D12Device4), nullptr);
 				if(FAILED(can_make_device) || desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)

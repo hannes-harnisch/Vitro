@@ -7,6 +7,7 @@ export module vt.D3D12.DescriptorPool;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.D3D12.DescriptorAllocator;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorPoolBase;
 import vt.Graphics.DescriptorSet;
@@ -16,63 +17,63 @@ import vt.Graphics.RootSignature;
 
 namespace vt::d3d12
 {
-	export class D3D12DescriptorPool : public DescriptorPoolBase
+	export class D3D12DescriptorPool final : public DescriptorPoolBase
 	{
 	public:
-		static constexpr unsigned MaxSimultaneousHeaps = 2;
+		static constexpr unsigned MaxSimultaneousGpuHeaps = 2;
 
-		D3D12DescriptorPool(Device const& in_device, CSpan<DescriptorPoolSize> pool_sizes) : device(in_device.d3d12.ptr())
-		{
-			D3D12_DESCRIPTOR_HEAP_DESC view_heap_desc {
-				.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-				.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-			};
-			D3D12_DESCRIPTOR_HEAP_DESC sampler_desc {
-				.Type  = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-				.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-			};
-			for(auto size : pool_sizes)
-			{
-				if(size.type == DescriptorType::DynamicSampler)
-					sampler_desc.NumDescriptors += size.descriptor_count;
-				else
-					view_heap_desc.NumDescriptors += size.descriptor_count;
-			}
-			ID3D12DescriptorHeap *raw_view_heap, *raw_sampler_heap;
+		D3D12DescriptorPool(Device const& in_device, ArrayView<DescriptorCount> descriptor_counts) :
+			device(in_device.d3d12.ptr()),
+			view_staging_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, sum_view_counts(descriptor_counts)),
+			sampler_staging_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, sum_sampler_counts(descriptor_counts)),
+			gpu_view_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MaxCbvSrvUavsOnGpu),
+			gpu_sampler_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MaxDynamicSamplersOnGpu)
+		{}
 
-			auto result = device->CreateDescriptorHeap(&view_heap_desc, IID_PPV_ARGS(&raw_view_heap));
-			gpu_view_heap.reset(raw_view_heap);
-			VT_ENSURE_RESULT(result, "Failed to create shader-visible D3D12 descriptor heap for CBV/SRV/UAVs.");
-
-			result = device->CreateDescriptorHeap(&sampler_desc, IID_PPV_ARGS(&raw_sampler_heap));
-			gpu_sampler_heap.reset(raw_sampler_heap);
-			VT_ENSURE_RESULT(result, "Failed to create shader-visible D3D12 descriptor heap for samplers.");
-		}
-
-		std::vector<DescriptorSet> allocate_descriptors(CSpan<DescriptorSetLayout> layouts,
-														RootSignature const&	   root_signature) override
+		std::vector<DescriptorSet> allocate_descriptors(ArrayView<DescriptorSetLayout>, RootSignature const&) override
 		{
 			return {};
 		}
 
-		void reset() override
+		void update_descriptors() override
 		{}
 
-		FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> get_shader_visible_heaps() const
+		void reset_descriptors() override
+		{}
+
+		FixedList<ID3D12DescriptorHeap*, MaxSimultaneousGpuHeaps> get_shader_visible_heaps() const
 		{
-			FixedList<ID3D12DescriptorHeap*, MaxSimultaneousHeaps> heaps;
-			if(gpu_view_heap)
-				heaps.emplace_back(gpu_view_heap.get());
-			if(gpu_sampler_heap)
-				heaps.emplace_back(gpu_sampler_heap.get());
-			return heaps;
+			return {gpu_view_allocator.ptr(), gpu_sampler_allocator.ptr()};
 		}
 
 	private:
-		ID3D12Device4*					device;
-		ComUnique<ID3D12DescriptorHeap> gpu_view_heap;
-		ComUnique<ID3D12DescriptorHeap> gpu_sampler_heap;
-		ComUnique<ID3D12DescriptorHeap> view_staging_heap;
-		ComUnique<ID3D12DescriptorHeap> sampler_staging_heap;
+		static constexpr unsigned MaxCbvSrvUavsOnGpu	  = 1000000;
+		static constexpr unsigned MaxDynamicSamplersOnGpu = 2048;
+
+		ID3D12Device4*		   device;
+		CpuDescriptorAllocator view_staging_allocator;
+		CpuDescriptorAllocator sampler_staging_allocator;
+		GpuDescriptorAllocator gpu_view_allocator;
+		GpuDescriptorAllocator gpu_sampler_allocator;
+
+		static unsigned sum_view_counts(ArrayView<DescriptorCount> descriptor_counts)
+		{
+			unsigned count = 0;
+
+			for(auto size : pool_sizes)
+				if(size.type != DescriptorType::DynamicSampler)
+					count += size.descriptor_count;
+
+			return count;
+		}
+
+		static unsigned sum_sampler_counts(ArrayView<DescriptorCount> descriptor_counts)
+		{
+			for(auto size : pool_sizes)
+				if(size.type == DescriptorType::DynamicSampler)
+					return size.descriptor_count;
+
+			return 0;
+		}
 	};
 }

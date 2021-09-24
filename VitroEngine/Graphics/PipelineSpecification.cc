@@ -1,16 +1,19 @@
-﻿export module vt.Graphics.PipelineInfo;
+﻿module;
+#include <cstdint>
+export module vt.Graphics.PipelineSpecification;
 
 import vt.Core.Array;
 import vt.Core.Enum;
 import vt.Core.FixedList;
+import vt.Core.Specification;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RootSignature;
-import vt.Graphics.TextureInfo;
+import vt.Graphics.TextureSpecification;
 
 namespace vt
 {
-	export enum class VertexDataType : unsigned char {
+	export enum class VertexDataType : uint8_t {
 		Float,
 		Float2,
 		Float3,
@@ -26,20 +29,20 @@ namespace vt
 		Bool,
 	};
 
-	export enum class AttributeInputRate : unsigned char {
+	export enum class AttributeInputRate : uint8_t {
 		PerVertex,
 		PerInstance,
 	};
 
 	export struct VertexAttribute
 	{
-		unsigned char	   slot		   = 0;
-		unsigned char	   byte_offset = 0;
-		VertexDataType	   data_type   = {};
-		AttributeInputRate input_rate  = {};
+		Explicit<uint8_t>		 slot;
+		Explicit<uint8_t>		 byte_offset;
+		Explicit<VertexDataType> data_type;
+		AttributeInputRate		 input_rate = AttributeInputRate::PerVertex;
 	};
 
-	export enum class PrimitiveTopology : unsigned char {
+	export enum class PrimitiveTopology : uint8_t {
 		PointList,
 		LineList,
 		LineStrip,
@@ -83,34 +86,34 @@ namespace vt
 		PatchList_32ControlPoints,
 	};
 
-	export enum class PolygonFillMode : unsigned char {
+	export enum class PolygonFillMode : uint8_t {
 		Wireframe,
 		Solid,
 	};
 
-	export enum class CullMode : unsigned char {
+	export enum class CullMode : uint8_t {
 		None,
 		Front,
 		Back,
 	};
 
-	export enum class FrontFace : unsigned char {
+	export enum class FrontFace : uint8_t {
 		Clockwise,
 		CounterClockwise,
 	};
 
 	struct RasterizerState
 	{
-		PolygonFillMode fill_mode		  = {};
-		CullMode		cull_mode		  = {};
-		FrontFace		front_face		  = {};
-		bool			enable_depth_clip = false;
-		int				depth_bias		  = 0;
-		float			depth_bias_clamp  = 0;
-		float			depth_bias_slope  = 0;
+		PolygonFillMode		fill_mode = PolygonFillMode::Solid;
+		Explicit<CullMode>	cull_mode;
+		Explicit<FrontFace> front_face;
+		bool				enable_depth_clip = false;
+		int					depth_bias		  = 0;
+		float				depth_bias_clamp  = 0.0f;
+		float				depth_bias_slope  = 0.0f;
 	};
 
-	export enum class StencilOp : unsigned char {
+	export enum class StencilOp : uint8_t {
 		Keep,
 		Zero,
 		Replace,
@@ -123,33 +126,33 @@ namespace vt
 
 	export struct StencilOpState
 	{
-		StencilOp fail_op		= {};
-		StencilOp pass_op		= {};
-		StencilOp depth_fail_op = {};
-		CompareOp compare_op	= {};
+		StencilOp fail_op		= StencilOp::Keep;
+		StencilOp pass_op		= StencilOp::Keep;
+		StencilOp depth_fail_op = StencilOp::Keep;
+		CompareOp compare_op	= CompareOp::Never;
 	};
 
 	struct DepthStencilState
 	{
-		bool		   enable_depth_test   = false;
-		bool		   enable_depth_write  = false;
-		CompareOp	   depth_compare_op	   = {};
-		bool		   enable_stencil_test = false;
-		unsigned char  stencil_read_mask   = 0;
-		unsigned char  stencil_write_mask  = 0;
+		Explicit<bool> enable_depth_test;
+		bool		   enable_depth_write = false;
+		CompareOp	   depth_compare_op	  = CompareOp::Never;
+		Explicit<bool> enable_stencil_test;
+		uint8_t		   stencil_read_mask  = 0;
+		uint8_t		   stencil_write_mask = 0;
 		StencilOpState front;
 		StencilOpState back;
 	};
 
 	struct MultisampleState
 	{
-		unsigned	  sample_mask			   = 0;
-		unsigned char sample_count			   = 1;
-		unsigned char rasterizer_sample_count  = 1;
-		bool		  enable_alpha_to_coverage = {};
+		unsigned		  sample_mask			   = 0;
+		Positive<uint8_t> sample_count			   = 1;
+		Positive<uint8_t> rasterizer_sample_count  = 1;
+		bool			  enable_alpha_to_coverage = false;
 	};
 
-	export enum class LogicOp : unsigned char {
+	export enum class LogicOp : uint8_t {
 		Clear,
 		Set,
 		Copy,
@@ -168,7 +171,7 @@ namespace vt
 		OrInverted,
 	};
 
-	export enum class BlendFactor : unsigned char {
+	export enum class BlendFactor : uint8_t {
 		Zero,
 		One,
 		SrcColor,
@@ -186,7 +189,7 @@ namespace vt
 		Src1AlphaInv,
 	};
 
-	export enum class BlendOp : unsigned char {
+	export enum class BlendOp : uint8_t {
 		Add,
 		Subtract,
 		ReverseSubtract,
@@ -194,7 +197,7 @@ namespace vt
 		Max,
 	};
 
-	export enum class ColorComponent : unsigned char {
+	export enum class ColorComponent : uint8_t {
 		None  = 0,
 		Red	  = bit(0),
 		Green = bit(1),
@@ -218,34 +221,34 @@ namespace vt
 
 	export struct BlendState
 	{
-		FixedList<ColorAttachmentBlendState, MaxColorAttachments> attachment_states;
+		Explicit<FixedList<ColorAttachmentBlendState, MaxColorAttachments>> attachment_states;
 
 		bool	enable_logic_op = false;
-		LogicOp logic_op		= {};
+		LogicOp logic_op		= LogicOp::Clear;
 	};
 
 	export constexpr unsigned MaxVertexAttributes = 16;
 
-	export struct RenderPipelineInfo
+	export struct RenderPipelineSpecification
 	{
 		using VertexAttributeList = FixedList<VertexAttribute, MaxVertexAttributes>;
 
-		RootSignature const& root_signature;
-		RenderPass const&	 render_pass;
-		CSpan<char>			 vertex_shader_bytecode;
-		CSpan<char>			 fragment_shader_bytecode;
-		VertexAttributeList	 vertex_attributes;
-		PrimitiveTopology	 primitive_topology		  = {};
-		bool				 enable_primitive_restart = false;
-		RasterizerState		 rasterizer;
-		DepthStencilState	 depth_stencil;
-		MultisampleState	 multisample;
-		BlendState			 blend;
+		RootSignature const&		root_signature;
+		RenderPass const&			render_pass;
+		ArrayView<char>				vertex_shader_bytecode;
+		ArrayView<char>				fragment_shader_bytecode;
+		VertexAttributeList			vertex_attributes;
+		Explicit<PrimitiveTopology> primitive_topology;
+		bool						enable_primitive_restart = false;
+		RasterizerState				rasterizer;
+		DepthStencilState			depth_stencil;
+		MultisampleState			multisample;
+		BlendState					blend;
 	};
 
-	export struct ComputePipelineInfo
+	export struct ComputePipelineSpecification
 	{
 		RootSignature const& root_signature;
-		CSpan<char>			 compute_shader_bytecode;
+		ArrayView<char>		 compute_shader_bytecode;
 	};
 }

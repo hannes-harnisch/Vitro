@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <any>
 #include <atomic>
+#include <concurrentqueue/concurrentqueue.h>
 #include <ranges>
 #include <typeindex>
 #include <unordered_map>
@@ -32,10 +33,7 @@ namespace vt
 			if constexpr(!AllowAsyncEventDispatchFor<T>)
 				static_assert(false, "This type is not allowed to be used as an async event.");
 
-			auto& self = get();
-
-			thread_local ProducerToken const pro_token(self.async_events);
-			self.async_events.enqueue(pro_token, T {std::forward<Ts>(ts)...});
+			get().enqueue_async_event(T {std::forward<Ts>(ts)...});
 		}
 
 	private:
@@ -52,6 +50,12 @@ namespace vt
 
 		EventSystem() : con_token(async_events)
 		{}
+
+		void enqueue_async_event(std::any event)
+		{
+			thread_local ProducerToken const pro_token(async_events);
+			async_events.enqueue(pro_token, std::move(event));
+		}
 
 		void dispatch_event(std::any event, std::type_index type) const
 		{

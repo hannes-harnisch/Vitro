@@ -85,6 +85,28 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
+	D3D12_SAMPLER_DESC convert_dynamic_sampler_spec(SamplerSpecification const& spec)
+	{
+		auto border = convert_border_color(spec.border_color);
+		return {
+			.Filter			= convert_filter(spec.filter, spec.enable_compare),
+			.AddressU		= convert_address_mode(spec.u_address_mode),
+			.AddressV		= convert_address_mode(spec.v_address_mode),
+			.AddressW		= convert_address_mode(spec.w_address_mode),
+			.MipLODBias		= spec.mip_lod_bias,
+			.MaxAnisotropy	= spec.max_anisotropy,
+			.ComparisonFunc = convert_compare_op(spec.compare_op),
+			.BorderColor {
+				border.r,
+				border.g,
+				border.b,
+				border.a,
+			},
+			.MinLOD = spec.min_lod,
+			.MaxLOD = spec.max_lod,
+		};
+	}
+
 	D3D12_STATIC_BORDER_COLOR convert_to_static_border_color(float const (&desc_border_color)[4])
 	{
 		Float4 color {
@@ -102,60 +124,36 @@ namespace vt::d3d12
 			return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 	}
 
+	export D3D12_STATIC_SAMPLER_DESC convert_static_sampler_spec(StaticSamplerSpecification const& spec)
+	{
+		auto desc = convert_dynamic_sampler_spec(spec.sampler_spec);
+		return {
+			.Filter			  = desc.Filter,
+			.AddressU		  = desc.AddressU,
+			.AddressV		  = desc.AddressV,
+			.AddressW		  = desc.AddressW,
+			.MipLODBias		  = desc.MipLODBias,
+			.MaxAnisotropy	  = desc.MaxAnisotropy,
+			.ComparisonFunc	  = desc.ComparisonFunc,
+			.BorderColor	  = convert_to_static_border_color(desc.BorderColor),
+			.MinLOD			  = desc.MinLOD,
+			.MaxLOD			  = desc.MaxLOD,
+			.ShaderRegister	  = spec.shader_register,
+			.RegisterSpace	  = spec.space,
+			.ShaderVisibility = convert_shader_stage(spec.visibility),
+		};
+	}
+
 	export class D3D12Sampler
 	{
 	public:
 		// Unused parameter is kept for compatibility with APIs where samplers are first-class device-created objects.
-		D3D12Sampler(Device const&, SamplerInfo const& info) : D3D12Sampler(info)
+		D3D12Sampler(Device const&, SamplerSpecification const& spec) : desc(convert_dynamic_sampler_spec(spec))
 		{}
 
-		D3D12Sampler(SamplerInfo const& info)
-		{
-			auto border = convert_border_color(info.border_color);
-
-			desc = {
-				.Filter			= convert_filter(info.filter, info.enable_compare),
-				.AddressU		= convert_address_mode(info.u_address_mode),
-				.AddressV		= convert_address_mode(info.v_address_mode),
-				.AddressW		= convert_address_mode(info.w_address_mode),
-				.MipLODBias		= info.mip_lod_bias,
-				.MaxAnisotropy	= info.max_anisotropy,
-				.ComparisonFunc = convert_compare_op(info.compare_op),
-				.BorderColor {
-					border.r,
-					border.g,
-					border.b,
-					border.a,
-				},
-				.MinLOD = info.min_lod,
-				.MaxLOD = info.max_lod,
-			};
-		}
-
-		D3D12_SAMPLER_DESC const& get_dynamic_sampler_desc() const
+		D3D12_SAMPLER_DESC const& get_desc() const
 		{
 			return desc;
-		}
-
-		D3D12_STATIC_SAMPLER_DESC get_static_sampler_desc(UINT		  shader_register,
-														  UINT		  register_space,
-														  ShaderStage shader_visibility) const
-		{
-			return {
-				.Filter			  = desc.Filter,
-				.AddressU		  = desc.AddressU,
-				.AddressV		  = desc.AddressV,
-				.AddressW		  = desc.AddressW,
-				.MipLODBias		  = desc.MipLODBias,
-				.MaxAnisotropy	  = desc.MaxAnisotropy,
-				.ComparisonFunc	  = desc.ComparisonFunc,
-				.BorderColor	  = convert_to_static_border_color(desc.BorderColor),
-				.MinLOD			  = desc.MinLOD,
-				.MaxLOD			  = desc.MaxLOD,
-				.ShaderRegister	  = shader_register,
-				.RegisterSpace	  = register_space,
-				.ShaderVisibility = convert_shader_stage(shader_visibility),
-			};
 		}
 
 	private:

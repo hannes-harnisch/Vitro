@@ -37,6 +37,7 @@ namespace vt
 		}
 
 	private:
+		// TODO: maybe change to in-place buffer for more direct access, i.e. no dereference necessary? Measure first.
 		static inline T* singleton;
 	};
 }

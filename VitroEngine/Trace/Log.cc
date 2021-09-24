@@ -20,7 +20,7 @@ namespace stdc = std::chrono;
 
 namespace vt
 {
-	export enum class LogChannel : unsigned char {
+	export enum class LogChannel : uint8_t {
 		App,
 		Asset,
 		Audio,

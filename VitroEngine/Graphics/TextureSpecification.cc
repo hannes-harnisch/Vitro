@@ -1,12 +1,14 @@
 ﻿module;
 #include <vector>
-export module vt.Graphics.TextureInfo;
+export module vt.Graphics.TextureSpecification;
 
+import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Core.Specification;
 
 namespace vt
 {
-	export enum class ImageFormat : unsigned char {
+	export enum class ImageFormat : uint8_t {
 		Unknown,
 		R32_G32_B32_A32_Float,
 		R32_G32_B32_A32_UInt,
@@ -77,7 +79,7 @@ namespace vt
 		Bc7_UNormSrgb,
 	};
 
-	export enum class ImageLayout : unsigned char {
+	export enum class ImageLayout : uint8_t {
 		Undefined,
 		General,
 		CopySource,
@@ -92,49 +94,50 @@ namespace vt
 		Presentable,
 	};
 
-	export struct TextureInfo
+	export struct TextureSpecification
 	{};
 
 	export constexpr unsigned MaxColorAttachments = 8;						 // limit imposed by D3D12 for pipelines
 	export constexpr unsigned MaxAttachments	  = MaxColorAttachments + 1; // All color attachments + 1 depth attachment
 
-	export enum class ImageLoadOp : unsigned char {
+	export enum class ImageLoadOp : uint8_t {
 		Load,
 		Clear,
 		Ignore,
 	};
 
-	export enum class ImageStoreOp : unsigned char {
+	export enum class ImageStoreOp : uint8_t {
 		Store,
 		Ignore,
 	};
 
-	export struct AttachmentInfo
-	{
-		ImageFormat	  format		 = {};
-		unsigned char sample_count	 = 1;
-		ImageLoadOp	  load_op		 = {};
-		ImageStoreOp  store_op		 = {};
-		ImageLayout	  initial_layout = {};
-		ImageLayout	  final_layout	 = {};
-	};
-
 	export struct AttachmentReference
 	{
-		unsigned char index		  = 0;
-		ImageLayout	  used_layout = {};
+		Explicit<uint8_t>	  index;
+		Explicit<ImageLayout> used_layout;
 	};
 
 	export struct Subpass
 	{
-		FixedList<AttachmentReference, MaxColorAttachments> output_refs;
+		Explicit<FixedList<AttachmentReference, MaxColorAttachments>> output_refs;
 	};
 
-	export struct RenderPassInfo
+	export struct AttachmentSpecification
 	{
-		FixedList<AttachmentInfo, MaxAttachments> attachments;
-		ImageLoadOp								  stencil_load_op  = {};
-		ImageStoreOp							  stencil_store_op = {};
-		std::vector<Subpass>					  subpasses;
+		Explicit<ImageFormat>  format;
+		uint8_t				   sample_count = 1;
+		Explicit<ImageLoadOp>  load_op;
+		Explicit<ImageStoreOp> store_op;
+		Explicit<ImageLayout>  initial_layout;
+		Explicit<ImageLayout>  final_layout;
+	};
+
+	export struct RenderPassSpecification
+	{
+		Explicit<FixedList<AttachmentSpecification, MaxAttachments>> attachments;
+
+		ImageLoadOp		   stencil_load_op	= ImageLoadOp::Ignore;
+		ImageStoreOp	   stencil_store_op = ImageStoreOp::Ignore;
+		ArrayView<Subpass> subpasses;
 	};
 }

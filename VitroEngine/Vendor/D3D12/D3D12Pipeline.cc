@@ -8,7 +8,7 @@ import vt.Core.FixedList;
 import vt.D3D12.Handle;
 import vt.D3D12.Sampler;
 import vt.Graphics.Device;
-import vt.Graphics.PipelineInfo;
+import vt.Graphics.PipelineSpecification;
 
 namespace vt::d3d12
 {
@@ -233,67 +233,67 @@ namespace vt::d3d12
 		};
 	}
 
-	export class D3D12RenderPipeline
+	export class D3D12Pipeline
 	{
 	public:
-		D3D12RenderPipeline(Device const& device, RenderPipelineInfo const& info)
+		D3D12Pipeline(Device const& device, RenderPipelineSpecification const& spec)
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MaxVertexAttributes> input_element_descs;
-			for(auto attrib : info.vertex_attributes)
+			for(auto attrib : spec.vertex_attributes)
 				input_element_descs.emplace_back(convert_vertex_attribute(attrib));
 
-			auto& pass = info.render_pass.d3d12;
+			auto& pass = spec.render_pass.d3d12;
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC desc {
-				.pRootSignature = info.root_signature.d3d12.ptr(),
+				.pRootSignature = spec.root_signature.d3d12.ptr(),
 				.VS {
-					.pShaderBytecode = info.vertex_shader_bytecode.data(),
-					.BytecodeLength	 = info.vertex_shader_bytecode.size(),
+					.pShaderBytecode = spec.vertex_shader_bytecode.data(),
+					.BytecodeLength	 = spec.vertex_shader_bytecode.size(),
 				},
 				.PS {
-					.pShaderBytecode = info.fragment_shader_bytecode.data(),
-					.BytecodeLength	 = info.fragment_shader_bytecode.size(),
+					.pShaderBytecode = spec.fragment_shader_bytecode.data(),
+					.BytecodeLength	 = spec.fragment_shader_bytecode.size(),
 				},
 				.BlendState {
-					.AlphaToCoverageEnable	= info.multisample.enable_alpha_to_coverage,
+					.AlphaToCoverageEnable	= spec.multisample.enable_alpha_to_coverage,
 					.IndependentBlendEnable = false,
 				},
-				.SampleMask = info.multisample.sample_mask,
+				.SampleMask = spec.multisample.sample_mask,
 				.RasterizerState {
-					.FillMode			   = convert_fill_mode(info.rasterizer.fill_mode),
-					.CullMode			   = convert_cull_mode(info.rasterizer.cull_mode),
-					.FrontCounterClockwise = info.rasterizer.front_face == FrontFace::CounterClockwise,
-					.DepthBias			   = info.rasterizer.depth_bias,
-					.DepthBiasClamp		   = info.rasterizer.depth_bias_clamp,
-					.SlopeScaledDepthBias  = info.rasterizer.depth_bias_slope,
-					.DepthClipEnable	   = info.rasterizer.enable_depth_clip,
-					.ForcedSampleCount	   = info.multisample.rasterizer_sample_count,
+					.FillMode			   = convert_fill_mode(spec.rasterizer.fill_mode),
+					.CullMode			   = convert_cull_mode(spec.rasterizer.cull_mode),
+					.FrontCounterClockwise = spec.rasterizer.front_face == FrontFace::CounterClockwise,
+					.DepthBias			   = spec.rasterizer.depth_bias,
+					.DepthBiasClamp		   = spec.rasterizer.depth_bias_clamp,
+					.SlopeScaledDepthBias  = spec.rasterizer.depth_bias_slope,
+					.DepthClipEnable	   = spec.rasterizer.enable_depth_clip,
+					.ForcedSampleCount	   = spec.multisample.rasterizer_sample_count,
 				},
 				.DepthStencilState {
-					.DepthEnable	  = info.depth_stencil.enable_depth_test,
-					.DepthWriteMask	  = info.depth_stencil.enable_depth_write ? D3D12_DEPTH_WRITE_MASK_ALL
+					.DepthEnable	  = spec.depth_stencil.enable_depth_test,
+					.DepthWriteMask	  = spec.depth_stencil.enable_depth_write ? D3D12_DEPTH_WRITE_MASK_ALL
 																			  : D3D12_DEPTH_WRITE_MASK_ZERO,
-					.DepthFunc		  = convert_compare_op(info.depth_stencil.depth_compare_op),
-					.StencilEnable	  = info.depth_stencil.enable_stencil_test,
-					.StencilReadMask  = info.depth_stencil.stencil_read_mask,
-					.StencilWriteMask = info.depth_stencil.stencil_write_mask,
-					.FrontFace		  = convert_stencil_op_state(info.depth_stencil.front),
-					.BackFace		  = convert_stencil_op_state(info.depth_stencil.back),
+					.DepthFunc		  = convert_compare_op(spec.depth_stencil.depth_compare_op),
+					.StencilEnable	  = spec.depth_stencil.enable_stencil_test,
+					.StencilReadMask  = spec.depth_stencil.stencil_read_mask,
+					.StencilWriteMask = spec.depth_stencil.stencil_write_mask,
+					.FrontFace		  = convert_stencil_op_state(spec.depth_stencil.front),
+					.BackFace		  = convert_stencil_op_state(spec.depth_stencil.back),
 				},
 				.InputLayout {
 					.pInputElementDescs = input_element_descs.data(),
 					.NumElements		= count(input_element_descs),
 				},
-				.IBStripCutValue	   = info.enable_primitive_restart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
+				.IBStripCutValue	   = spec.enable_primitive_restart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
 																	   : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
-				.PrimitiveTopologyType = categorize_primitive_topology(info.primitive_topology),
-				.NumRenderTargets	   = info.blend.attachment_states.count(),
+				.PrimitiveTopologyType = categorize_primitive_topology(spec.primitive_topology),
+				.NumRenderTargets	   = spec.blend.attachment_states.count(),
 				.DSVFormat			   = pass.uses_depth_stencil() ? pass.get_depth_stencil_format() : DXGI_FORMAT_UNKNOWN,
-				.SampleDesc			   = {.Count = info.multisample.sample_count},
+				.SampleDesc			   = {.Count = spec.multisample.sample_count},
 			};
 			unsigned i = 0;
-			for(auto state : info.blend.attachment_states)
-				desc.BlendState.RenderTarget[i++] = convert_color_attachment_blend_state(info.blend, state);
+			for(auto state : spec.blend.attachment_states)
+				desc.BlendState.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
 
 			i = 0;
 			for(auto attachment : pass.get_render_target_attachments())
@@ -306,25 +306,13 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 render pipeline.");
 		}
 
-		ID3D12PipelineState* ptr() const
-		{
-			return pipeline.get();
-		}
-
-	private:
-		ComUnique<ID3D12PipelineState> pipeline;
-	};
-
-	export class D3D12ComputePipeline
-	{
-	public:
-		D3D12ComputePipeline(Device const& device, ComputePipelineInfo const& info)
+		D3D12Pipeline(Device const& device, ComputePipelineSpecification const& spec)
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
-				.pRootSignature = info.root_signature.d3d12.ptr(),
+				.pRootSignature = spec.root_signature.d3d12.ptr(),
 				.CS {
-					.pShaderBytecode = info.compute_shader_bytecode.data(),
-					.BytecodeLength	 = info.compute_shader_bytecode.size(),
+					.pShaderBytecode = spec.compute_shader_bytecode.data(),
+					.BytecodeLength	 = spec.compute_shader_bytecode.size(),
 				},
 			};
 			ID3D12PipelineState* raw_pipeline;

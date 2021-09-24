@@ -4,7 +4,7 @@
 export module vt.Vulkan.Pipeline;
 
 import vt.Graphics.Device;
-import vt.Graphics.PipelineInfo;
+import vt.Graphics.PipelineSpecification;
 import vt.Vulkan.Driver;
 
 namespace vt::vulkan
@@ -12,7 +12,7 @@ namespace vt::vulkan
 	export class VulkanRenderPipeline
 	{
 	public:
-		VulkanRenderPipeline(Device const& device, RenderPipelineInfo const& info)
+		VulkanRenderPipeline(Device const& device, RenderPipelineSpecification const& spec)
 		{}
 
 		VkPipeline ptr() const
@@ -27,7 +27,7 @@ namespace vt::vulkan
 	export class VulkanComputePipeline
 	{
 	public:
-		VulkanComputePipeline(Device const& device, ComputePipelineInfo const& info)
+		VulkanComputePipeline(Device const& device, ComputePipelineSpecification const& spec)
 		{}
 
 		VkPipeline ptr() const

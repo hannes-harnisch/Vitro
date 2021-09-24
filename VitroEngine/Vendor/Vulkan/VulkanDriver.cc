@@ -143,20 +143,20 @@ namespace vt::vulkan
 			std::vector<Adapter> adapters;
 			for(auto physical_device : physical_devices)
 			{
-				VkPhysicalDeviceProperties device_info;
-				api->vkGetPhysicalDeviceProperties(physical_device, &device_info);
-				if(device_info.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU &&
-				   device_info.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+				VkPhysicalDeviceProperties device_prop;
+				api->vkGetPhysicalDeviceProperties(physical_device, &device_prop);
+				if(device_prop.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU &&
+				   device_prop.deviceType != VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 					continue;
 
-				VkPhysicalDeviceMemoryProperties mem_info;
-				api->vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_info);
+				VkPhysicalDeviceMemoryProperties mem_prop;
+				api->vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_prop);
 
 				size_t vram = 0;
-				for(auto heap : std::views::take(mem_info.memoryHeaps, mem_info.memoryHeapCount))
+				for(auto heap : std::views::take(mem_prop.memoryHeaps, mem_prop.memoryHeapCount))
 					vram += heap.size;
 
-				adapters.emplace_back(physical_device, device_info.deviceName, vram);
+				adapters.emplace_back(physical_device, device_prop.deviceName, vram);
 			}
 			return adapters;
 		}

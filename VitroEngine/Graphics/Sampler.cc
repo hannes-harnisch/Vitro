@@ -11,5 +11,11 @@ import vt.VT_GPU_API_MODULE_SECONDARY.Sampler;
 
 namespace vt
 {
-	export using Sampler = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Sampler)>;
+	using PlatformSampler = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Sampler)>;
+	export class Sampler : public PlatformSampler
+	{
+	public:
+		Sampler(Device const& device, SamplerSpecification const& spec) : PlatformSampler(device, spec)
+		{}
+	};
 }

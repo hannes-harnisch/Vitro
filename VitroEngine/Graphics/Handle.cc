@@ -13,12 +13,12 @@ import vt.VT_GPU_API_MODULE_SECONDARY.Handle;
 
 namespace vt
 {
-	using AdapterResource = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
-	export class Adapter : public AdapterResource
+	using PlatformAdapter = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Adapter)>;
+	export class Adapter : public PlatformAdapter
 	{
 	public:
-		Adapter(AdapterResource resource, std::string name, size_t vram) :
-			AdapterResource(std::move(resource)), name(std::move(name)), vram(vram)
+		Adapter(PlatformAdapter resource, std::string name, size_t vram) :
+			PlatformAdapter(std::move(resource)), name(std::move(name)), vram(vram)
 		{}
 
 		std::string_view get_name() const

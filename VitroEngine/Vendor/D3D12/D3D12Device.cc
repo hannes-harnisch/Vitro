@@ -8,6 +8,7 @@ export module vt.D3D12.Device;
 
 import vt.Core.Algorithm;
 import vt.Core.Array;
+import vt.D3D12.DescriptorAllocator;
 import vt.D3D12.Driver;
 import vt.D3D12.Handle;
 import vt.Graphics.DeviceBase;
@@ -51,18 +52,17 @@ namespace vt::d3d12
 			wait_for_fence_value(fence.get(), signal());
 		}
 
-		D3D12SyncValue submit(CSpan<CommandListHandle> cmd_lists, D3D12SyncValue gpu_sync)
+		D3D12SyncValue submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncValue> gpu_syncs)
 		{
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(cmd_lists.data());
 			queue->ExecuteCommandLists(count(cmd_lists), lists);
 			uint64_t new_fence_value = signal();
 
-			if(gpu_sync.wait_fence)
+			for(auto sync : gpu_syncs)
 			{
-				auto result = queue->Wait(gpu_sync.wait_fence, gpu_sync.wait_fence_value);
+				auto result = queue->Wait(sync.d3d12.wait_fence, sync.d3d12.wait_fence_value);
 				VT_ASSERT_RESULT(result, "Failed to insert queue wait for workload.");
 			}
-
 			return {
 				.wait_fence		  = fence.get(),
 				.wait_fence_value = new_fence_value,
@@ -95,7 +95,9 @@ namespace vt::d3d12
 			device(make_device(std::move(adapter))),
 			render_queue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
 			compute_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
-			copy_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY)
+			copy_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY),
+			rtv_allocator(device.get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, MaxRenderTargetViews),
+			dsv_allocator(device.get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, MaxDepthStencilViews)
 		{
 			D3D12_FEATURE_DATA_ROOT_SIGNATURE feature {
 				.HighestVersion = D3D_ROOT_SIGNATURE_VERSION_1_1,
@@ -107,22 +109,22 @@ namespace vt::d3d12
 					  "graphics drivers. If the problem persists, you may need to switch to a newer GPU.");
 		}
 
-		SyncValue submit_render_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync = {}) override
+		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
-			validate_command_lists(cmd_lists, D3D12_COMMAND_LIST_TYPE_DIRECT);
-			return {render_queue.submit(cmd_lists, gpu_sync.d3d12)};
+			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_DIRECT);
+			return {render_queue.submit(cmds, gpu_syncs)};
 		}
 
-		SyncValue submit_compute_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync = {}) override
+		SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
-			validate_command_lists(cmd_lists, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-			return {compute_queue.submit(cmd_lists, gpu_sync.d3d12)};
+			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_COMPUTE);
+			return {compute_queue.submit(cmds, gpu_syncs)};
 		}
 
-		SyncValue submit_copy_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync = {}) override
+		SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
-			validate_command_lists(cmd_lists, D3D12_COMMAND_LIST_TYPE_COPY);
-			return {copy_queue.submit(cmd_lists, gpu_sync.d3d12)};
+			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_COPY);
+			return {copy_queue.submit(cmds, gpu_syncs)};
 		}
 
 		void wait_for_workload(SyncValue cpu_sync) override
@@ -163,10 +165,15 @@ namespace vt::d3d12
 		}
 
 	private:
+		static constexpr unsigned MaxRenderTargetViews = 120;
+		static constexpr unsigned MaxDepthStencilViews = 40;
+
 		ComUnique<ID3D12Device4> device;
 		Queue					 render_queue;
 		Queue					 compute_queue;
 		Queue					 copy_queue;
+		CpuDescriptorAllocator	 rtv_allocator;
+		CpuDescriptorAllocator	 dsv_allocator;
 
 		static ComUnique<ID3D12Device4> make_device(Adapter adapter)
 		{
@@ -180,8 +187,8 @@ namespace vt::d3d12
 			return fresh_device;
 		}
 
-		static void validate_command_lists([[maybe_unused]] CSpan<CommandListHandle> cmd_lists,
-										   [[maybe_unused]] D3D12_COMMAND_LIST_TYPE	 type)
+		static void validate_command_lists([[maybe_unused]] ArrayView<CommandListHandle> cmd_lists,
+										   [[maybe_unused]] D3D12_COMMAND_LIST_TYPE		 type)
 		{
 #if VT_DEBUG
 			for(auto list : cmd_lists)

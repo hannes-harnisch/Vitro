@@ -18,7 +18,7 @@ import vt.Graphics.ForwardRenderer;
 import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
 import vt.Graphics.SwapChain;
-import vt.Graphics.TextureInfo;
+import vt.Graphics.TextureSpecification;
 
 namespace vt
 {
@@ -28,7 +28,7 @@ namespace vt
 		GraphicsSystem(std::string const& app_name, Version app_version, Version engine_version) :
 			driver(app_name, app_version, engine_version),
 			device(select_adapter()),
-			present_pass(device, fill_present_pass_info()),
+			present_pass(make_present_pass()),
 			renderer(device, present_pass)
 		{
 			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize,
@@ -46,7 +46,7 @@ namespace vt
 		RenderPass		present_pass;
 		ForwardRenderer renderer;
 
-		static RenderPassInfo fill_present_pass_info()
+		RenderPass make_present_pass() const
 		{
 			Subpass subpass {
 				.output_refs {
@@ -56,9 +56,9 @@ namespace vt
 					},
 				},
 			};
-			return RenderPassInfo {
+			RenderPassSpecification const pass_spec {
 				.attachments {
-					AttachmentInfo {
+					AttachmentSpecification {
 						.format			= ImageFormat::R8_G8_B8_A8_UNorm,
 						.load_op		= ImageLoadOp::Clear,
 						.store_op		= ImageStoreOp::Store,
@@ -66,8 +66,9 @@ namespace vt
 						.final_layout	= ImageLayout::Presentable,
 					},
 				},
-				.subpasses {subpass},
+				.subpasses = subpass,
 			};
+			return {device, pass_spec};
 		}
 
 		Adapter select_adapter()

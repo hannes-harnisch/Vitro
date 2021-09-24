@@ -13,15 +13,15 @@ import vt.Core.Rectangle;
 import vt.D3D12.Handle;
 import vt.D3D12.RenderPass;
 import vt.D3D12.RenderTarget;
+import vt.Graphics.AssetResource;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
-import vt.Graphics.PipelineInfo;
+import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
-import vt.Graphics.Resource;
 import vt.Graphics.RootSignature;
 
 namespace vt::d3d12
@@ -111,7 +111,7 @@ namespace vt::d3d12
 			cmd->SetComputeRootSignature(root_signature.d3d12.ptr());
 		}
 
-		void bind_compute_descriptors(CSpan<DescriptorSet> descriptor_sets)
+		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
 			for(auto& set : descriptor_sets)
 			{
@@ -119,7 +119,7 @@ namespace vt::d3d12
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						cmd->SetComputeRootDescriptorTable(index, set.d3d12.get_table_base_handle());
+						cmd->SetComputeRootDescriptorTable(index, set.d3d12.get_table_handle());
 						break;
 					case D3D12_ROOT_PARAMETER_TYPE_CBV:
 						cmd->SetComputeRootConstantBufferView(index, set.d3d12.get_gpu_address());
@@ -134,9 +134,11 @@ namespace vt::d3d12
 			}
 		}
 
-		void push_compute_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
+		void push_compute_constants(unsigned byte_offset, unsigned byte_size, void const* data)
 		{
-			cmd->SetComputeRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
+			VT_ASSERT(byte_offset % sizeof(DWORD) == 0, "Byte offset must be divisible by 4.");
+			VT_ASSERT(byte_size % sizeof(DWORD) == 0, "Byte size must be divisible by 4.");
+			cmd->SetComputeRoot32BitConstants(0, byte_size / sizeof(DWORD), data, byte_offset / sizeof(DWORD));
 		}
 
 		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
@@ -154,7 +156,7 @@ namespace vt::d3d12
 			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
 		}
 
-		void bind_render_descriptors(CSpan<DescriptorSet> descriptor_sets)
+		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
 			for(auto& set : descriptor_sets)
 			{
@@ -162,7 +164,7 @@ namespace vt::d3d12
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						cmd->SetGraphicsRootDescriptorTable(index, set.d3d12.get_table_base_handle());
+						cmd->SetGraphicsRootDescriptorTable(index, set.d3d12.get_table_handle());
 						break;
 					case D3D12_ROOT_PARAMETER_TYPE_CBV:
 						cmd->SetGraphicsRootConstantBufferView(index, set.d3d12.get_gpu_address());
@@ -177,14 +179,16 @@ namespace vt::d3d12
 			}
 		}
 
-		void push_render_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
+		void push_render_constants(unsigned byte_offset, unsigned byte_size, void const* data)
 		{
-			cmd->SetGraphicsRoot32BitConstants(0, size_in_32bit_units, data, offset_in_32bit_units);
+			VT_ASSERT(byte_offset % sizeof(DWORD) == 0, "Byte offset must be divisible by 4.");
+			VT_ASSERT(byte_size % sizeof(DWORD) == 0, "Byte size must be divisible by 4.");
+			cmd->SetGraphicsRoot32BitConstants(0, byte_size / sizeof(DWORD), data, byte_offset / sizeof(DWORD));
 		}
 
-		void begin_render_pass(RenderPass const&   render_pass,
-							   RenderTarget const& render_target,
-							   CSpan<ClearValue>   clear_values = {})
+		void begin_render_pass(RenderPass const&	 render_pass,
+							   RenderTarget const&	 render_target,
+							   ConstSpan<ClearValue> clear_values = {})
 		{
 			this->active_render_pass   = &render_pass.d3d12;
 			this->active_render_target = &render_target.d3d12;
@@ -294,7 +298,7 @@ namespace vt::d3d12
 #endif
 		}
 
-		void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<size_t> byte_offsets)
+		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
 			FixedList<D3D12_VERTEX_BUFFER_VIEW, MaxVertexAttributes> views(first_buffer);
 
@@ -324,7 +328,7 @@ namespace vt::d3d12
 			cmd->IASetPrimitiveTopology(convert_primitive_topology(topology));
 		}
 
-		void bind_viewports(CSpan<Viewport> viewports)
+		void bind_viewports(ArrayView<Viewport> viewports)
 		{
 			static_assert(std::is_layout_compatible_v<Viewport, D3D12_VIEWPORT>);
 			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(viewports.data());
@@ -332,7 +336,7 @@ namespace vt::d3d12
 			cmd->RSSetViewports(count(viewports), data);
 		}
 
-		void bind_scissors(CSpan<Rectangle> scissors)
+		void bind_scissors(ArrayView<Rectangle> scissors)
 		{
 			FixedList<D3D12_RECT, MaxAttachments> rects;
 			for(auto&& scissor : scissors)

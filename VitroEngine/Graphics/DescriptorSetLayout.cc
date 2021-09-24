@@ -3,7 +3,9 @@
 export module vt.Graphics.DescriptorSetLayout;
 
 import vt.Core.Array;
+import vt.Core.Specification;
 import vt.Graphics.DescriptorBinding;
+import vt.Graphics.Device;
 import vt.Graphics.DynamicGpuApi;
 import vt.VT_GPU_API_MODULE.DescriptorSetLayout;
 
@@ -13,9 +15,16 @@ import vt.VT_GPU_API_MODULE_SECONDARY.DescriptorSetLayout;
 
 namespace vt
 {
-	export using DescriptorSetLayout = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSetLayout)>;
+	using PlatformDescriptorSetLayout = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSetLayout)>;
+	export class DescriptorSetLayout : public PlatformDescriptorSetLayout
+	{
+	public:
+		DescriptorSetLayout(Device const& device, DescriptorSetLayoutSpecification const& spec) :
+			PlatformDescriptorSetLayout(device, spec)
+		{}
+	};
 
-	export enum class Filter : unsigned char {
+	export enum class Filter : uint8_t {
 		MinMagMipNearest,
 		MinMagNearestMipLinear,
 		MinNearestMagLinearMipNearest,
@@ -27,14 +36,14 @@ namespace vt
 		Anisotropic,
 	};
 
-	export enum class AddressMode : unsigned char {
+	export enum class AddressMode : uint8_t {
 		Repeat,
 		MirroredRepeat,
 		ClampToEdge,
 		ClampToBorder,
 	};
 
-	export enum class CompareOp : unsigned char {
+	export enum class CompareOp : uint8_t {
 		Never,
 		Less,
 		Equal,
@@ -45,39 +54,40 @@ namespace vt
 		Always,
 	};
 
-	export enum class BorderColor : unsigned char {
+	export enum class BorderColor : uint8_t {
 		Transparent,
 		OpaqueBlack,
 		OpaqueWhite,
 	};
 
-	export struct SamplerInfo
+	export struct SamplerSpecification
 	{
-		Filter		filter		   = {};
-		AddressMode u_address_mode = {};
-		AddressMode v_address_mode = {};
-		AddressMode w_address_mode = {};
-		bool		enable_compare = false;
-		float		mip_lod_bias   = 0;
-		unsigned	max_anisotropy = 0;
-		float		min_lod		   = 0;
-		float		max_lod		   = 0;
-		CompareOp	compare_op	   = {};
-		BorderColor border_color   = {};
+		Explicit<Filter>	  filter;
+		Explicit<AddressMode> u_address_mode;
+		Explicit<AddressMode> v_address_mode;
+		Explicit<AddressMode> w_address_mode;
+		bool				  enable_compare = false;
+		float				  mip_lod_bias	 = 0.0f;
+		unsigned			  max_anisotropy = 0;
+		float				  min_lod		 = 0.0f;
+		float				  max_lod		 = 0.0f;
+		CompareOp			  compare_op	 = CompareOp::Never;
+		BorderColor			  border_color	 = BorderColor::Transparent;
 	};
 
-	export struct StaticSamplerInfo
+	export struct StaticSamplerSpecification
 	{
-		unsigned char slot		 = 0;
-		ShaderStage	  visibility = ShaderStage::All;
-		SamplerInfo	  sampler_info;
+		Explicit<uint8_t>	 shader_register;
+		uint8_t				 space		= 0;
+		ShaderStage			 visibility = ShaderStage::All;
+		SamplerSpecification sampler_spec;
 	};
 
-	export struct RootSignatureInfo
+	export struct RootSignatureSpecification
 	{
-		unsigned char			   push_constants_32bit_unit_count;
-		ShaderStage				   push_constants_visibility;
-		CSpan<DescriptorSetLayout> layouts;
-		CSpan<StaticSamplerInfo>   static_samplers;
+		Positive<uint8_t>					  push_constants_byte_size;
+		ShaderStage							  push_constants_visibility = ShaderStage::All;
+		ConstSpan<DescriptorSetLayout>		  layouts;
+		ConstSpan<StaticSamplerSpecification> static_sampler_specs;
 	};
 }

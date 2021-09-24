@@ -3,6 +3,7 @@
 export module vt.Graphics.CommandList;
 
 import vt.Graphics.CommandListBase;
+import vt.Graphics.Device;
 import vt.Graphics.DynamicGpuApi;
 import vt.VT_GPU_API_MODULE.CommandList;
 
@@ -12,12 +13,30 @@ import vt.VT_GPU_API_MODULE_SECONDARY.CommandList;
 
 namespace vt
 {
-	export using CopyCommandList = InterfaceVariant<CopyCommandListBase,
-													VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Copy>)>;
+	using PlatformCopyCommandList = InterfaceVariant<CopyCommandListBase,
+													 VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Copy>)>;
+	export class CopyCommandList : public PlatformCopyCommandList
+	{
+	public:
+		CopyCommandList(Device const& device) : PlatformCopyCommandList(device)
+		{}
+	};
 
-	export using ComputeCommandList = InterfaceVariant<ComputeCommandListBase,
-													   VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Compute>)>;
+	using PlatformComputeCommandList = InterfaceVariant<ComputeCommandListBase,
+														VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Compute>)>;
+	export class ComputeCommandList : public PlatformComputeCommandList
+	{
+	public:
+		ComputeCommandList(Device const& device) : PlatformComputeCommandList(device)
+		{}
+	};
 
-	export using RenderCommandList = InterfaceVariant<RenderCommandListBase,
-													  VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Render>)>;
+	using PlatformRenderCommandList = InterfaceVariant<RenderCommandListBase,
+													   VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Render>)>;
+	export class RenderCommandList : public PlatformRenderCommandList
+	{
+	public:
+		RenderCommandList(Device const& device) : PlatformRenderCommandList(device)
+		{}
+	};
 }

@@ -37,13 +37,13 @@ namespace vt::vulkan
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan queue family properties.");
 		}
 
-		SyncValue submit_render_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync) override
+		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{}
 
-		SyncValue submit_compute_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync) override
+		SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{}
 
-		SyncValue submit_copy_commands(CSpan<CommandListHandle> cmd_lists, SyncValue gpu_sync) override
+		SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{}
 
 		void wait_for_workload(SyncValue cpu_sync) override

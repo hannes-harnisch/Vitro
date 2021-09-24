@@ -84,12 +84,12 @@ namespace vt
 		static constexpr Float3 DefaultUp	   = {0, 1, 0};
 		static constexpr Float3 DefaultForward = {0, 0, 1};
 
-		Float4x4 projection		 = {};
-		Float4x4 view_projection = {};
-		Float3	 position		 = {};
-		Float3	 right			 = DefaultRight;
-		Float3	 up				 = DefaultUp;
-		Float3	 forward		 = DefaultForward;
+		Float4x4 projection;
+		Float4x4 view_projection;
+		Float3	 position;
+		Float3	 right	 = DefaultRight;
+		Float3	 up		 = DefaultUp;
+		Float3	 forward = DefaultForward;
 
 		void update_view()
 		{

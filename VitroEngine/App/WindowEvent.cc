@@ -9,7 +9,7 @@ import vt.Core.Vector;
 
 namespace vt
 {
-	export enum class KeyCode : unsigned char {
+	export enum class KeyCode : uint8_t {
 		None,
 		Escape,
 		F1,
@@ -146,7 +146,7 @@ namespace vt
 		LaunchApp2,
 	};
 
-	export enum class MouseCode : unsigned char {
+	export enum class MouseCode : uint8_t {
 		None,
 		Mouse1,
 		Mouse2,

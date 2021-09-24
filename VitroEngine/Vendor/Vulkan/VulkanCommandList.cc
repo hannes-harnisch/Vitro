@@ -10,15 +10,15 @@ import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
+import vt.Graphics.AssetResource;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
-import vt.Graphics.PipelineInfo;
+import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
-import vt.Graphics.Resource;
 import vt.Graphics.RootSignature;
 import vt.Vulkan.Driver;
 
@@ -32,13 +32,13 @@ namespace vt::vulkan
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		VkPipelineLayout current_compute_layout = nullptr;
+		VkPipelineLayout bound_compute_layout = nullptr;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		VkPipelineLayout current_render_layout = nullptr;
+		VkPipelineLayout bound_render_layout = nullptr;
 	};
 
 	export template<CommandType Type>
@@ -107,20 +107,18 @@ namespace vt::vulkan
 
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
-			this->current_compute_layout = root_signature.vulkan.ptr();
+			this->bound_compute_layout = root_signature.vulkan.ptr();
 		}
 
-		void bind_compute_descriptors(CSpan<DescriptorSet> descriptor_sets)
+		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, this->current_compute_layout, 0,
+			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, this->bound_compute_layout, 0,
 										 count(descriptor_sets), descriptor_sets.data(), 0, nullptr);
 		}
 
-		void push_compute_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
+		void push_compute_constants(unsigned byte_offset, unsigned byte_size, void const* data)
 		{
-			unsigned offset = offset_in_32bit_units * BytesPerPushConstantsUnit;
-			unsigned size	= size_in_32bit_units * BytesPerPushConstantsUnit;
-			api->vkCmdPushConstants(cmd, this->current_compute_layout, VK_SHADER_STAGE_COMPUTE_BIT, offset, size, data);
+			api->vkCmdPushConstants(cmd, this->bound_compute_layout, VK_SHADER_STAGE_COMPUTE_BIT, byte_offset, byte_size, data);
 		}
 
 		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
@@ -135,25 +133,23 @@ namespace vt::vulkan
 
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
-			this->current_render_layout = root_signature.vulkan.ptr();
+			this->bound_render_layout = root_signature.vulkan.ptr();
 		}
 
-		void bind_render_descriptors(CSpan<DescriptorSet> descriptor_sets)
+		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->current_render_layout, 0,
+			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->bound_render_layout, 0,
 										 count(descriptor_sets), descriptor_sets.data(), 0, nullptr);
 		}
 
-		void push_render_constants(unsigned offset_in_32bit_units, unsigned size_in_32bit_units, void const* data)
+		void push_render_constants(unsigned byte_offset, unsigned byte_size, void const* data)
 		{
-			unsigned offset = offset_in_32bit_units * BytesPerPushConstantsUnit;
-			unsigned size	= size_in_32bit_units * BytesPerPushConstantsUnit;
-			api->vkCmdPushConstants(cmd, this->current_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS, offset, size, data);
+			api->vkCmdPushConstants(cmd, this->bound_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS, byte_offset, byte_size, data);
 		}
 
-		void begin_render_pass(RenderPass const&   render_pass,
-							   RenderTarget const& render_target,
-							   CSpan<ClearValue>   clear_values = {})
+		void begin_render_pass(RenderPass const&	 render_pass,
+							   RenderTarget const&	 render_target,
+							   ConstSpan<ClearValue> clear_values = {})
 		{
 			VkRenderPassBeginInfo const begin_info {
 				.sType		 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
@@ -185,7 +181,7 @@ namespace vt::vulkan
 			api->vkCmdEndRenderPass(cmd);
 		}
 
-		void bind_vertex_buffers(unsigned first_buffer, CSpan<Buffer> buffers, CSpan<size_t> byte_offsets)
+		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
 			FixedList<VkBuffer, MaxVertexAttributes> handles(first_buffer);
 			for(auto& buffer : std::views::take(buffers, first_buffer))
@@ -205,7 +201,7 @@ namespace vt::vulkan
 			// Do nothing, as Vulkan covers binding the primitive topology when binding a pipeline.
 		}
 
-		void bind_viewports(CSpan<Viewport> viewports)
+		void bind_viewports(ArrayView<Viewport> viewports)
 		{
 			static_assert(std::is_layout_compatible_v<Viewport, VkViewport>);
 			auto data = reinterpret_cast<VkViewport const*>(viewports.data());
@@ -213,7 +209,7 @@ namespace vt::vulkan
 			api->vkCmdSetViewport(cmd, 0, count(viewports), data);
 		}
 
-		void bind_scissors(CSpan<Rectangle> scissors)
+		void bind_scissors(ArrayView<Rectangle> scissors)
 		{
 			static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>);
 			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());

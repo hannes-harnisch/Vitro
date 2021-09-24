@@ -5,7 +5,7 @@ export module vt.D3D12.Texture;
 
 import vt.D3D12.Handle;
 import vt.Graphics.Device;
-import vt.Graphics.TextureInfo;
+import vt.Graphics.TextureSpecification;
 
 namespace vt::d3d12
 {

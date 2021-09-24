@@ -58,7 +58,7 @@
 		}
 
 	#define VT_ASSERT_PURE(condition, message)	 VT_ASSERT(condition, message)
-	#define VT_ASSERT_RESULT(condition, message) VT_ASSERT(static_cast<int>(condition) >= 0, message)
+	#define VT_ASSERT_RESULT(condition, message) VT_ASSERT((condition) >= 0, message)
 
 	#define VT_ENSURE(condition, message, ...)                                                                                 \
 		{                                                                                                                      \
@@ -69,7 +69,7 @@
 			}                                                                                                                  \
 		}
 
-	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE(static_cast<int>(condition) >= 0, message)
+	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE((condition) >= 0, message)
 
 #else
 
@@ -85,7 +85,7 @@
 				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
 		}
 
-	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE(static_cast<int>(condition) >= 0, message)
+	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE((condition) >= 0, message)
 
 #endif
 

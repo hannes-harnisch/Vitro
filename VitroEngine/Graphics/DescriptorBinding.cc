@@ -1,11 +1,13 @@
-﻿export module vt.Graphics.DescriptorBinding;
+﻿module;
+#include <cstdint>
+export module vt.Graphics.DescriptorBinding;
 
 import vt.Core.Array;
+import vt.Core.Specification;
 
 namespace vt
 {
-	export enum class DescriptorType : unsigned char {
-		None,
+	export enum class DescriptorType : uint8_t {
 		Texture,
 		ReadWriteTexture,
 		Buffer,
@@ -16,13 +18,13 @@ namespace vt
 		DynamicSampler
 	};
 
-	export struct DescriptorPoolSize
+	export struct DescriptorCount
 	{
-		unsigned	   descriptor_count = 0;
-		DescriptorType type				= {};
+		Positive<unsigned>		 descriptor_count;
+		Explicit<DescriptorType> type;
 	};
 
-	export enum class ShaderStage : unsigned char {
+	export enum class ShaderStage : uint8_t {
 		All,
 		Vertex,
 		Hull,
@@ -42,16 +44,15 @@ namespace vt
 
 	export struct DescriptorSetBinding
 	{
-		unsigned char  shader_register = 0;
-		unsigned char  space		   = 0;
-		DescriptorType type			   = DescriptorType::None;
-		unsigned	   count		   = 1;
+		Explicit<uint8_t>		 shader_register;
+		uint8_t					 space = 0;
+		Explicit<DescriptorType> type;
+		Positive<unsigned>		 count;
 	};
 
-	export struct DescriptorSetLayoutInfo
+	export struct DescriptorSetLayoutSpecification
 	{
-		CSpan<DescriptorSetBinding> bindings;
-		ShaderStage					visibility		 = ShaderStage::All;
-		unsigned char				update_frequency = 0;
+		ArrayView<DescriptorSetBinding> bindings;
+		ShaderStage						visibility = ShaderStage::All;
 	};
 }

@@ -8,7 +8,7 @@ import vt.Core.Singleton;
 
 namespace vt
 {
-	export enum class GpuApi : unsigned char {
+	export enum class GpuApi : uint8_t {
 		VT_GPU_API_MODULE,
 #if VT_DYNAMIC_GPU_API
 		VT_GPU_API_MODULE_SECONDARY,

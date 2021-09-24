@@ -5,6 +5,7 @@
 #include <atomic>
 #include <memory>
 #include <span>
+#include <stdexcept>
 #include <vector>
 export module vt.D3D12.DescriptorSetLayout;
 
@@ -59,17 +60,16 @@ namespace vt::d3d12
 	export class D3D12DescriptorSetLayout
 	{
 	public:
-		D3D12DescriptorSetLayout(Device const&, DescriptorSetLayoutInfo const& info) :
-			update_frequency(info.update_frequency),
-			parameter_type(determine_parameter_type(info.bindings)),
-			visibility(convert_shader_stage(info.visibility))
+		// Unused parameter is kept for compatibility with APIs where descriptor set layouts are first-class device-created
+		// objects.
+		D3D12DescriptorSetLayout(Device const&, DescriptorSetLayoutSpecification const& spec) :
+			parameter_type(determine_parameter_type(spec.bindings)), visibility(convert_shader_stage(spec.visibility))
 		{
 			if(holds_descriptor_table())
 			{
 				std::construct_at(&table_ranges);
-				table_ranges.reserve(info.bindings.size());
-
-				for(auto binding : info.bindings)
+				table_ranges.reserve(spec.bindings.size());
+				for(auto binding : spec.bindings)
 					table_ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
 						.RangeType						   = convert_descriptor_type(binding.type),
 						.NumDescriptors					   = binding.count,
@@ -81,7 +81,7 @@ namespace vt::d3d12
 			}
 			else
 			{
-				auto binding = info.bindings.front();
+				auto binding = spec.bindings.front();
 				std::construct_at(&root_descriptor, D3D12_ROOT_DESCRIPTOR1 {
 														.ShaderRegister = binding.shader_register,
 														.RegisterSpace	= binding.space,
@@ -91,7 +91,7 @@ namespace vt::d3d12
 		}
 
 		D3D12DescriptorSetLayout(D3D12DescriptorSetLayout&& that) noexcept :
-			update_frequency(that.update_frequency), parameter_type(that.parameter_type), visibility(that.visibility)
+			id(that.id), parameter_type(that.parameter_type), visibility(that.visibility)
 		{
 			if(holds_descriptor_table())
 				std::construct_at(&table_ranges, std::move(that.table_ranges));
@@ -107,9 +107,9 @@ namespace vt::d3d12
 
 		D3D12DescriptorSetLayout& operator=(D3D12DescriptorSetLayout&& that) noexcept
 		{
-			update_frequency = that.update_frequency;
-			parameter_type	 = that.parameter_type;
-			visibility		 = that.visibility;
+			id			   = that.id;
+			parameter_type = that.parameter_type;
+			visibility	   = that.visibility;
 
 			if(holds_descriptor_table())
 				table_ranges = std::move(that.table_ranges);
@@ -151,16 +151,10 @@ namespace vt::d3d12
 				return root_descriptor.RegisterSpace;
 		}
 
-		unsigned char get_update_frequency() const
-		{
-			return update_frequency;
-		}
-
 	private:
 		static inline std::atomic_uint id_counter = 0;
 
 		unsigned				  id = id_counter++;
-		unsigned char			  update_frequency;
 		D3D12_ROOT_PARAMETER_TYPE parameter_type : sizeof(char); // TODO: Replace with enum reflection
 		D3D12_SHADER_VISIBILITY	  visibility : sizeof(char);
 		union
@@ -169,13 +163,13 @@ namespace vt::d3d12
 			D3D12_ROOT_DESCRIPTOR1				 root_descriptor;
 		};
 
-		static D3D12_ROOT_PARAMETER_TYPE determine_parameter_type(CSpan<DescriptorSetBinding> bindings)
+		static D3D12_ROOT_PARAMETER_TYPE determine_parameter_type(ArrayView<DescriptorSetBinding> bindings)
 		{
-			if(bindings.size() != 1)
+			if(bindings.size() > 1)
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
 			auto binding = bindings.front();
-			if(binding.count != 1)
+			if(binding.count > 1)
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
 			using enum DescriptorType;

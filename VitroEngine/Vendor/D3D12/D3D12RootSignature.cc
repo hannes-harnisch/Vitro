@@ -2,8 +2,7 @@
 #include "Core/Macros.hh"
 #include "D3D12API.hh"
 
-#include <algorithm>
-#include <ranges>
+#include <format>
 #include <stdexcept>
 #include <unordered_map>
 #include <vector>
@@ -18,16 +17,15 @@ import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
 
-namespace stdv = std::views;
-
 namespace vt::d3d12
 {
 	export class D3D12RootSignature
 	{
 	public:
-		D3D12RootSignature(Device const& device, RootSignatureInfo const& info)
+		D3D12RootSignature(Device const& device, RootSignatureSpecification const& spec)
 		{
-			validate_unique_update_frequencies(info);
+			if(spec.push_constants_byte_size % sizeof(DWORD) != 0)
+				throw std::invalid_argument(std::format("Push constants byte size must be divisible by {}.", sizeof(DWORD)));
 
 			std::vector<D3D12_ROOT_PARAMETER1> parameters;
 			parameters.reserve(D3D12_MAX_ROOT_COST);
@@ -36,32 +34,22 @@ namespace vt::d3d12
 				.Constants {
 					.ShaderRegister = 0,
 					.RegisterSpace	= 0,
-					.Num32BitValues = info.push_constants_32bit_unit_count,
+					.Num32BitValues = static_cast<UINT>(spec.push_constants_byte_size / sizeof(DWORD)),
 				},
-				.ShaderVisibility = convert_shader_stage(info.push_constants_visibility),
+				.ShaderVisibility = convert_shader_stage(spec.push_constants_visibility),
 			});
 
-			auto layout_freqs = stdv::transform(info.layouts, [](DescriptorSetLayout const& layout) {
-				return &layout.d3d12;
-			});
-			std::vector<D3D12DescriptorSetLayout const*> layouts(layout_freqs.begin(), layout_freqs.end());
-			std::sort(layouts.begin(), layouts.end(),
-					  [](D3D12DescriptorSetLayout const* left, D3D12DescriptorSetLayout const* right) {
-						  return left->get_update_frequency() < right->get_update_frequency();
-					  });
-
-			unsigned index = 0;
-			for(auto& layout : layouts)
+			unsigned index = 1;
+			for(auto& layout : spec.layouts)
 			{
-				parameters.emplace_back(layout->get_root_parameter());
-				parameter_indices.try_emplace(layout->get_id(), index++);
+				parameters.emplace_back(layout.d3d12.get_root_parameter());
+				parameter_indices.try_emplace(layout.d3d12.get_id(), index++);
 			}
 
-			auto static_sampler_infos = stdv::transform(info.static_samplers, [](StaticSamplerInfo const& static_sampler) {
-				D3D12Sampler sampler(static_sampler.sampler_info);
-				return sampler.get_static_sampler_desc(static_sampler.slot, 0, static_sampler.visibility);
-			});
-			std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers(static_sampler_infos.begin(), static_sampler_infos.end());
+			std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
+			static_samplers.reserve(spec.static_sampler_specs.size());
+			for(auto& static_sampler_spec : spec.static_sampler_specs)
+				static_samplers.emplace_back(convert_static_sampler_spec(static_sampler_spec));
 
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC const desc {
 				.Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
@@ -100,28 +88,5 @@ namespace vt::d3d12
 	private:
 		ComUnique<ID3D12RootSignature>		   root_signature;
 		std::unordered_map<unsigned, unsigned> parameter_indices;
-
-		static void validate_unique_update_frequencies(RootSignatureInfo const& info)
-		{
-			std::vector<unsigned char> freqs;
-			freqs.reserve(D3D12_MAX_ROOT_COST);
-
-			auto layout_freqs = stdv::transform(info.layouts, [](DescriptorSetLayout const& layout) {
-				return layout.d3d12.get_update_frequency();
-			});
-			freqs.insert(freqs.end(), layout_freqs.begin(), layout_freqs.end());
-
-			std::sort(freqs.begin(), freqs.end());
-			bool out_of_range = std::any_of(freqs.begin(), freqs.end(), [](unsigned char freq) {
-				return freq == 0 || freq >= D3D12_MAX_ROOT_COST;
-			});
-			if(out_of_range)
-				throw std::invalid_argument("Root signature parameters must have update frequencies between 1 and 64 "
-											"(D3D12_MAX_ROOT_COST).");
-
-			auto adjacent = std::adjacent_find(freqs.begin(), freqs.end());
-			if(adjacent != freqs.end())
-				throw std::invalid_argument("Root signature parameters must not contain duplicate update frequencies.");
-		}
 	};
 }

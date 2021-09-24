@@ -4,7 +4,7 @@ export module vt.Trace.LogLevel;
 
 namespace vt
 {
-	export enum class LogLevel : unsigned char {
+	export enum class LogLevel : uint8_t {
 		Verbose,
 		Debug,
 		Info,

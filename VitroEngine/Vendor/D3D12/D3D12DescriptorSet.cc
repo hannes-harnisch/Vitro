@@ -21,12 +21,12 @@ namespace vt::d3d12
 			return param_type;
 		}
 
-		D3D12_GPU_DESCRIPTOR_HANDLE get_table_base_handle() const
+		D3D12_GPU_DESCRIPTOR_HANDLE get_table_handle() const
 		{
 			VT_ASSERT(param_type == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
 					  "This method is only valid for descriptor sets holding a D3D12 descriptor table.");
 
-			return table_base_handle;
+			return table_handle;
 		}
 
 		D3D12_GPU_VIRTUAL_ADDRESS get_gpu_address() const
@@ -35,16 +35,16 @@ namespace vt::d3d12
 						  param_type == D3D12_ROOT_PARAMETER_TYPE_UAV,
 					  "This method is only valid for descriptor sets holding a CBV, SRV or UAV descriptor.");
 
-			return root_descriptor_resource_address;
+			return root_descriptor_gpu_address;
 		}
 
 	private:
-		unsigned char			  param_index;
+		uint8_t					  param_index;
 		D3D12_ROOT_PARAMETER_TYPE param_type : sizeof(char); // Fits into one byte, no need to waste 3 more.
 		union
 		{
-			D3D12_GPU_DESCRIPTOR_HANDLE table_base_handle;
-			D3D12_GPU_VIRTUAL_ADDRESS	root_descriptor_resource_address;
+			D3D12_GPU_DESCRIPTOR_HANDLE table_handle;
+			D3D12_GPU_VIRTUAL_ADDRESS	root_descriptor_gpu_address;
 		};
 	};
 }
