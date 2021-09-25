@@ -1,7 +1,7 @@
 output_dir				= '%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}'
 
 workspace 'Vitro'
-	startproject		'VitroEngine'
+	startproject		'Vitro'
 	architecture		'x64'
 	configurations		{ 'Debug', 'Development', 'Release' }
 	platforms			{ 'D3D12', 'Vulkan', 'D3D12+Vulkan' }
@@ -14,16 +14,16 @@ workspace 'Vitro'
 	floatingpoint		'Fast'
 	toolset				'msc'
 	files				{
-							'%{prj.name}/**.cc',
-							'%{prj.name}/**.hh',
+							'%{prj.name}/**.cpp',
+							'%{prj.name}/**.hpp',
 							'%{prj.name}/**.hlsl'
 						}
-	removefiles			'**/Vendor/**'
+	removefiles			'**/Platform**/'
 	debugdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
 	targetdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
 	objdir				('.bin_int/' .. output_dir .. '/%{prj.name}')
 
-	filter 'files:**.cc'
+	filter 'files:**.cpp'
 		compileas		'Module'
 
 	filter 'files:**.hlsl'
@@ -57,7 +57,7 @@ workspace 'Vitro'
 		runtime			'Release'
 		flags			'LinkTimeOptimization'
 
-project 'VitroEngine'
+project 'Vitro'
 	location			'%{prj.name}'
 	kind				'ConsoleApp'
 	includedirs			{ '%{prj.name}', 'Dependencies' }
@@ -69,7 +69,7 @@ project 'VitroEngine'
 
 	filter 'system:Windows'
 		systemversion	'latest'
-		files			'%{prj.name}/**/Windows/**'
+		files			'%{prj.name}/**/PlatformWindows/**'
 		defines			{
 							'VT_SYSTEM_MODULE=Windows',
 							'VT_SYSTEM_NAME=windows',
@@ -77,7 +77,7 @@ project 'VitroEngine'
 
 	filter 'platforms:D3D12 or D3D12+Vulkan'
 		links			{ 'd3d12', 'dxgi', 'D3D12MemoryAllocator' }
-		files			'%{prj.name}/**/D3D12/**'
+		files			'%{prj.name}/**/PlatformD3D12/**'
 
 	filter 'platforms:D3D12'
 		defines			{
@@ -86,7 +86,7 @@ project 'VitroEngine'
 						}
 
 	filter 'platforms:Vulkan or D3D12+Vulkan'
-		files			'%{prj.name}/**/Vulkan/**'
+		files			'%{prj.name}/**/PlatformVulkan/**'
 		includedirs		'C:/VulkanSDK/**/Include'
 
 	filter 'platforms:Vulkan'
