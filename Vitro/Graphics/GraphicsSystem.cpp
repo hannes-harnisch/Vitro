@@ -2,6 +2,8 @@
 #include "Core/Macros.hpp"
 
 #include <algorithm>
+#include <memory>
+#include <span>
 #include <string>
 #include <unordered_map>
 export module vt.Graphics.GraphicsSystem;
@@ -15,6 +17,7 @@ import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.ForwardRenderer;
+import vt.Graphics.RendererBase;
 import vt.Graphics.Handle;
 import vt.Graphics.SwapChain;
 
@@ -24,7 +27,9 @@ namespace vt
 	{
 	public:
 		GraphicsSystem(std::string const& app_name, Version app_version, Version engine_version) :
-			driver(app_name, app_version, engine_version), device(select_adapter()), renderer(device)
+			driver(app_name, app_version, engine_version),
+			device(select_adapter()),
+			renderer(std::make_unique<ForwardRenderer>(device))
 		{
 			register_event_handlers<&GraphicsSystem::on_paint, &GraphicsSystem::on_window_resize,
 									&GraphicsSystem::on_window_object_construct,
@@ -35,10 +40,10 @@ namespace vt
 	private:
 		std::unordered_map<Window const*, SwapChain> swap_chains;
 
-		DynamicGpuApi	dynamic_gpu_api;
-		Driver			driver;
-		Device			device;
-		ForwardRenderer renderer;
+		DynamicGpuApi				  dynamic_gpu_api;
+		Driver						  driver;
+		Device						  device;
+		std::unique_ptr<RendererBase> renderer;
 
 		Adapter select_adapter()
 		{
@@ -53,38 +58,45 @@ namespace vt
 		void on_paint(WindowPaintEvent& event)
 		{
 			auto& swap_chain = swap_chains.at(&event.window);
-			renderer.draw(swap_chain);
+			renderer->draw(swap_chain);
 		}
 
 		void on_window_resize(WindowSizeEvent& event)
 		{
-			swap_chains.find(&event.window)->second->resize(event);
+			static bool is_first_resize = true;
+			if(is_first_resize)
+			{
+				is_first_resize = false;
+				return;
+			}
+			if(event.size.zero())
+				return;
+
+			auto& swap_chain = swap_chains.find(&event.window)->second;
+			swap_chain->resize(event);
+			renderer->recreate_swap_chain_render_targets(swap_chain);
 		}
 
-		void on_window_object_construct(ObjectConstructEvent<Window>& event)
+		void on_window_object_construct(ObjectConstructEvent<Window>& window_construct)
 		{
-			emplace_swap_chain(event.object);
-		}
-
-		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& event)
-		{
-			replace_key_to_swap_chain(event.moved, event.constructed);
-		}
-
-		void on_window_object_destroy(ObjectDestroyEvent<Window>& event)
-		{
-			remove_swap_chain(event.object);
-		}
-
-		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& event)
-		{
-			remove_swap_chain(event.left);
-			replace_key_to_swap_chain(event.right, event.left);
-		}
-
-		void emplace_swap_chain(Window& window)
-		{
+			auto& window = window_construct.object;
 			swap_chains.try_emplace(&window, driver, device, window);
+		}
+
+		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_move)
+		{
+			replace_key_for_swap_chain(window_move.moved, window_move.constructed);
+		}
+
+		void on_window_object_destroy(ObjectDestroyEvent<Window>& window_destroy)
+		{
+			remove_swap_chain(window_destroy.object);
+		}
+
+		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& window_move)
+		{
+			remove_swap_chain(window_move.left);
+			replace_key_for_swap_chain(window_move.right, window_move.left);
 		}
 
 		void remove_swap_chain(Window const& window)
@@ -93,7 +105,7 @@ namespace vt
 			swap_chains.erase(&window);
 		}
 
-		void replace_key_to_swap_chain(Window const& old_window, Window const& new_window)
+		void replace_key_for_swap_chain(Window const& old_window, Window const& new_window)
 		{
 			auto node  = swap_chains.extract(&old_window);
 			node.key() = &new_window;

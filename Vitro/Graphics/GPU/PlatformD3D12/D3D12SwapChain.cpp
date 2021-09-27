@@ -19,7 +19,7 @@ namespace vt::d3d12
 	{
 	public:
 		D3D12SwapChain(Driver const& driver, Device& in_device, Window& window, uint8_t buffer_count) :
-			device(in_device.d3d12),
+			device(&in_device.d3d12),
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
 			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0)
@@ -41,7 +41,7 @@ namespace vt::d3d12
 				.Flags		 = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
 			IDXGISwapChain1* raw_swap_chain_prototype;
-			auto result = factory->CreateSwapChainForHwnd(device.get_render_queue_ptr(), hwnd, &desc, nullptr, nullptr,
+			auto result = factory->CreateSwapChainForHwnd(device->get_render_queue_ptr(), hwnd, &desc, nullptr, nullptr,
 														  &raw_swap_chain_prototype);
 			ComUnique<IDXGISwapChain1> swap_chain_prototype(raw_swap_chain_prototype);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 proxy swap chain.");
@@ -75,10 +75,7 @@ namespace vt::d3d12
 
 		void resize(WindowSizeEvent const& event) override
 		{
-			if(event.size.zero())
-				return;
-
-			device.flush_render_queue();
+			device->flush_render_queue();
 			back_buffers.clear();
 
 			unsigned flags = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
@@ -109,7 +106,7 @@ namespace vt::d3d12
 	private:
 		static constexpr DXGI_FORMAT DesiredFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-		D3D12Device&			   device;
+		D3D12Device*			   device;
 		uint8_t					   buffer_count;
 		bool					   tearing_supported;
 		UINT					   present_flags;

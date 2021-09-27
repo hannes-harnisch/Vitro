@@ -61,6 +61,9 @@ namespace vt
 	public:
 		using Base::Base;
 
+		ConstSpan() // TODO: remove after MSVC linker bug fix
+		{}
+
 		ConstSpan(T const& object) noexcept : Base(&object, 1)
 		{}
 

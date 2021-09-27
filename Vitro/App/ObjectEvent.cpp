@@ -8,6 +8,11 @@ import vt.App.EventSystem;
 
 namespace vt
 {
+	// Inherit from this type using CRTP in order to generate events for when an object is constructed, destroyed, copied or
+	// moved, such as in order to track all instances of it. Ensure it is the last base class, that T has no additional data
+	// members and that T has no relied-on side effects in its special member functions (not counting those of its base
+	// classes), because those can only run after the synchronous event dispatch. Only then will calls to all member functions
+	// through the events' reference members be safe.
 	export template<typename T> class ObjectEventSentinel
 	{
 	protected:

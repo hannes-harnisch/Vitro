@@ -10,7 +10,6 @@ import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
-import vt.Graphics.DeviceBase;
 import vt.Graphics.FrameContext;
 import vt.Graphics.Handle;
 import vt.Graphics.RendererBase;
@@ -25,14 +24,19 @@ namespace vt
 	export class ForwardRenderer : public RendererBase
 	{
 	public:
-		ForwardRenderer(Device& device) : device(device), present_pass(make_present_pass()), context(FramesBuffered, device)
+		ForwardRenderer(Device& device) :
+			RendererBase(device), present_pass(make_present_pass()), context(FramesBuffered, device)
 		{
-			make_swap_chain_targets(swap_chain);
+			RenderTargetSpecification const render_target_spec {
+				.render_pass		  = &present_pass,
+				.swap_chain_dst_index = 0,
+			};
+			register_render_target_specification(render_target_spec);
 
 			RootSignatureSpecification const root_sig_spec {
 				.push_constants_byte_size = 2 * sizeof(Float4x4),
 			};
-			auto& sig = root_signatures.emplace_back(device, root_sig_spec);
+			/*auto& sig = */ root_signatures.emplace_back(device, root_sig_spec);
 
 			/*RenderPipelineSpecification const pipe_spec {
 				.root_signature = sig,
@@ -41,10 +45,11 @@ namespace vt
 			render_pipelines.emplace_back(device, pipe_spec);*/
 		}
 
-		void draw(SwapChain& swap_chain)
+		void draw(SwapChain& swap_chain) override
 		{
 			device->wait_for_workload(context->frame_finished);
-			unsigned img_index = swap_chain->get_current_image_index();
+			unsigned img_index		   = swap_chain->get_current_image_index();
+			auto&	 swap_chain_target = get_swap_chain_target(swap_chain, img_index);
 
 			auto& cmd = context->command_list;
 			cmd->reset();
@@ -57,7 +62,7 @@ namespace vt
 			ClearValue clear_value {
 				.color = clear_color,
 			};
-			cmd->begin_render_pass(present_pass, swap_chain_targets[img_index], clear_value);
+			cmd->begin_render_pass(present_pass, swap_chain_target, clear_value);
 			cmd->end_render_pass();
 			cmd->end();
 
@@ -75,9 +80,7 @@ namespace vt
 		float  inc		   = 0.0001f;
 		Float4 clear_color = {0, 0, 0, 1};
 
-		Device&	   device;
-		RenderPass present_pass;
-
+		RenderPass						 present_pass;
 		std::vector<DescriptorSetLayout> descriptor_set_layouts;
 		std::vector<RootSignature>		 root_signatures;
 		std::vector<RenderPipeline>		 render_pipelines;
@@ -112,21 +115,6 @@ namespace vt
 				.subpasses = subpass,
 			};
 			return {device, spec};
-		}
-
-		void make_swap_chain_targets(SwapChain& swap_chain)
-		{
-			unsigned const count = swap_chain->get_buffer_count();
-			for(unsigned i = 0; i < count; ++i)
-			{
-				RenderTargetSpecification const spec {
-					.render_pass		  = present_pass,
-					.swap_chain			  = &swap_chain,
-					.swap_chain_src_index = i,
-					.swap_chain_dst_index = 0,
-				};
-				swap_chain_targets.emplace_back(device, spec);
-			}
 		}
 	};
 }

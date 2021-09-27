@@ -153,7 +153,7 @@ namespace vt::d3d12
 			copy_queue.wait_for_idle();
 		}
 
-		DescriptorAllocation allocate_render_target_views(unsigned count)
+		DescriptorAllocation allocate_render_target_views(size_t count)
 		{
 			return rtv_allocator.allocate(count);
 		}
@@ -173,12 +173,12 @@ namespace vt::d3d12
 			dsv_allocator.deallocate(dsvs);
 		}
 
-		unsigned get_render_target_view_size() const
+		unsigned get_rtv_increment() const
 		{
 			return rtv_allocator.get_increment_size();
 		}
 
-		unsigned get_depth_stencil_view_size() const
+		unsigned get_dsv_increment() const
 		{
 			return dsv_allocator.get_increment_size();
 		}

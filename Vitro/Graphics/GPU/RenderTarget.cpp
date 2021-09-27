@@ -25,9 +25,9 @@ namespace vt
 		RenderTarget(Device& device, RenderTargetSpecification const& spec) : PlatformRenderTarget(device, validate_spec(spec))
 		{}
 
-		void reset()
+		void reset(RenderTargetSpecification const& spec)
 		{
-			PlatformRenderTarget::reset();
+			PlatformRenderTarget::reset(validate_spec(spec));
 		}
 
 	private:
@@ -40,6 +40,7 @@ namespace vt
 			{
 				if(spec.swap_chain_src_index >= (*spec.swap_chain)->get_buffer_count())
 					throw std::invalid_argument("Invalid swap chain image source index.");
+
 				if(spec.swap_chain_dst_index > spec.color_attachments.size())
 					throw std::invalid_argument("Invalid swap chain image destination index.");
 			}
@@ -51,8 +52,8 @@ namespace vt
 					throw std::invalid_argument("Attachments must not be nullptr.");
 
 			if(spec.color_attachments.full() && spec.swap_chain)
-				throw std::invalid_argument("A swap chain must not be used if the maximum of possible color attachments is "
-											"also specified.");
+				throw std::invalid_argument("A swap chain must not be provided if the maximum of possible color attachments is "
+											"already specified.");
 
 			return spec;
 		}

@@ -13,7 +13,7 @@ namespace vt::d3d12
 	export struct [[nodiscard]] DescriptorAllocation
 	{
 		D3D12_CPU_DESCRIPTOR_HANDLE handle	   = {};
-		unsigned					unit_count = 0;
+		size_t						unit_count = 0;
 	};
 
 	export class DescriptorAllocator
@@ -39,7 +39,7 @@ namespace vt::d3d12
 			free_blocks.emplace_back(get_cpu_heap_start(), descriptor_count);
 		}
 
-		DescriptorAllocation allocate(unsigned unit_count)
+		DescriptorAllocation allocate(size_t unit_count)
 		{
 			auto it = std::find_if(free_blocks.begin(), free_blocks.end(), [=](DescriptorAllocation free_block) {
 				return free_block.unit_count >= unit_count;
@@ -77,9 +77,9 @@ namespace vt::d3d12
 
 					if(next != free_blocks.begin()) // if next is not the first free block, there might be a block to merge
 					{
-						auto	 prev		= next - 1;
-						auto	 prev_ptr	= prev->handle.ptr;
-						unsigned prev_count = prev->unit_count;
+						auto   prev		  = next - 1;
+						auto   prev_ptr	  = prev->handle.ptr;
+						size_t prev_count = prev->unit_count;
 						if(prev_ptr + prev_count * unit_size == alloc.handle.ptr) // previous block spans up to allocation
 						{
 							next->handle.ptr = prev_ptr;	// adjust free block handle down to previous free block handle

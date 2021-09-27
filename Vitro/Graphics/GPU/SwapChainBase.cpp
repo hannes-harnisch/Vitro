@@ -7,6 +7,8 @@ namespace vt
 	export class SwapChainBase
 	{
 	public:
+		static constexpr unsigned MaxBuffers = 3;
+
 		virtual ~SwapChainBase() = default;
 
 		virtual unsigned get_current_image_index() const	  = 0;
@@ -22,8 +24,6 @@ namespace vt
 		}
 
 	protected:
-		static constexpr unsigned MaxBuffers = 3;
-
 		bool is_vsync_enabled = false;
 	};
 }

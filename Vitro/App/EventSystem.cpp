@@ -30,8 +30,7 @@ namespace vt
 
 		template<typename T, typename... Ts> static void notify_async(Ts&&... ts)
 		{
-			if constexpr(!AllowAsyncEventDispatchFor<T>)
-				static_assert(false, "This type is not allowed to be used as an async event.");
+			static_assert(AllowAsyncEventDispatchFor<T>, "This type is not allowed to be used as an async event.");
 
 			get().enqueue_async_event(T {std::forward<Ts>(ts)...});
 		}
@@ -46,7 +45,8 @@ namespace vt
 		std::unordered_map<std::type_index, std::vector<EventHandler>> handlers;
 
 		ConsumerToken			  con_token;
-		ConcurrentQueue<std::any> async_events; // replace any with unsafely castable type?
+		ConcurrentQueue<std::any> async_events; // TODO: replace with custom any-like type, since any_cast never fails within
+												// event listener
 
 		EventSystem() : con_token(async_events)
 		{}

@@ -4,8 +4,6 @@
 export module vt.App.EventListener;
 
 import vt.App.EventSystem;
-import vt.Core.Reflect;
-import vt.Trace.Log;
 
 namespace vt
 {
@@ -70,9 +68,7 @@ namespace vt
 			using TEvent		= std::remove_cvref_t<HandlerTraits::Param>;
 
 			auto func = [](EventListener& listener, std::any& stored_event) {
-				auto& event = std::any_cast<TEvent&>(stored_event);
-				Log().verbose("Handling ", name_of(event), ": ", event);
-
+				auto& event	 = std::any_cast<TEvent&>(stored_event);
 				auto& object = static_cast<TClass&>(listener);
 				if constexpr(std::is_same_v<TReturn, void>)
 				{

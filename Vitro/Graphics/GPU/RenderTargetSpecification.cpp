@@ -13,9 +13,9 @@ namespace vt
 		FixedList<Texture const*, MaxColorAttachments> color_attachments;
 
 		Texture const*	  depth_stencil_attachment = nullptr; // Optional depth stencil attachment.
-		RenderPass const* render_pass			   = nullptr;
+		RenderPass const* render_pass			   = nullptr; // Render pass this render target will be used with.
 		SwapChain const*  swap_chain			   = nullptr; // Optional swap chain to use a color attachment from.
-		unsigned		  swap_chain_src_index	   = -1;	  // Index of the swap chain back buffer to use as color attachment.
-		unsigned		  swap_chain_dst_index	   = -1;	  // Index within the render target to put the back buffer.
+		unsigned		  swap_chain_src_index	   = ~0u;	  // Index of the swap chain back buffer to use as color attachment.
+		unsigned		  swap_chain_dst_index	   = ~0u;	  // Index within the render target to put the back buffer.
 	};
 }
