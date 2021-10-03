@@ -51,14 +51,14 @@ namespace vt
 
 	export struct Viewport
 	{
-		static constexpr float UpperDepthLimit = 1.0f;
+		static constexpr float MAX_DEPTH = 1.0f;
 
 		float x			= 0;
 		float y			= 0;
 		float width		= 0;
 		float height	= 0;
 		float min_depth = 0;
-		float max_depth = UpperDepthLimit;
+		float max_depth = MAX_DEPTH;
 
 		std::string to_string() const
 		{

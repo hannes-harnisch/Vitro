@@ -8,9 +8,9 @@ export module vt.Graphics.D3D12.RenderTarget;
 import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.AssetResource;
-import vt.Graphics.Device;
 import vt.Graphics.RenderTargetSpecification;
 
 namespace vt::d3d12
@@ -18,22 +18,22 @@ namespace vt::d3d12
 	export class D3D12RenderTarget
 	{
 	public:
-		D3D12RenderTarget(Device& in_device, RenderTargetSpecification const& spec) : device(&in_device.d3d12)
+		D3D12RenderTarget(DescriptorPool& descriptor_pool, RenderTargetSpecification const& spec) : pool(&descriptor_pool)
 		{
 			size_t view_count = initialize_color_attachment_resources(spec);
 
-			auto rtv_alloc = device->allocate_render_target_views(view_count);
+			auto rtv_alloc = pool->allocate_render_target_views(view_count);
 			rtv_begin	   = rtv_alloc.handle;
 			initialize_render_target_views();
 
 			if(spec.depth_stencil_attachment)
 			{
-				auto dsv_alloc = device->allocate_depth_stencil_view();
+				auto dsv_alloc = pool->allocate_depth_stencil_view();
 				dsv			   = dsv_alloc.handle;
 
 				auto ds_resource = spec.depth_stencil_attachment->d3d12.ptr();
 				resources.emplace_back(ds_resource);
-				device->ptr()->CreateDepthStencilView(ds_resource, nullptr, dsv);
+				pool->get_device()->CreateDepthStencilView(ds_resource, nullptr, dsv);
 			}
 			else
 			{
@@ -43,7 +43,7 @@ namespace vt::d3d12
 		}
 
 		D3D12RenderTarget(D3D12RenderTarget&& that) noexcept :
-			device(that.device),
+			pool(that.pool),
 			resources(std::move(that.resources)),
 			rtv_begin(std::exchange(that.rtv_begin, {})),
 			dsv(std::exchange(that.dsv, {}))
@@ -51,20 +51,20 @@ namespace vt::d3d12
 
 		~D3D12RenderTarget()
 		{
-			device->deallocate_render_target_views({rtv_begin, count(resources) - 1});
-			device->deallocate_depth_stencil_views({dsv, 1});
+			pool->deallocate_render_target_views({rtv_begin, count(resources) - 1});
+			pool->deallocate_depth_stencil_views({dsv, 1});
 		}
 
 		D3D12RenderTarget& operator=(D3D12RenderTarget&& that) noexcept
 		{
-			device	  = that.device;
+			pool	  = that.pool;
 			resources = std::move(that.resources);
 			std::swap(rtv_begin, that.rtv_begin);
 			std::swap(dsv, that.dsv);
 			return *this;
 		}
 
-		void reset(RenderTargetSpecification const& spec)
+		void recreate(RenderTargetSpecification const& spec)
 		{
 			resources.clear();
 			initialize_color_attachment_resources(spec);
@@ -74,7 +74,7 @@ namespace vt::d3d12
 			{
 				auto ds_resource = spec.depth_stencil_attachment->d3d12.ptr();
 				resources.emplace_back(ds_resource);
-				device->ptr()->CreateDepthStencilView(ds_resource, nullptr, dsv);
+				pool->get_device()->CreateDepthStencilView(ds_resource, nullptr, dsv);
 			}
 			else
 				resources.emplace_back(nullptr);
@@ -103,7 +103,7 @@ namespace vt::d3d12
 			if(index == resources.size())
 				return dsv;
 			else
-				return {rtv_begin.ptr + index * device->get_rtv_increment()};
+				return {rtv_begin.ptr + index * pool->get_rtv_increment()};
 		}
 
 		// Returns a null handle if the render target contains no depth stencil attachment.
@@ -113,10 +113,10 @@ namespace vt::d3d12
 		}
 
 	private:
-		D3D12Device*							   device;
-		FixedList<ID3D12Resource*, MaxAttachments> resources;
-		D3D12_CPU_DESCRIPTOR_HANDLE				   rtv_begin;
-		D3D12_CPU_DESCRIPTOR_HANDLE				   dsv;
+		DescriptorPool*								pool;
+		FixedList<ID3D12Resource*, MAX_ATTACHMENTS> resources;
+		D3D12_CPU_DESCRIPTOR_HANDLE					rtv_begin;
+		D3D12_CPU_DESCRIPTOR_HANDLE					dsv;
 
 		size_t initialize_color_attachment_resources(RenderTargetSpecification const& spec)
 		{
@@ -135,13 +135,13 @@ namespace vt::d3d12
 			return view_count;
 		}
 
-		void initialize_render_target_views() const
+		void initialize_render_target_views()
 		{
-			auto const increment = device->get_rtv_increment();
+			auto const increment = pool->get_rtv_increment();
 			auto	   temp_rtv	 = rtv_begin;
 			for(auto resource : resources)
 			{
-				device->ptr()->CreateRenderTargetView(resource, nullptr, temp_rtv);
+				pool->get_device()->CreateRenderTargetView(resource, nullptr, temp_rtv);
 				temp_rtv.ptr += increment;
 			}
 		}

@@ -2,7 +2,6 @@
 #include "Core/Macros.hpp"
 export module vt.Graphics.AssetResource;
 
-import vt.Graphics.Device;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.VT_GPU_API_MODULE.Buffer;
@@ -21,9 +20,6 @@ namespace vt
 	export class Buffer : public PlatformBuffer
 	{
 	public:
-		Buffer(Device&)
-		{}
-
 		unsigned get_size() const
 		{
 			return size;
@@ -43,22 +39,15 @@ namespace vt
 
 	export class ComputePipeline : public PlatformPipeline
 	{
-	public:
-		ComputePipeline(Device& device, ComputePipelineSpecification const& spec) : PlatformPipeline(device, spec)
-		{}
+		using PlatformPipeline::PlatformPipeline;
 	};
+
 	export class RenderPipeline : public PlatformPipeline
 	{
-	public:
-		RenderPipeline(Device& device, RenderPipelineSpecification const& spec) : PlatformPipeline(device, spec)
-		{}
+		using PlatformPipeline::PlatformPipeline;
 	};
 
 	using PlatformTexture = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Texture)>;
 	export class Texture : public PlatformTexture
-	{
-	public:
-		Texture(Device&)
-		{}
-	};
+	{};
 }

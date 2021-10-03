@@ -196,7 +196,7 @@ namespace vt::vulkan
 			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, index_type);
 		}
 
-		void bind_primitive_topology(PrimitiveTopology)
+		void bind_primitive_topology(PrimitiveTopology, unsigned = 0)
 		{
 			// Do nothing, as Vulkan covers binding the primitive topology when binding a pipeline.
 		}

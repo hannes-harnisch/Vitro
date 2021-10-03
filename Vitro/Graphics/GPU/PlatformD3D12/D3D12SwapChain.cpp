@@ -7,9 +7,8 @@ export module vt.Graphics.D3D12.SwapChain;
 
 import vt.App.Window;
 import vt.Core.FixedList;
-import vt.Graphics.D3D12.Device;
 import vt.Graphics.D3D12.Handle;
-import vt.Graphics.Device;
+import vt.Graphics.D3D12.Queue;
 import vt.Graphics.Driver;
 import vt.Graphics.SwapChainBase;
 
@@ -18,8 +17,8 @@ namespace vt::d3d12
 	export class D3D12SwapChain final : public SwapChainBase
 	{
 	public:
-		D3D12SwapChain(Driver const& driver, Device& in_device, Window& window, uint8_t buffer_count) :
-			device(&in_device.d3d12),
+		D3D12SwapChain(Queue& in_render_queue, Driver& driver, Window& window, uint8_t buffer_count) :
+			render_queue(&in_render_queue),
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
 			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0)
@@ -30,7 +29,7 @@ namespace vt::d3d12
 			DXGI_SWAP_CHAIN_DESC1 const desc {
 				.Width		 = 0,
 				.Height		 = 0,
-				.Format		 = DesiredFormat,
+				.Format		 = DESIRED_FORMAT,
 				.Stereo		 = false,
 				.SampleDesc	 = {1, 0},
 				.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
@@ -41,7 +40,7 @@ namespace vt::d3d12
 				.Flags		 = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
 			IDXGISwapChain1* raw_swap_chain_prototype;
-			auto result = factory->CreateSwapChainForHwnd(device->get_render_queue_ptr(), hwnd, &desc, nullptr, nullptr,
+			auto			 result = factory->CreateSwapChainForHwnd(render_queue->ptr(), hwnd, &desc, nullptr, nullptr,
 														  &raw_swap_chain_prototype);
 			ComUnique<IDXGISwapChain1> swap_chain_prototype(raw_swap_chain_prototype);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 proxy swap chain.");
@@ -75,11 +74,11 @@ namespace vt::d3d12
 
 		void resize(WindowSizeEvent const& event) override
 		{
-			device->flush_render_queue();
+			render_queue->wait_for_idle();
 			back_buffers.clear();
 
 			unsigned flags = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
-			auto result	   = swap_chain->ResizeBuffers(buffer_count, event.size.width, event.size.height, DesiredFormat, flags);
+			auto result = swap_chain->ResizeBuffers(buffer_count, event.size.width, event.size.height, DESIRED_FORMAT, flags);
 			VT_ASSERT_RESULT(result, "Failed to resize D3D12 swap chain.");
 
 			acquire_back_buffers();
@@ -104,15 +103,14 @@ namespace vt::d3d12
 		}
 
 	private:
-		static constexpr DXGI_FORMAT DesiredFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+		static constexpr DXGI_FORMAT DESIRED_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-		D3D12Device*			   device;
-		uint8_t					   buffer_count;
-		bool					   tearing_supported;
-		UINT					   present_flags;
-		ComUnique<IDXGISwapChain3> swap_chain;
-
-		FixedList<ComUnique<ID3D12Resource>, MaxBuffers> back_buffers;
+		Queue*											  render_queue;
+		uint8_t											  buffer_count;
+		bool											  tearing_supported;
+		UINT											  present_flags;
+		ComUnique<IDXGISwapChain3>						  swap_chain;
+		FixedList<ComUnique<ID3D12Resource>, MAX_BUFFERS> back_buffers;
 
 		void acquire_back_buffers()
 		{

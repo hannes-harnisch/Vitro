@@ -18,18 +18,11 @@ namespace vt
 		DynamicSampler
 	};
 
-	export struct DescriptorCount
-	{
-		Positive<unsigned>		 descriptor_count;
-		Explicit<DescriptorType> type;
-	};
-
 	export enum class ShaderStage : uint8_t {
 		All,
 		Vertex,
 		Hull,
 		Domain,
-		Geometry,
 		Fragment,
 		Compute,
 		RayGen,

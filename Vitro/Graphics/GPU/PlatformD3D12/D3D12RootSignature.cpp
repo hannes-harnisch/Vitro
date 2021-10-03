@@ -15,7 +15,6 @@ import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Sampler;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
-import vt.Graphics.Device;
 
 namespace vt::d3d12
 {
@@ -39,7 +38,7 @@ namespace vt::d3d12
 	export class D3D12RootSignature
 	{
 	public:
-		D3D12RootSignature(Device& device, RootSignatureSpecification const& spec)
+		D3D12RootSignature(ID3D12Device4* device, RootSignatureSpecification const& spec)
 		{
 			if(spec.push_constants_byte_size % sizeof(DWORD) != 0)
 				throw std::invalid_argument(std::format("Push constants byte size must be divisible by {}.", sizeof(DWORD)));
@@ -86,8 +85,8 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to serialize D3D12 root signature.");
 
 			ID3D12RootSignature* raw_root_signature;
-			result = device.d3d12.ptr()->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
-															 IID_PPV_ARGS(&raw_root_signature));
+			result = device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
+												 IID_PPV_ARGS(&raw_root_signature));
 			root_signature.reset(raw_root_signature);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 root signature.");
 		}

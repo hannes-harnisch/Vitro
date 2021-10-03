@@ -7,7 +7,6 @@ import vt.Core.Vector;
 import vt.Graphics.D3D12.DescriptorSetLayout;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
-import vt.Graphics.Device;
 
 namespace vt::d3d12
 {
@@ -16,30 +15,30 @@ namespace vt::d3d12
 		using enum Filter;
 		if(enable_compare)
 			switch(filter)
-			{
-				case MinMagMipNearest: return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
-				case MinMagNearestMipLinear: return D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
-				case MinNearestMagLinearMipNearest: return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
-				case MinNearestMagMipLinear: return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
-				case MinLinearMagMipNearest: return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
-				case MinLinearMagNearestMipLinear: return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
-				case MinMagLinearMipNearest: return D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-				case MinMagMipLinear: return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-				case Anisotropic: return D3D12_FILTER_COMPARISON_ANISOTROPIC;
+			{ // clang-format off
+				case MinMagMipNearest:				return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+				case MinMagNearestMipLinear:		return D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
+				case MinNearestMagLinearMipNearest:	return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
+				case MinNearestMagMipLinear:		return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
+				case MinLinearMagMipNearest:		return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+				case MinLinearMagNearestMipLinear:	return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+				case MinMagLinearMipNearest:		return D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+				case MinMagMipLinear:				return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+				case Anisotropic:					return D3D12_FILTER_COMPARISON_ANISOTROPIC;
 			}
 		else
 			switch(filter)
 			{
-				case MinMagMipNearest: return D3D12_FILTER_MIN_MAG_MIP_POINT;
-				case MinMagNearestMipLinear: return D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
-				case MinNearestMagLinearMipNearest: return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
-				case MinNearestMagMipLinear: return D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
-				case MinLinearMagMipNearest: return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
-				case MinLinearMagNearestMipLinear: return D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
-				case MinMagLinearMipNearest: return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-				case MinMagMipLinear: return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-				case Anisotropic: return D3D12_FILTER_ANISOTROPIC;
-			}
+				case MinMagMipNearest:				return D3D12_FILTER_MIN_MAG_MIP_POINT;
+				case MinMagNearestMipLinear:		return D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+				case MinNearestMagLinearMipNearest:	return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+				case MinNearestMagMipLinear:		return D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+				case MinLinearMagMipNearest:		return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+				case MinLinearMagNearestMipLinear:	return D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+				case MinMagLinearMipNearest:		return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+				case MinMagMipLinear:				return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+				case Anisotropic:					return D3D12_FILTER_ANISOTROPIC;
+			} // clang-format on
 		VT_UNREACHABLE();
 	}
 
@@ -47,12 +46,12 @@ namespace vt::d3d12
 	{
 		using enum AddressMode;
 		switch(mode)
-		{
-			case Repeat: return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		{ // clang-format off
+			case Repeat:		 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			case MirroredRepeat: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-			case ClampToEdge: return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			case ClampToBorder: return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		}
+			case ClampToEdge:	 return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+			case ClampToBorder:	 return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		} // clang-format on
 		VT_UNREACHABLE();
 	}
 
@@ -60,16 +59,16 @@ namespace vt::d3d12
 	{
 		using enum CompareOp;
 		switch(op)
-		{
-			case Never: return D3D12_COMPARISON_FUNC_NEVER;
-			case Less: return D3D12_COMPARISON_FUNC_LESS;
-			case Equal: return D3D12_COMPARISON_FUNC_EQUAL;
-			case LessOrEqual: return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			case Greater: return D3D12_COMPARISON_FUNC_GREATER;
-			case NotEqual: return D3D12_COMPARISON_FUNC_NOT_EQUAL;
+		{ // clang-format off
+			case Never:			 return D3D12_COMPARISON_FUNC_NEVER;
+			case Less:			 return D3D12_COMPARISON_FUNC_LESS;
+			case Equal:			 return D3D12_COMPARISON_FUNC_EQUAL;
+			case LessOrEqual:	 return D3D12_COMPARISON_FUNC_LESS_EQUAL;
+			case Greater:		 return D3D12_COMPARISON_FUNC_GREATER;
+			case NotEqual:		 return D3D12_COMPARISON_FUNC_NOT_EQUAL;
 			case GreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-			case Always: return D3D12_COMPARISON_FUNC_ALWAYS;
-		}
+			case Always:		 return D3D12_COMPARISON_FUNC_ALWAYS;
+		} // clang-format on
 		VT_UNREACHABLE();
 	}
 
@@ -147,8 +146,7 @@ namespace vt::d3d12
 	export class D3D12Sampler
 	{
 	public:
-		// Unused parameter is kept for compatibility with APIs where samplers are first-class device-created objects.
-		D3D12Sampler(Device&, SamplerSpecification const& spec) : desc(convert_dynamic_sampler_spec(spec))
+		D3D12Sampler(SamplerSpecification const& spec) : desc(convert_dynamic_sampler_spec(spec))
 		{}
 
 		D3D12_SAMPLER_DESC const& get_desc() const

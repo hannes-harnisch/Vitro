@@ -13,7 +13,6 @@ import vt.Core.Version;
 import vt.Editor.Editor;
 import vt.Graphics.GraphicsSystem;
 import vt.Trace.CrashHandler;
-import vt.Trace.Log;
 import vt.Trace.TraceSystem;
 
 namespace vt
@@ -23,7 +22,7 @@ namespace vt
 	public:
 		Engine(std::vector<std::string_view> command_line_args)
 		try : command_line_args(std::move(command_line_args)), app_system(is_running),
-			graphics_system(app_system.get_current_app_name(), app_system.get_current_app_version(), engine_version)
+			graphics_system(app_system.get_current_app_name(), app_system.get_current_app_version(), ENGINE_VERSION)
 		{}
 		catch(std::exception const& e)
 		{
@@ -52,7 +51,7 @@ namespace vt
 		}
 
 	private:
-		static constexpr Version engine_version = {0, 0, 1};
+		static constexpr Version ENGINE_VERSION = {0, 0, 1};
 
 		std::atomic_bool			  is_running = true;
 		std::vector<std::string_view> command_line_args;

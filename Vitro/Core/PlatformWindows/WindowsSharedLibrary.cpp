@@ -47,7 +47,8 @@ namespace vt::windows
 			using pointer = HMODULE;
 			void operator()(HMODULE module)
 			{
-				::FreeLibrary(module);
+				BOOL succeeded = ::FreeLibrary(module);
+				VT_ASSERT(succeeded, "Failed to free shared library.");
 			}
 		};
 		std::unique_ptr<HMODULE, LibraryDeleter> library;

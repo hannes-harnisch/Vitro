@@ -7,7 +7,7 @@ namespace vt
 	export class SwapChainBase
 	{
 	public:
-		static constexpr unsigned MaxBuffers = 3;
+		static constexpr unsigned MAX_BUFFERS = 3;
 
 		virtual ~SwapChainBase() = default;
 

@@ -9,8 +9,8 @@ import vt.Graphics.TextureSpecification;
 
 namespace vt
 {
-	export constexpr unsigned MaxColorAttachments = 8;						 // Limit imposed by D3D12 for pipelines
-	export constexpr unsigned MaxAttachments	  = MaxColorAttachments + 1; // All color attachments + 1 depth attachment
+	export constexpr inline unsigned MAX_COLOR_ATTACHMENTS = 8;					  // Limit imposed by D3D12 for pipelines
+	export constexpr inline unsigned MAX_ATTACHMENTS = MAX_COLOR_ATTACHMENTS + 1; // All color attachments + 1 depth attachment
 
 	export enum class ImageLoadOp : uint8_t {
 		Load,
@@ -31,7 +31,10 @@ namespace vt
 
 	export struct Subpass
 	{
-		Explicit<FixedList<AttachmentReference, MaxColorAttachments>> output_refs;
+		using AttachmentRefList = FixedList<AttachmentReference, MAX_COLOR_ATTACHMENTS>;
+
+		// Explicit<AttachmentRefList> input_refs; TODO: integrate this eventually
+		Explicit<AttachmentRefList> output_refs;
 	};
 
 	export struct AttachmentSpecification
@@ -46,10 +49,11 @@ namespace vt
 
 	export struct RenderPassSpecification
 	{
-		Explicit<FixedList<AttachmentSpecification, MaxAttachments>> attachments;
+		using AttachmentList = FixedList<AttachmentSpecification, MAX_ATTACHMENTS>;
 
-		ImageLoadOp		   stencil_load_op	= ImageLoadOp::Ignore;
-		ImageStoreOp	   stencil_store_op = ImageStoreOp::Ignore;
-		ArrayView<Subpass> subpasses;
+		Explicit<AttachmentList> attachments;
+		ImageLoadOp				 stencil_load_op  = ImageLoadOp::Ignore;
+		ImageStoreOp			 stencil_store_op = ImageStoreOp::Ignore;
+		ArrayView<Subpass>		 subpasses;
 	};
 }

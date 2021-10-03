@@ -17,6 +17,7 @@ namespace vt::vulkan
 	{
 	public:
 	private:
+		VkQueue queue;
 	};
 
 	export class VulkanDevice final : public DeviceBase
@@ -67,7 +68,7 @@ namespace vt::vulkan
 		}
 
 	private:
-		static constexpr char const* RequiredDeviceExtensions[] {
+		static constexpr char const* REQUIRED_DEVICE_EXTENSIONS[] {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 		};
 

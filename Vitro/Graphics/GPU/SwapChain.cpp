@@ -13,14 +13,12 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.SwapChain;
 
 namespace vt
 {
-	using PlatformSwapChain = InterfaceVariant<SwapChainBase, VT_GPU_API_VARIANT_ARGS(SwapChain)>;
+	export using PlatformSwapChain = InterfaceVariant<SwapChainBase, VT_GPU_API_VARIANT_ARGS(SwapChain)>;
 	export class SwapChain : public PlatformSwapChain, public ObjectEventSentinel<SwapChain>
 	{
 	public:
-		static constexpr unsigned DefaultBufferCount = 3;
+		static constexpr unsigned DEFAULT_BUFFERS = 3;
 
-		SwapChain(Driver const& driver, Device& device, Window& window, uint8_t buffer_count = DefaultBufferCount) :
-			PlatformSwapChain(driver, device, window, buffer_count)
-		{}
+		using PlatformSwapChain::PlatformSwapChain;
 	};
 }

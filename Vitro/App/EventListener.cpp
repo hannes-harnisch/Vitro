@@ -41,9 +41,9 @@ namespace vt
 			return *this;
 		}
 
-		template<auto... Handlers> void register_event_handlers()
+		template<auto... HANDLERS> void register_event_handlers()
 		{
-			(register_handler<Handlers>(), ...);
+			(register_handler<HANDLERS>(), ...);
 		}
 
 		void unregister_event_handlers()
@@ -52,33 +52,38 @@ namespace vt
 		}
 
 	private:
-		template<typename> struct FunctionTraits;
-		template<typename R, typename C, typename P> struct FunctionTraits<R (C::*)(P)>
+		template<typename> struct EventHandlerTraits;
+		template<typename R, typename C, typename P> struct EventHandlerTraits<R (C::*)(P)>
 		{
-			using Return = R;
-			using Class	 = C;
-			using Param	 = P;
+			using ReturnType = R;
+			using ClassType	 = C;
+			using EventType	 = std::remove_cvref_t<P>;
 		};
 
-		template<auto Handler> void register_handler()
+		template<auto HANDLER> void register_handler()
 		{
-			using HandlerTraits = FunctionTraits<decltype(Handler)>;
-			using TReturn		= HandlerTraits::Return;
-			using TClass		= HandlerTraits::Class;
-			using TEvent		= std::remove_cvref_t<HandlerTraits::Param>;
+			using Handler = EventHandlerTraits<decltype(HANDLER)>;
 
 			auto func = [](EventListener& listener, std::any& stored_event) {
-				auto& event	 = std::any_cast<TEvent&>(stored_event);
-				auto& object = static_cast<TClass&>(listener);
-				if constexpr(std::is_same_v<TReturn, void>)
+				// The logic within event system guarantees that the stored event will have the type that it is being casted to
+				// here. Therefore the pointer version of any_cast is used, which returns nullptr if the cast fails. Since it is
+				// dereferenced immediately, the optimizer can assume that it cannot possibly be nullptr, which allows it to
+				// eliminate the type check, since nullptr can only be returned if the check fails. This prevents generation of
+				// an unneeded branch and instructions related to exception handling.
+				auto& event = *std::any_cast<Handler::EventType>(&stored_event);
+
+				auto& object = static_cast<Handler::ClassType&>(listener);
+				if constexpr(std::is_same_v<Handler::ReturnType, void>)
 				{
-					(object.*Handler)(event);
+					(object.*HANDLER)(event);
 					return false;
 				}
+				else if constexpr(std::is_same_v<Handler::ReturnType, bool>)
+					return (object.*HANDLER)(event);
 				else
-					return (object.*Handler)(event);
+					static_assert(false, "An event handler must return void or bool.");
 			};
-			EventSystem::get().submit_handler(typeid(TEvent), func, this);
+			EventSystem::get().submit_handler(typeid(Handler::EventType), func, this);
 		}
 	};
 }

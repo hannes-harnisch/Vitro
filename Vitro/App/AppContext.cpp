@@ -52,27 +52,31 @@ namespace vt
 				event.window.close();
 		}
 
-		void on_window_object_construct(ObjectConstructEvent<Window>& event)
+		void on_window_object_construct(ObjectConstructEvent<Window>& window_construct)
 		{
-			system_window_to_engine_window.try_emplace(event.object.native_handle(), &event.object);
+			auto& window = window_construct.object;
+			system_window_to_engine_window.try_emplace(window.native_handle(), &window);
 		}
 
-		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& event)
+		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_move)
 		{
-			system_window_to_engine_window[event.constructed.native_handle()] = &event.constructed;
+			auto& window = window_move.constructed;
+
+			system_window_to_engine_window[window.native_handle()] = &window;
 		}
 
-		void on_window_object_destroy(ObjectDestroyEvent<Window>& event)
+		void on_window_object_destroy(ObjectDestroyEvent<Window>& window_destroy)
 		{
-			system_window_to_engine_window.erase(event.object.native_handle());
+			system_window_to_engine_window.erase(window_destroy.object.native_handle());
 		}
 
-		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& event)
+		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& window_move)
 		{
+			auto& window = window_move.left;
 			std::erase_if(system_window_to_engine_window, [&](auto const& pair) {
-				return pair.second == &event.left;
+				return pair.second == &window;
 			});
-			system_window_to_engine_window.try_emplace(event.left.native_handle(), &event.left);
+			system_window_to_engine_window.try_emplace(window.native_handle(), &window);
 		}
 	};
 }

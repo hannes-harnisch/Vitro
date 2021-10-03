@@ -6,7 +6,7 @@ import vt.Core.FixedList;
 
 namespace vt
 {
-	export constexpr unsigned MaxFramesInFlight = 3;
+	export constexpr inline unsigned MAX_FRAMES_IN_FLIGHT = 3;
 
 	export template<typename T> class FrameContext
 	{
@@ -38,7 +38,7 @@ namespace vt
 		}
 
 	private:
-		FixedList<T, MaxFramesInFlight> frame_resources;
-		unsigned						index = 0;
+		FixedList<T, MAX_FRAMES_IN_FLIGHT> frame_resources;
+		unsigned						   index = 0;
 	};
 }

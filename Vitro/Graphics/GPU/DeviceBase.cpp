@@ -1,7 +1,19 @@
-﻿export module vt.Graphics.DeviceBase;
+﻿module;
+#include <vector>
+export module vt.Graphics.DeviceBase;
 
 import vt.Core.Array;
+import vt.Graphics.AssetResource;
+import vt.Graphics.DescriptorBinding;
+import vt.Graphics.DescriptorSet;
+import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Handle;
+import vt.Graphics.RenderPass;
+import vt.Graphics.RenderPassSpecification;
+import vt.Graphics.RenderTarget;
+import vt.Graphics.RenderTargetSpecification;
+import vt.Graphics.Sampler;
+import vt.Graphics.SwapChain;
 
 namespace vt
 {
@@ -10,6 +22,18 @@ namespace vt
 	public:
 		virtual ~DeviceBase() = default;
 
+		virtual std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs)		  = 0;
+		virtual std::vector<RenderPipeline>	 make_render_pipelines(ArrayView<RenderPipelineSpecification> specs)		  = 0;
+		virtual std::vector<DescriptorSet>	 make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts)			  = 0;
+		virtual DescriptorSetLayout			 make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec)	  = 0;
+		virtual RenderPass					 make_render_pass(RenderPassSpecification const& spec)						  = 0;
+		virtual RenderTarget				 make_render_target(RenderTargetSpecification const& spec)					  = 0;
+		virtual RootSignature				 make_root_signature(RootSignatureSpecification const& spec)				  = 0;
+		virtual Sampler						 make_sampler(SamplerSpecification const& spec)								  = 0;
+		virtual SwapChain					 make_swap_chain(Driver& driver,
+															 Window& window,
+															 uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS)			  = 0;
+		virtual void	  recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec)	  = 0;
 		virtual SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})  = 0;
 		virtual SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) = 0;
 		virtual SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})	  = 0;

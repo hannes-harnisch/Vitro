@@ -16,7 +16,8 @@ workspace 'Vitro'
 	files				{
 							'%{prj.name}/**.cpp',
 							'%{prj.name}/**.hpp',
-							'%{prj.name}/**.hlsl'
+							'%{prj.name}/**.hlsl',
+							'%{prj.name}/**.natvis'
 						}
 	removefiles			'**/Platform**/'
 	debugdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
@@ -28,17 +29,21 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
-		buildcommands	'C:/VulkanSDK/**/bin/dxc %{file.relpath} /Fo %{cfg.targetdir}/%{file.basename}.spv -O3 ^'
+		buildcommands	'C:/VulkanSDK/1.2.182.0/bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
+
+	filter { 'files:**.hlsl', 'platforms:D3D12' }
+		buildcommands	'.cso ^'
+		buildoutputs	'%{cfg.targetdir}/%{file.basename}.cso'
+
+	filter { 'files:**.hlsl', 'platforms:Vulkan' }
+		buildcommands	'.spv -spirv ^'
 		buildoutputs	'%{cfg.targetdir}/%{file.basename}.spv'
-		
-	filter { 'files:**.hlsl', 'platforms:Vulkan or D3D12+Vulkan' }
-		buildcommands	'-spirv ^'
 
 	filter 'files:**.vert.hlsl'
-		buildcommands	'-T vs_6_6'
+		buildcommands	'-T vs_6_0'
 
 	filter 'files:**.frag.hlsl'
-		buildcommands	'-T ps_6_6'
+		buildcommands	'-T ps_6_0'
 
 	filter 'Debug'
 		symbols			'On'
@@ -111,6 +116,7 @@ group 'Dependencies'
 		kind			'StaticLib'
 		files			{
 							'**/%{prj.name}/**/D3D12MemAlloc.cpp',
-							'**/%{prj.name}/**/D3D12MemAlloc.h'
+							'**/%{prj.name}/**/D3D12MemAlloc.h',
+							'**.natvis'
 						}
 		warnings		'Off'

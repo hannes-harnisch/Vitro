@@ -16,7 +16,7 @@ namespace vt
 	class WindowImpl : private SystemWindow
 	{
 	public:
-		WindowImpl(std::string_view title, Rectangle rect = SystemWindow::DefaultRect) : SystemWindow(title, rect)
+		WindowImpl(std::string_view title, Rectangle rect = SystemWindow::DEFAULT_RECT) : SystemWindow(title, rect)
 		{}
 
 		void open()

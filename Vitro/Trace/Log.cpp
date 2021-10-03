@@ -201,10 +201,10 @@ namespace vt
 
 			while(queue.size_approx())
 			{
-				constexpr unsigned MaxEntriesDequeued = 100;
+				constexpr unsigned MAX_ENTRIES_DEQUEUED = 100;
 
-				Entry  entries[MaxEntriesDequeued];
-				size_t count = queue.try_dequeue_bulk(con_token, entries, MaxEntriesDequeued);
+				Entry  entries[MAX_ENTRIES_DEQUEUED];
+				size_t count = queue.try_dequeue_bulk(con_token, entries, MAX_ENTRIES_DEQUEUED);
 				for(auto const& entry : std::views::take(entries, count))
 					write_log(entry);
 			}
@@ -219,7 +219,7 @@ namespace vt
 			int64_t millisecs = stdc::duration_cast<stdc::milliseconds>(entry.time).count() % 1000;
 
 			auto esc_code_params = map_log_level_to_escape_code_parameters(entry.level);
-			std::printf("\x1b[%sm[%s.%03lli|%s|%s] %s\n", esc_code_params, timestamp.data(), millisecs, level.data(),
+			std::printf("\x1b[%sm\n[%s.%03lli|%s|%s] %s", esc_code_params, timestamp.data(), millisecs, level.data(),
 						channel.data(), entry.message.data());
 		}
 	};

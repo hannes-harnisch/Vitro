@@ -3,7 +3,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <span>
 #include <string>
 #include <unordered_map>
 export module vt.Graphics.GraphicsSystem;
@@ -77,26 +76,26 @@ namespace vt
 			renderer->recreate_swap_chain_render_targets(swap_chain);
 		}
 
-		void on_window_object_construct(ObjectConstructEvent<Window>& window_construct)
+		void on_window_object_construct(ObjectConstructEvent<Window>& window_constructed)
 		{
-			auto& window = window_construct.object;
-			swap_chains.try_emplace(&window, driver, device, window);
+			auto& window = window_constructed.object;
+			swap_chains.try_emplace(&window, device->make_swap_chain(driver, window));
 		}
 
-		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_move)
+		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_moved)
 		{
-			replace_key_for_swap_chain(window_move.moved, window_move.constructed);
+			replace_key_for_swap_chain(window_moved.moved, window_moved.constructed);
 		}
 
-		void on_window_object_destroy(ObjectDestroyEvent<Window>& window_destroy)
+		void on_window_object_destroy(ObjectDestroyEvent<Window>& window_destroyed)
 		{
-			remove_swap_chain(window_destroy.object);
+			remove_swap_chain(window_destroyed.object);
 		}
 
-		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& window_move)
+		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& window_moved)
 		{
-			remove_swap_chain(window_move.left);
-			replace_key_for_swap_chain(window_move.right, window_move.left);
+			remove_swap_chain(window_moved.left);
+			replace_key_for_swap_chain(window_moved.right, window_moved.left);
 		}
 
 		void remove_swap_chain(Window const& window)

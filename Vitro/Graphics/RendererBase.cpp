@@ -6,6 +6,7 @@ export module vt.Graphics.RendererBase;
 import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.Core.FixedList;
+import vt.Graphics.Device;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
 import vt.Graphics.RenderTargetSpecification;
@@ -30,13 +31,13 @@ namespace vt
 			for(unsigned i = 0; i != std::min(new_count, targets.size()); ++i)
 			{
 				swap_chain_target_spec.swap_chain_src_index = i;
-				targets[i].reset(swap_chain_target_spec);
+				device->recreate_render_target(targets[i], swap_chain_target_spec);
 			}
 
 			if(new_count > targets.size())
 			{
 				swap_chain_target_spec.swap_chain_src_index = static_cast<unsigned>(new_count) - 1;
-				targets.emplace_back(device, swap_chain_target_spec);
+				targets.emplace_back(device->make_render_target(swap_chain_target_spec));
 			}
 			else if(new_count < targets.size())
 				targets.pop_back();
@@ -62,40 +63,40 @@ namespace vt
 		}
 
 	private:
-		using RenderTargetList = FixedList<RenderTarget, SwapChainBase::MaxBuffers>;
+		using RenderTargetList = FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS>;
 
 		RenderTargetSpecification						 swap_chain_target_spec;
 		std::unordered_map<SwapChain*, RenderTargetList> swap_chain_render_targets;
 
-		void on_swap_chain_construct(ObjectConstructEvent<SwapChain>& swap_chain_construct)
+		void on_swap_chain_construct(ObjectConstructEvent<SwapChain>& swap_chain_constructed)
 		{
-			auto  swap_chain = &swap_chain_construct.object;
+			auto  swap_chain = &swap_chain_constructed.object;
 			auto& targets	 = swap_chain_render_targets.try_emplace(swap_chain).first->second;
 
 			swap_chain_target_spec.swap_chain = swap_chain;
 
-			unsigned const count = swap_chain_construct.object->get_buffer_count();
+			unsigned const count = swap_chain_constructed.object->get_buffer_count();
 			for(unsigned i = 0; i != count; ++i)
 			{
 				swap_chain_target_spec.swap_chain_src_index = i;
-				targets.emplace_back(device, swap_chain_target_spec);
+				targets.emplace_back(device->make_render_target(swap_chain_target_spec));
 			}
 		}
 
-		void on_swap_chain_move_construct(ObjectMoveConstructEvent<SwapChain>& swap_chain_move)
+		void on_swap_chain_move_construct(ObjectMoveConstructEvent<SwapChain>& swap_chain_moved)
 		{
-			replace_key_for_render_targets(swap_chain_move.moved, swap_chain_move.constructed);
+			replace_key_for_render_targets(swap_chain_moved.moved, swap_chain_moved.constructed);
 		}
 
-		void on_swap_chain_destroy(ObjectDestroyEvent<SwapChain>& swap_chain_destroy)
+		void on_swap_chain_destroy(ObjectDestroyEvent<SwapChain>& swap_chain_destroyed)
 		{
-			remove_render_targets(swap_chain_destroy.object);
+			remove_render_targets(swap_chain_destroyed.object);
 		}
 
-		void on_swap_chain_move_assign(ObjectMoveAssignEvent<SwapChain>& swap_chain_move)
+		void on_swap_chain_move_assign(ObjectMoveAssignEvent<SwapChain>& swap_chain_moved)
 		{
-			remove_render_targets(swap_chain_move.left);
-			replace_key_for_render_targets(swap_chain_move.right, swap_chain_move.left);
+			remove_render_targets(swap_chain_moved.left);
+			replace_key_for_render_targets(swap_chain_moved.right, swap_chain_moved.left);
 		}
 
 		void remove_render_targets(SwapChain& swap_chain)

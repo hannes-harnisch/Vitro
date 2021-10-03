@@ -3,7 +3,6 @@
 export module vt.Graphics.D3D12.Buffer;
 
 import vt.Graphics.D3D12.Handle;
-import vt.Graphics.Device;
 
 namespace vt::d3d12
 {

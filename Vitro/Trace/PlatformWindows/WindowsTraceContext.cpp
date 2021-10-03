@@ -1,11 +1,11 @@
 ﻿module;
+#include "Core/Macros.hpp"
 #include "Core/PlatformWindows/WindowsAPI.hpp"
 
 #include <csignal>
 export module vt.Trace.Windows.TraceContext;
 
 import vt.Trace.CrashHandler;
-import vt.Trace.Log;
 
 namespace vt::windows
 {
@@ -14,10 +14,19 @@ namespace vt::windows
 	public:
 		WindowsTraceContext()
 		{
-			::AddVectoredExceptionHandler(true, forward_to_standard_signal_handlers);
+			auto result = ::AddVectoredExceptionHandler(true, forward_to_standard_signal_handlers);
+			VT_ASSERT(result, "Failed to set vectored exception handler.");
 
 			auto std_out = ::GetStdHandle(STD_OUTPUT_HANDLE);
-			::SetConsoleMode(std_out, ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_VIRTUAL_TERMINAL_INPUT);
+			VT_ASSERT(std_out != INVALID_HANDLE_VALUE, "Failed to get standard output handle.");
+
+			DWORD mode;
+			BOOL  succeeded = ::GetConsoleMode(std_out, &mode);
+			VT_ASSERT(succeeded, "Failed to query current console mode.");
+
+			mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+			succeeded = ::SetConsoleMode(std_out, mode);
+			VT_ASSERT(succeeded, "Failed to enable virtual terminal processing.");
 		}
 
 	private:

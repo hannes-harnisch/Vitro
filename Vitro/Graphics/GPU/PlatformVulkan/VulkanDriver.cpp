@@ -110,10 +110,10 @@ namespace vt::vulkan
 				.sType					 = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 				.pNext					 = instance_info_next,
 				.pApplicationInfo		 = &app_info,
-				.enabledLayerCount		 = RequiredInstanceLayer != nullptr,
-				.ppEnabledLayerNames	 = &RequiredInstanceLayer,
-				.enabledExtensionCount	 = count(RequiredInstanceExtensions),
-				.ppEnabledExtensionNames = RequiredInstanceExtensions,
+				.enabledLayerCount		 = REQUIRED_INSTANCE_LAYER != nullptr,
+				.ppEnabledLayerNames	 = &REQUIRED_INSTANCE_LAYER,
+				.enabledExtensionCount	 = count(REQUIRED_INSTANCE_EXTENSIONS),
+				.ppEnabledExtensionNames = REQUIRED_INSTANCE_EXTENSIONS,
 			};
 			VkInstance raw_instance;
 
@@ -177,14 +177,14 @@ namespace vt::vulkan
 		}
 
 	private:
-		static constexpr char const* RequiredInstanceLayer =
+		static constexpr char const* REQUIRED_INSTANCE_LAYER =
 #if VT_DEBUG
 			"VK_LAYER_KHRONOS_validation";
 #else
 			{};
 #endif
 
-		static constexpr char const* RequiredInstanceExtensions[]
+		static constexpr char const* REQUIRED_INSTANCE_EXTENSIONS[]
 		{
 			VK_KHR_SURFACE_EXTENSION_NAME,
 #if VT_DEBUG
@@ -255,7 +255,7 @@ namespace vt::vulkan
 			result = vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
-			for(auto required_ext : RequiredInstanceExtensions)
+			for(auto required_ext : REQUIRED_INSTANCE_EXTENSIONS)
 			{
 				bool found = false;
 				for(auto& extension : extensions)
@@ -283,7 +283,7 @@ namespace vt::vulkan
 			bool found = false;
 			for(auto& layer : layers)
 			{
-				if(layer.layerName == std::string_view(RequiredInstanceLayer))
+				if(layer.layerName == std::string_view(REQUIRED_INSTANCE_LAYER))
 				{
 					found = true;
 					break;

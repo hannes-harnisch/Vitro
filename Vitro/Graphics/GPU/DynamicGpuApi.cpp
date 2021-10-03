@@ -113,14 +113,6 @@ namespace vt
 				VT_GPU_API_NAME_SECONDARY = std::move(other.VT_GPU_API_NAME_SECONDARY);
 			return *this;
 		}
-
-		template<typename... Ts> void reset(Ts&&... ts)
-		{
-			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE)
-				VT_GPU_API_NAME.reset(std::forward<Ts>(ts)...);
-			else
-				VT_GPU_API_NAME_SECONDARY.reset(std::forward<Ts>(ts)...);
-		}
 	};
 
 	export template<typename T1, typename T2> union HandleVariant
@@ -164,11 +156,6 @@ namespace vt
 
 		ResourceVariant(ResourceVariant&&) = default;
 		ResourceVariant& operator=(ResourceVariant&&) = default;
-
-		template<typename... Ts> void reset(Ts&&... ts)
-		{
-			VT_GPU_API_NAME.reset(std::forward<Ts>(ts)...);
-		}
 
 		ResourceVariant(ResourceVariant const&) = delete;
 		ResourceVariant& operator=(ResourceVariant const&) = delete;

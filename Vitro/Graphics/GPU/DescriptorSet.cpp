@@ -11,5 +11,8 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.DescriptorSet;
 
 namespace vt
 {
-	export using DescriptorSet = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSet)>;
+	using PlatformDescriptorSet = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSet)>;
+
+	export class DescriptorSet : public PlatformDescriptorSet
+	{};
 }

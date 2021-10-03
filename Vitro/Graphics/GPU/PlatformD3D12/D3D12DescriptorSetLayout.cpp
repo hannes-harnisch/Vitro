@@ -4,15 +4,12 @@
 
 #include <atomic>
 #include <memory>
-#include <span>
-#include <stdexcept>
 #include <vector>
 export module vt.Graphics.D3D12.DescriptorSetLayout;
 
 import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Graphics.DescriptorBinding;
-import vt.Graphics.Device;
 
 namespace vt::d3d12
 {
@@ -20,15 +17,15 @@ namespace vt::d3d12
 	{
 		using enum DescriptorType;
 		switch(type)
-		{
+		{ // clang-format off
 			case Texture:
 			case Buffer:
-			case ByteAddressBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			case ByteAddressBuffer:	return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			case ReadWriteTexture:
 			case ReadWriteBuffer:
-			case StructuredBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			case UniformBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-			case DynamicSampler: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+			case StructuredBuffer:	return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			case UniformBuffer:		return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			case DynamicSampler:	return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
 		}
 		VT_UNREACHABLE();
 	}
@@ -38,13 +35,12 @@ namespace vt::d3d12
 		using enum ShaderStage;
 		switch(stage)
 		{
-			case Vertex: return D3D12_SHADER_VISIBILITY_VERTEX;
-			case Hull: return D3D12_SHADER_VISIBILITY_HULL;
-			case Domain: return D3D12_SHADER_VISIBILITY_DOMAIN;
-			case Geometry: return D3D12_SHADER_VISIBILITY_GEOMETRY;
+			case Vertex:   return D3D12_SHADER_VISIBILITY_VERTEX;
+			case Hull:	   return D3D12_SHADER_VISIBILITY_HULL;
+			case Domain:   return D3D12_SHADER_VISIBILITY_DOMAIN;
 			case Fragment: return D3D12_SHADER_VISIBILITY_PIXEL;
-			case Task: return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
-			case Mesh: return D3D12_SHADER_VISIBILITY_MESH;
+			case Task:	   return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+			case Mesh:	   return D3D12_SHADER_VISIBILITY_MESH;
 			case All:
 			case Compute:
 			case RayGen:
@@ -53,16 +49,14 @@ namespace vt::d3d12
 			case Miss:
 			case Intersection:
 			case Callable: return D3D12_SHADER_VISIBILITY_ALL;
-		}
+		} // clang-format on
 		VT_UNREACHABLE();
 	}
 
 	export class D3D12DescriptorSetLayout
 	{
 	public:
-		// Unused parameter is kept for compatibility with APIs where descriptor set layouts are first-class device-created
-		// objects.
-		D3D12DescriptorSetLayout(Device&, DescriptorSetLayoutSpecification const& spec) :
+		D3D12DescriptorSetLayout(DescriptorSetLayoutSpecification const& spec) :
 			parameter_type(determine_parameter_type(spec.bindings)), visibility(convert_shader_stage(spec.visibility))
 		{
 			if(holds_descriptor_table())

@@ -10,7 +10,7 @@ namespace vt
 {
 	export struct RenderTargetSpecification
 	{
-		FixedList<Texture const*, MaxColorAttachments> color_attachments;
+		FixedList<Texture const*, MAX_COLOR_ATTACHMENTS> color_attachments;
 
 		Texture const*	  depth_stencil_attachment = nullptr; // Optional depth stencil attachment.
 		RenderPass const* render_pass			   = nullptr; // Render pass this render target will be used with.

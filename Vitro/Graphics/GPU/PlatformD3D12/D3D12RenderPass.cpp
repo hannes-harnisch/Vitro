@@ -10,18 +10,18 @@ import vt.Core.Array;
 import vt.Core.Enum;
 import vt.Core.FixedList;
 import vt.Graphics.D3D12.Texture;
-import vt.Graphics.Device;
 import vt.Graphics.RenderPassSpecification;
 
 namespace vt::d3d12
 {
 	D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE convert_image_load_op(ImageLoadOp op)
 	{
+		using enum ImageLoadOp;
 		switch(op)
-		{
-			case ImageLoadOp::Load: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-			case ImageLoadOp::Clear: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-			case ImageLoadOp::Ignore: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+		{ // clang-format off
+			case Load:   return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+			case Clear:  return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+			case Ignore: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
 		}
 		VT_UNREACHABLE();
 	}
@@ -30,9 +30,9 @@ namespace vt::d3d12
 	{
 		switch(op)
 		{
-			case ImageStoreOp::Store: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+			case ImageStoreOp::Store:  return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
 			case ImageStoreOp::Ignore: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-		}
+		} // clang-format on
 		VT_UNREACHABLE();
 	}
 
@@ -56,19 +56,18 @@ namespace vt::d3d12
 		D3D12_RESOURCE_STATES new_layout;
 	};
 
-	export using TransitionList = FixedList<AttachmentTransition, MaxAttachments>;
+	export using TransitionList = FixedList<AttachmentTransition, MAX_ATTACHMENTS>;
 
 	export class D3D12RenderPass
 	{
 	public:
-		// Unused parameter is kept for compatibility with APIs where render passes are first-class device-created objects.
-		D3D12RenderPass(Device&, RenderPassSpecification const& spec) :
+		D3D12RenderPass(RenderPassSpecification const& spec) :
 			attachments(spec.attachments.begin(), spec.attachments.end()),
 			is_using_depth_stencil(contains_depth_stencil_attachment(spec.attachments)),
 			stencil_begin_access(convert_image_load_op(spec.stencil_load_op)),
 			stencil_end_access(convert_image_store_op(spec.stencil_store_op))
 		{
-			FixedList<D3D12_RESOURCE_STATES, MaxAttachments> prev_layouts;
+			FixedList<D3D12_RESOURCE_STATES, MAX_ATTACHMENTS> prev_layouts;
 			for(auto attachment : spec.attachments)
 				prev_layouts.emplace_back(convert_image_layout(attachment.initial_layout));
 
@@ -155,14 +154,14 @@ namespace vt::d3d12
 		}
 
 	private:
-		FixedList<AttachmentAccess, MaxAttachments> attachments;
-		bool										is_using_depth_stencil;
-		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE		stencil_begin_access;
-		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE		stencil_end_access;
-		std::vector<TransitionList>					subpass_transitions;
-		TransitionList								final_transitions;
+		FixedList<AttachmentAccess, MAX_ATTACHMENTS> attachments;
+		bool										 is_using_depth_stencil;
+		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE		 stencil_begin_access;
+		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE		 stencil_end_access;
+		std::vector<TransitionList>					 subpass_transitions;
+		TransitionList								 final_transitions;
 
-		static bool contains_depth_stencil_attachment(FixedList<AttachmentSpecification, MaxAttachments> const& attachments)
+		static bool contains_depth_stencil_attachment(RenderPassSpecification::AttachmentList const& attachments)
 		{
 			auto uses_depth_stencil_layout = [](auto attachment) {
 				return attachment.final_layout == ImageLayout::DepthStencilAttachment ||

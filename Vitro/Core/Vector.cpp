@@ -13,6 +13,17 @@ namespace vt
 		To {from};
 	};
 
+	template<typename T, int D> union Vector;
+
+	export template<typename To, int TO_SIZE, typename From, int FROM_SIZE>
+	constexpr Vector<To, TO_SIZE> vector_cast(Vector<From, FROM_SIZE> vec) noexcept
+	{
+		Vector<To, TO_SIZE> cast;
+		for(int i = 0; i != std::min(TO_SIZE, FROM_SIZE); ++i)
+			cast[i] = static_cast<To>(vec.arr[i]);
+		return cast;
+	}
+
 #define DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)                                                                             \
 	template<typename T2, int D2> constexpr operator Vector<T2, D2>() const noexcept requires LosslesslyConvertibleTo<T, T2>   \
 	{                                                                                                                          \
@@ -271,14 +282,6 @@ namespace vt
 		for(T& component : vec.arr)
 			component /= scalar;
 		return vec;
-	}
-
-	export template<typename T1, typename T2, int D1, int D2> constexpr Vector<T2, D2> vector_cast(Vector<T1, D1> vec) noexcept
-	{
-		Vector<T2, D2> cast;
-		for(int i = 0; i != std::min(D1, D2); ++i)
-			cast[i] = static_cast<T2>(vec.arr[i]);
-		return cast;
 	}
 
 	export template<typename T, int D> constexpr auto apply(Vector<T, D> vec, auto func) noexcept(noexcept(func(vec[0])))

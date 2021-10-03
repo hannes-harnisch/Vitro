@@ -14,8 +14,6 @@ namespace vt
 	using PlatformSampler = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Sampler)>;
 	export class Sampler : public PlatformSampler
 	{
-	public:
-		Sampler(Device& device, SamplerSpecification const& spec) : PlatformSampler(device, spec)
-		{}
+		using PlatformSampler::PlatformSampler;
 	};
 }

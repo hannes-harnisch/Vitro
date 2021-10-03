@@ -12,10 +12,11 @@ export module vt.App.EventSystem;
 
 import vt.Core.ConcurrentQueue;
 import vt.Core.Singleton;
+import vt.Trace.Log;
 
 namespace vt
 {
-	export template<typename T> constexpr bool AllowAsyncEventDispatchFor = false;
+	export template<typename T> constexpr bool ALLOW_ASYNC_DISPATCH_FOR = false;
 
 	export class EventSystem : public Singleton<EventSystem>
 	{
@@ -30,9 +31,11 @@ namespace vt
 
 		template<typename T, typename... Ts> static void notify_async(Ts&&... ts)
 		{
-			static_assert(AllowAsyncEventDispatchFor<T>, "This type is not allowed to be used as an async event.");
+			static_assert(ALLOW_ASYNC_DISPATCH_FOR<T>, "This type is not allowed to be used as an async event.");
 
-			get().enqueue_async_event(T {std::forward<Ts>(ts)...});
+			T event {std::forward<Ts>(ts)...};
+			Log().verbose(event);
+			get().enqueue_async_event(std::move(event));
 		}
 
 	private:

@@ -5,7 +5,6 @@ export module vt.Graphics.DescriptorSetLayout;
 import vt.Core.Array;
 import vt.Core.Specification;
 import vt.Graphics.DescriptorBinding;
-import vt.Graphics.Device;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.VT_GPU_API_MODULE.DescriptorSetLayout;
 
@@ -17,12 +16,7 @@ namespace vt
 {
 	using PlatformDescriptorSetLayout = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSetLayout)>;
 	export class DescriptorSetLayout : public PlatformDescriptorSetLayout
-	{
-	public:
-		DescriptorSetLayout(Device& device, DescriptorSetLayoutSpecification const& spec) :
-			PlatformDescriptorSetLayout(device, spec)
-		{}
-	};
+	{};
 
 	export enum class Filter : uint8_t {
 		MinMagMipNearest,

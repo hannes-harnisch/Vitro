@@ -18,7 +18,7 @@ namespace vt::d3d12
 	export class D3D12Driver final : public DriverBase
 	{
 	public:
-		static constexpr D3D_FEATURE_LEVEL MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_1;
+		static constexpr D3D_FEATURE_LEVEL MIN_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
 
 		// The unused parameters are kept for compatibility with Vulkan, which takes an application name and versions.
 		D3D12Driver(std::string const&, Version, Version)
@@ -45,7 +45,7 @@ namespace vt::d3d12
 				result = adapter->GetDesc1(&desc);
 				VT_ENSURE_RESULT(result, "Failed to get D3D12 adapter description.");
 
-				auto can_make_device = D3D12CreateDevice(adapter.get(), MinimumFeatureLevel, __uuidof(ID3D12Device4), nullptr);
+				auto can_make_device = D3D12CreateDevice(adapter.get(), MIN_FEATURE_LEVEL, __uuidof(ID3D12Device4), nullptr);
 				if(FAILED(can_make_device) || desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 					continue;
 
@@ -54,7 +54,7 @@ namespace vt::d3d12
 			return adapters;
 		}
 
-		IDXGIFactory5* get_factory() const
+		IDXGIFactory5* get_factory()
 		{
 			return factory.get();
 		}

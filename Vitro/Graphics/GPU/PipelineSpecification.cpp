@@ -34,56 +34,13 @@ namespace vt
 		PerInstance,
 	};
 
-	export struct VertexAttribute
-	{
-		Explicit<uint8_t>		 slot;
-		Explicit<uint8_t>		 byte_offset;
-		Explicit<VertexDataType> data_type;
-		AttributeInputRate		 input_rate = AttributeInputRate::PerVertex;
-	};
-
 	export enum class PrimitiveTopology : uint8_t {
 		PointList,
 		LineList,
 		LineStrip,
 		TriangleList,
 		TriangleStrip,
-		LineListWithAdjacency,
-		LineStripWithAdjacency,
-		TriangleListWithAdjacency,
-		TriangleStripWithAdjacency,
-		PatchList_1ControlPoint,
-		PatchList_2ControlPoints,
-		PatchList_3ControlPoints,
-		PatchList_4ControlPoints,
-		PatchList_5ControlPoints,
-		PatchList_6ControlPoints,
-		PatchList_7ControlPoints,
-		PatchList_8ControlPoints,
-		PatchList_9ControlPoints,
-		PatchList_10ControlPoints,
-		PatchList_11ControlPoints,
-		PatchList_12ControlPoints,
-		PatchList_13ControlPoints,
-		PatchList_14ControlPoints,
-		PatchList_15ControlPoints,
-		PatchList_16ControlPoints,
-		PatchList_17ControlPoints,
-		PatchList_18ControlPoints,
-		PatchList_19ControlPoints,
-		PatchList_20ControlPoints,
-		PatchList_21ControlPoints,
-		PatchList_22ControlPoints,
-		PatchList_23ControlPoints,
-		PatchList_24ControlPoints,
-		PatchList_25ControlPoints,
-		PatchList_26ControlPoints,
-		PatchList_27ControlPoints,
-		PatchList_28ControlPoints,
-		PatchList_29ControlPoints,
-		PatchList_30ControlPoints,
-		PatchList_31ControlPoints,
-		PatchList_32ControlPoints,
+		PatchList,
 	};
 
 	export enum class PolygonFillMode : uint8_t {
@@ -102,17 +59,6 @@ namespace vt
 		CounterClockwise,
 	};
 
-	struct RasterizerState
-	{
-		PolygonFillMode		fill_mode = PolygonFillMode::Solid;
-		Explicit<CullMode>	cull_mode;
-		Explicit<FrontFace> front_face;
-		bool				enable_depth_clip = false;
-		int					depth_bias		  = 0;
-		float				depth_bias_clamp  = 0.0f;
-		float				depth_bias_slope  = 0.0f;
-	};
-
 	export enum class StencilOp : uint8_t {
 		Keep,
 		Zero,
@@ -122,34 +68,6 @@ namespace vt
 		Invert,
 		IncrementWrap,
 		DecrementWrap,
-	};
-
-	export struct StencilOpState
-	{
-		StencilOp fail_op		= StencilOp::Keep;
-		StencilOp pass_op		= StencilOp::Keep;
-		StencilOp depth_fail_op = StencilOp::Keep;
-		CompareOp compare_op	= CompareOp::Never;
-	};
-
-	struct DepthStencilState
-	{
-		Explicit<bool> enable_depth_test;
-		bool		   enable_depth_write = false;
-		CompareOp	   depth_compare_op	  = CompareOp::Never;
-		Explicit<bool> enable_stencil_test;
-		uint8_t		   stencil_read_mask  = 0;
-		uint8_t		   stencil_write_mask = 0;
-		StencilOpState front;
-		StencilOpState back;
-	};
-
-	struct MultisampleState
-	{
-		unsigned		  sample_mask			   = 0;
-		Positive<uint8_t> sample_count			   = 1;
-		Positive<uint8_t> rasterizer_sample_count  = 1;
-		bool			  enable_alpha_to_coverage = false;
 	};
 
 	export enum class LogicOp : uint8_t {
@@ -205,7 +123,54 @@ namespace vt
 		Alpha = bit(3),
 		All	  = Red | Green | Blue | Alpha,
 	};
-	export template<> constexpr bool EnableBitOperatorsFor<ColorComponent> = true;
+	export template<> constexpr inline bool ALLOW_BIT_OPERATORS_FOR<ColorComponent> = true;
+
+	export struct VertexAttribute
+	{
+		Explicit<uint8_t>		 slot;
+		Explicit<uint8_t>		 byte_offset;
+		Explicit<VertexDataType> data_type;
+		AttributeInputRate		 input_rate = AttributeInputRate::PerVertex;
+	};
+
+	struct RasterizerState
+	{
+		PolygonFillMode		fill_mode = PolygonFillMode::Solid;
+		Explicit<CullMode>	cull_mode;
+		Explicit<FrontFace> front_face;
+		bool				enable_depth_clip = false;
+		int					depth_bias		  = 0;
+		float				depth_bias_clamp  = 0.0f;
+		float				depth_bias_slope  = 0.0f;
+	};
+
+	export struct StencilOpState
+	{
+		StencilOp fail_op		= StencilOp::Keep;
+		StencilOp pass_op		= StencilOp::Keep;
+		StencilOp depth_fail_op = StencilOp::Keep;
+		CompareOp compare_op	= CompareOp::Never;
+	};
+
+	struct DepthStencilState
+	{
+		Explicit<bool> enable_depth_test;
+		bool		   enable_depth_write = false;
+		CompareOp	   depth_compare_op	  = CompareOp::Never;
+		Explicit<bool> enable_stencil_test;
+		uint8_t		   stencil_read_mask  = 0;
+		uint8_t		   stencil_write_mask = 0;
+		StencilOpState front;
+		StencilOpState back;
+	};
+
+	struct MultisampleState
+	{
+		unsigned		  sample_mask			   = ~0u;
+		Positive<uint8_t> sample_count			   = 1;
+		Positive<uint8_t> rasterizer_sample_count  = 1;
+		bool			  enable_alpha_to_coverage = false;
+	};
 
 	export struct ColorAttachmentBlendState
 	{
@@ -221,22 +186,25 @@ namespace vt
 
 	export struct BlendState
 	{
-		Explicit<FixedList<ColorAttachmentBlendState, MaxColorAttachments>> attachment_states;
+		using BlendStateList = FixedList<ColorAttachmentBlendState, MAX_COLOR_ATTACHMENTS>;
 
-		bool	enable_logic_op = false;
-		LogicOp logic_op		= LogicOp::Clear;
+		Explicit<BlendStateList> attachment_states;
+		bool					 enable_logic_op = false;
+		LogicOp					 logic_op		 = LogicOp::Clear;
 	};
 
-	export constexpr unsigned MaxVertexAttributes = 16;
+	export constexpr inline unsigned MAX_VERTEX_ATTRIBUTES = 16;
 
 	export struct RenderPipelineSpecification
 	{
-		using VertexAttributeList = FixedList<VertexAttribute, MaxVertexAttributes>;
+		using VertexAttributeList = FixedList<VertexAttribute, MAX_VERTEX_ATTRIBUTES>;
 
 		RootSignature const&		root_signature;
 		RenderPass const&			render_pass;
 		ArrayView<char>				vertex_shader_bytecode;
-		ArrayView<char>				fragment_shader_bytecode;
+		ConstSpan<char>				hull_shader_bytecode;
+		ConstSpan<char>				domain_shader_bytecode;
+		ConstSpan<char>				fragment_shader_bytecode;
 		VertexAttributeList			vertex_attributes;
 		Explicit<PrimitiveTopology> primitive_topology;
 		bool						enable_primitive_restart = false;
