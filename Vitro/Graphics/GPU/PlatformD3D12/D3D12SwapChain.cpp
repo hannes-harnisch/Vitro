@@ -21,7 +21,8 @@ namespace vt::d3d12
 			render_queue(&in_render_queue),
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
-			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0)
+			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0),
+			size(window.get_size())
 		{
 			auto factory = driver.d3d12.get_factory();
 			HWND hwnd	 = window.native_handle();
@@ -66,6 +67,16 @@ namespace vt::d3d12
 			return buffer_count;
 		}
 
+		unsigned get_width() const override
+		{
+			return size.width;
+		}
+
+		unsigned get_height() const override
+		{
+			return size.height;
+		}
+
 		void present() override
 		{
 			auto result = swap_chain->Present(is_vsync_enabled, present_flags);
@@ -77,8 +88,9 @@ namespace vt::d3d12
 			render_queue->wait_for_idle();
 			back_buffers.clear();
 
-			unsigned flags = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
-			auto result = swap_chain->ResizeBuffers(buffer_count, event.size.width, event.size.height, DESIRED_FORMAT, flags);
+			size			= event.size;
+			unsigned flags	= tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
+			auto	 result = swap_chain->ResizeBuffers(buffer_count, size.width, size.height, DESIRED_FORMAT, flags);
 			VT_ASSERT_RESULT(result, "Failed to resize D3D12 swap chain.");
 
 			acquire_back_buffers();
@@ -105,10 +117,12 @@ namespace vt::d3d12
 	private:
 		static constexpr DXGI_FORMAT DESIRED_FORMAT = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-		Queue*											  render_queue;
-		uint8_t											  buffer_count;
-		bool											  tearing_supported;
-		UINT											  present_flags;
+		Queue*	render_queue;
+		uint8_t buffer_count;
+		bool	tearing_supported;
+		UINT	present_flags;
+		Extent	size;
+
 		ComUnique<IDXGISwapChain3>						  swap_chain;
 		FixedList<ComUnique<ID3D12Resource>, MAX_BUFFERS> back_buffers;
 

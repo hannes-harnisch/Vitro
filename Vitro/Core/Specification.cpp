@@ -15,7 +15,7 @@ namespace vt
 		Positive(T value) : value(value)
 		{
 			if(value == 0)
-				throw std::invalid_argument("This value cannot be zero.");
+				throw std::invalid_argument("This value is not allowed to be zero.");
 		}
 
 		operator T() const noexcept

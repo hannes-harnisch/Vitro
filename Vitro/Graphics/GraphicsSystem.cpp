@@ -73,7 +73,7 @@ namespace vt
 
 			auto& swap_chain = swap_chains.find(&event.window)->second;
 			swap_chain->resize(event);
-			renderer->recreate_swap_chain_render_targets(swap_chain);
+			renderer->recreate_shared_render_targets(swap_chain);
 		}
 
 		void on_window_object_construct(ObjectConstructEvent<Window>& window_constructed)

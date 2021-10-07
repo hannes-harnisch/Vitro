@@ -81,13 +81,16 @@ namespace vt
 		T1 VT_GPU_API_NAME;
 		T2 VT_GPU_API_NAME_SECONDARY;
 
-		template<typename... Ts> ResourceVariant(Ts&&... ts)
-		{
-			if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE)
-				std::construct_at(&VT_GPU_API_NAME, std::forward<Ts>(ts)...);
-			else
-				std::construct_at(&VT_GPU_API_NAME_SECONDARY, std::forward<Ts>(ts)...);
-		}
+		ResourceVariant(T1 t1) : VT_GPU_API_NAME(std::move(t1))
+		{}
+
+		ResourceVariant(T2 t2) : VT_GPU_API_NAME_SECONDARY(std::move(t2))
+		{}
+		/*		if(DynamicGpuApi::current() == GpuApi::VT_GPU_API_MODULE)
+					std::construct_at(&VT_GPU_API_NAME, std::forward<Ts>(ts)...);
+				else
+					std::construct_at(&VT_GPU_API_NAME_SECONDARY, std::forward<Ts>(ts)...);
+			}*/
 
 		ResourceVariant(ResourceVariant&& other) noexcept
 		{
@@ -151,8 +154,10 @@ namespace vt
 	{
 		T VT_GPU_API_NAME;
 
-		template<typename... Ts> ResourceVariant(Ts&&... ts) : VT_GPU_API_NAME(std::forward<Ts>(ts)...)
+		ResourceVariant(T t) : VT_GPU_API_NAME(std::move(t))
 		{}
+		// template<typename... Ts> ResourceVariant(Ts&&... ts) : VT_GPU_API_NAME(std::forward<Ts>(ts)...)
+		//{}
 
 		ResourceVariant(ResourceVariant&&) = default;
 		ResourceVariant& operator=(ResourceVariant&&) = default;

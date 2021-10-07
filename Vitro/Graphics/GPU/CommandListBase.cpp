@@ -63,11 +63,10 @@ namespace vt
 		virtual void begin_render_pass(RenderPass const&	 render_pass,
 									   RenderTarget const&	 render_target,
 									   ConstSpan<ClearValue> clear_values = {})											   = 0;
-		virtual void transition_to_next_subpass()																		   = 0;
+		virtual void transition_subpass()																				   = 0;
 		virtual void end_render_pass()																					   = 0;
 		virtual void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets) = 0;
 		virtual void bind_index_buffer(Buffer const& buffer, size_t byte_offset)										   = 0;
-		virtual void bind_primitive_topology(PrimitiveTopology topology, unsigned control_point_count = 0)				   = 0;
 		virtual void bind_viewports(ArrayView<Viewport> viewports)														   = 0;
 		virtual void bind_scissors(ArrayView<Rectangle> scissors)														   = 0;
 		virtual void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)  = 0;

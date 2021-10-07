@@ -52,10 +52,11 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
+		RootSignatureParameterMap const* active_render_root_indices = nullptr;
 		D3D12RenderPass const*			 active_render_pass			= nullptr;
 		D3D12RenderTarget const*		 active_render_target		= nullptr;
-		RootSignatureParameterMap const* active_render_root_indices = nullptr;
 		unsigned						 subpass_index				= 1;
+		D3D_PRIMITIVE_TOPOLOGY			 current_topology			= D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 	};
 
 	export template<CommandType TYPE> class D3D12CommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
@@ -100,6 +101,9 @@ namespace vt::d3d12
 		{
 			auto result = cmd->Close();
 			VT_ASSERT_RESULT(result, "Failed to end D3D12 command list.");
+
+			if constexpr(TYPE == CommandType::Render)
+				this->current_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
@@ -154,6 +158,13 @@ namespace vt::d3d12
 		void bind_render_pipeline(RenderPipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.ptr());
+
+			auto pipeline_topology = pipeline.d3d12.get_topology();
+			if(this->current_topology != pipeline_topology)
+			{
+				cmd->IASetPrimitiveTopology(pipeline_topology);
+				this->current_topology = pipeline_topology;
+			}
 		}
 
 		void bind_render_root_signature(RootSignature const& root_signature)
@@ -287,7 +298,7 @@ namespace vt::d3d12
 			this->subpass_index = 1;
 		}
 
-		void transition_to_next_subpass()
+		void transition_subpass()
 		{
 			VT_ASSERT(this->subpass_index < this->active_render_pass->subpass_count() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
@@ -327,11 +338,6 @@ namespace vt::d3d12
 				.Format			= get_index_format_from_stride(buffer.get_stride()),
 			};
 			cmd->IASetIndexBuffer(&view);
-		}
-
-		void bind_primitive_topology(PrimitiveTopology topology, unsigned control_point_count = 0)
-		{
-			cmd->IASetPrimitiveTopology(convert_primitive_topology(topology, control_point_count));
 		}
 
 		void bind_viewports(ArrayView<Viewport> viewports)
@@ -384,23 +390,6 @@ namespace vt::d3d12
 				case 2: return DXGI_FORMAT_R16_UINT;
 				case 4: return DXGI_FORMAT_R32_UINT;
 			}
-			VT_UNREACHABLE();
-		}
-
-		static D3D_PRIMITIVE_TOPOLOGY convert_primitive_topology(PrimitiveTopology topology, unsigned num_control_points)
-		{
-			using enum PrimitiveTopology;
-			switch(topology)
-			{ // clang-format off
-				case PointList:		return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-				case LineList:		return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-				case LineStrip:		return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-				case TriangleList:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-				case TriangleStrip:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-				case PatchList:
-					return static_cast<D3D_PRIMITIVE_TOPOLOGY>(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST - 1 +
-															   num_control_points);
-			} // clang-format on
 			VT_UNREACHABLE();
 		}
 

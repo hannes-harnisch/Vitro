@@ -38,7 +38,7 @@ namespace vt::d3d12
 				case MinMagLinearMipNearest:		return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 				case MinMagMipLinear:				return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
 				case Anisotropic:					return D3D12_FILTER_ANISOTROPIC;
-			} // clang-format on
+			}
 		VT_UNREACHABLE();
 	}
 
@@ -46,12 +46,12 @@ namespace vt::d3d12
 	{
 		using enum AddressMode;
 		switch(mode)
-		{ // clang-format off
+		{ 
 			case Repeat:		 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			case MirroredRepeat: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
 			case ClampToEdge:	 return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 			case ClampToBorder:	 return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		} // clang-format on
+		} 
 		VT_UNREACHABLE();
 	}
 
@@ -59,7 +59,7 @@ namespace vt::d3d12
 	{
 		using enum CompareOp;
 		switch(op)
-		{ // clang-format off
+		{
 			case Never:			 return D3D12_COMPARISON_FUNC_NEVER;
 			case Less:			 return D3D12_COMPARISON_FUNC_LESS;
 			case Equal:			 return D3D12_COMPARISON_FUNC_EQUAL;

@@ -9,12 +9,16 @@ namespace vt::d3d12
 	export class D3D12Buffer
 	{
 	public:
+		D3D12Buffer(D3D12MA::Allocator*)
+		{}
+
 		D3D12_GPU_VIRTUAL_ADDRESS get_gpu_address() const
 		{
-			return buffer->GetResource()->GetGPUVirtualAddress();
+			return buffer->GetGPUVirtualAddress();
 		}
 
 	private:
-		ComUnique<D3D12MA::Allocation> buffer;
+		ComUnique<D3D12MA::Allocation> allocation;
+		ComUnique<ID3D12Resource>	   buffer;
 	};
 }

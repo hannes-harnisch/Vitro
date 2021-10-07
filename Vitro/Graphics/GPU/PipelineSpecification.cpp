@@ -155,8 +155,9 @@ namespace vt
 	struct DepthStencilState
 	{
 		Explicit<bool> enable_depth_test;
-		bool		   enable_depth_write = false;
-		CompareOp	   depth_compare_op	  = CompareOp::Never;
+		bool		   enable_depth_write		= false;
+		CompareOp	   depth_compare_op			= CompareOp::Never;
+		bool		   enable_depth_bounds_test = false;
 		Explicit<bool> enable_stencil_test;
 		uint8_t		   stencil_read_mask  = 0;
 		uint8_t		   stencil_write_mask = 0;
@@ -193,7 +194,8 @@ namespace vt
 		LogicOp					 logic_op		 = LogicOp::Clear;
 	};
 
-	export constexpr inline unsigned MAX_VERTEX_ATTRIBUTES = 16;
+	export constexpr inline unsigned MAX_VERTEX_ATTRIBUTES		   = 16;
+	export constexpr inline unsigned MAX_PATCH_LIST_CONTROL_POINTS = 32; // Imposed by D3D12 primitive topology.
 
 	export struct RenderPipelineSpecification
 	{
@@ -207,7 +209,8 @@ namespace vt
 		ConstSpan<char>				fragment_shader_bytecode;
 		VertexAttributeList			vertex_attributes;
 		Explicit<PrimitiveTopology> primitive_topology;
-		bool						enable_primitive_restart = false;
+		uint8_t						patch_list_control_point_count = 0;
+		bool						enable_primitive_restart	   = false;
 		RasterizerState				rasterizer;
 		DepthStencilState			depth_stencil;
 		MultisampleState			multisample;

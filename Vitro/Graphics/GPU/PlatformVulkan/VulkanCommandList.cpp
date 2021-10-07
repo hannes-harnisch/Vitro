@@ -12,7 +12,6 @@ import vt.Core.FixedList;
 import vt.Core.Rectangle;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandListBase;
-import vt.Graphics.DescriptorPool;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
@@ -95,11 +94,6 @@ namespace vt::vulkan
 			VT_ASSERT_RESULT(result, "Failed to end Vulkan command buffer.");
 		}
 
-		void bind_descriptor_pool(DescriptorPool const&)
-		{
-			// Do nothing, as Vulkan covers binding descriptor pools when binding descriptor sets.
-		}
-
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
 		{
 			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.vulkan.ptr());
@@ -171,7 +165,7 @@ namespace vt::vulkan
 			api->vkCmdBeginRenderPass(cmd, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 		}
 
-		void transition_to_next_subpass()
+		void transition_subpass()
 		{
 			api->vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
 		}
@@ -183,7 +177,7 @@ namespace vt::vulkan
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<VkBuffer, MaxVertexAttributes> handles(first_buffer);
+			FixedList<VkBuffer, MAX_VERTEX_ATTRIBUTES> handles(first_buffer);
 			for(auto& buffer : std::views::take(buffers, first_buffer))
 				handles.emplace_back(buffer.vulkan.ptr());
 
@@ -194,11 +188,6 @@ namespace vt::vulkan
 		{
 			auto index_type = get_index_type_from_stride(buffer.get_stride());
 			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, index_type);
-		}
-
-		void bind_primitive_topology(PrimitiveTopology, unsigned = 0)
-		{
-			// Do nothing, as Vulkan covers binding the primitive topology when binding a pipeline.
 		}
 
 		void bind_viewports(ArrayView<Viewport> viewports)

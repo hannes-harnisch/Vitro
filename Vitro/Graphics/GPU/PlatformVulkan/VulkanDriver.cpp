@@ -1,13 +1,8 @@
 ﻿module;
 #include "Core/Macros.hpp"
-
-#if VT_SYSTEM_MODULE == Windows
-	#define VK_USE_PLATFORM_WIN32_KHR
-#elif VT_SYSTEM_MODULE == Linux
-	#define VK_USE_PLATFORM_XCB_KHR
-#endif
 #include "VulkanAPI.hpp"
 
+#include <array>
 #include <memory>
 #include <ranges>
 #include <string_view>
@@ -110,10 +105,10 @@ namespace vt::vulkan
 				.sType					 = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 				.pNext					 = instance_info_next,
 				.pApplicationInfo		 = &app_info,
-				.enabledLayerCount		 = REQUIRED_INSTANCE_LAYER != nullptr,
-				.ppEnabledLayerNames	 = &REQUIRED_INSTANCE_LAYER,
+				.enabledLayerCount		 = count(REQUIRED_INSTANCE_LAYERS),
+				.ppEnabledLayerNames	 = REQUIRED_INSTANCE_LAYERS.data(),
 				.enabledExtensionCount	 = count(REQUIRED_INSTANCE_EXTENSIONS),
-				.ppEnabledExtensionNames = REQUIRED_INSTANCE_EXTENSIONS,
+				.ppEnabledExtensionNames = REQUIRED_INSTANCE_EXTENSIONS.data(),
 			};
 			VkInstance raw_instance;
 
@@ -177,23 +172,24 @@ namespace vt::vulkan
 		}
 
 	private:
-		static constexpr char const* REQUIRED_INSTANCE_LAYER =
+		static constexpr std::array REQUIRED_INSTANCE_LAYERS =
 #if VT_DEBUG
-			"VK_LAYER_KHRONOS_validation";
+			{"VK_LAYER_KHRONOS_validation"};
 #else
-			{};
+			std::array<char const*, 0> {};
 #endif
 
-		static constexpr char const* REQUIRED_INSTANCE_EXTENSIONS[]
-		{
-			VK_KHR_SURFACE_EXTENSION_NAME,
+		static constexpr std::array REQUIRED_INSTANCE_EXTENSIONS = {
 #if VT_DEBUG
-				VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
+			VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 #endif
+
+			VK_KHR_SURFACE_EXTENSION_NAME,
+
 #if VT_SYSTEM_MODULE == Windows
-				VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+			VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #elif VT_SYSTEM_MODULE == Linux
-				VK_KHR_XCB_SURFACE_EXTENSION_NAME,
+			VK_KHR_XCB_SURFACE_EXTENSION_NAME,
 #endif
 		};
 
@@ -201,6 +197,7 @@ namespace vt::vulkan
 
 		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = driver.load_symbol<decltype(::vkGetInstanceProcAddr)>(
 			"vkGetInstanceProcAddr");
+
 #define INSTANCE_NULL_FUNC(func) PFN_##func func = reinterpret_cast<PFN_##func>(vkGetInstanceProcAddr(nullptr, #func));
 		INSTANCE_NULL_FUNC(vkCreateInstance)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceExtensionProperties)
@@ -222,9 +219,8 @@ namespace vt::vulkan
 			using pointer = VkDebugUtilsMessengerEXT;
 			void operator()(VkDebugUtilsMessengerEXT messenger)
 			{
-				auto vk_api = VulkanDriver::get_api();
-				auto inst	= VulkanDriver::get_vk_instance();
-				vk_api->vkDestroyDebugUtilsMessengerEXT(inst, messenger, nullptr);
+				auto inst = VulkanDriver::get_vk_instance();
+				VulkanDriver::get_api()->vkDestroyDebugUtilsMessengerEXT(inst, messenger, nullptr);
 			}
 		};
 		std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter> debug_messenger;
@@ -255,12 +251,12 @@ namespace vt::vulkan
 			result = vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
-			for(auto required_ext : REQUIRED_INSTANCE_EXTENSIONS)
+			for(std::string_view required_ext : REQUIRED_INSTANCE_EXTENSIONS)
 			{
 				bool found = false;
 				for(auto& extension : extensions)
 				{
-					if(extension.extensionName == std::string_view(required_ext))
+					if(extension.extensionName == required_ext)
 					{
 						found = true;
 						break;
@@ -280,16 +276,19 @@ namespace vt::vulkan
 			result = vkEnumerateInstanceLayerProperties(&count, layers.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan layers.");
 
-			bool found = false;
-			for(auto& layer : layers)
+			for(std::string_view required_layer : REQUIRED_INSTANCE_LAYERS)
 			{
-				if(layer.layerName == std::string_view(REQUIRED_INSTANCE_LAYER))
+				bool found = false;
+				for(auto& layer : layers)
 				{
-					found = true;
-					break;
+					if(layer.layerName == required_layer)
+					{
+						found = true;
+						break;
+					}
 				}
+				VT_ENSURE(found, "Failed to find required Vulkan layer.");
 			}
-			VT_ENSURE(found, "Failed to find required Vulkan layer.");
 		}
 	};
 

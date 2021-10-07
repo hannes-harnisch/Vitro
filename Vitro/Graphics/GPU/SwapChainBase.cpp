@@ -13,6 +13,8 @@ namespace vt
 
 		virtual unsigned get_current_image_index() const	  = 0;
 		virtual unsigned get_buffer_count() const			  = 0;
+		virtual unsigned get_width() const					  = 0;
+		virtual unsigned get_height() const					  = 0;
 		virtual void	 present()							  = 0;
 		virtual void	 resize(WindowSizeEvent const& event) = 0;
 		virtual void	 enable_vsync()						  = 0;

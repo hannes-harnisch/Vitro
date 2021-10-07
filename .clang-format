@@ -1,8 +1,9 @@
 ﻿---
 AccessModifierOffset: '-4'
 AlignAfterOpenBracket: Align
-AlignConsecutiveMacros: 'true'
 AlignConsecutiveAssignments: 'true'
+AlignConsecutiveBitFields: 'true'
+AlignConsecutiveMacros: 'true'
 AlignConsecutiveDeclarations: 'true'
 AlignEscapedNewlines: Right
 AlignOperands: 'true'

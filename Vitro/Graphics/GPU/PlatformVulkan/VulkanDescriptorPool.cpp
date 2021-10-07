@@ -5,7 +5,7 @@ export module vt.Graphics.Vulkan.DescriptorPool;
 
 namespace vt::vulkan
 {
-	export class VulkanDescriptorPool
+	export class DescriptorPool
 	{
 	public:
 	private:

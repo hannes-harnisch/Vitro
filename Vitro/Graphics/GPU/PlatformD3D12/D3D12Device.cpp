@@ -26,7 +26,7 @@ namespace vt::d3d12
 	{
 	public:
 		D3D12Device(Adapter adapter) :
-			device(make_device(std::move(adapter))),
+			device(make_device(adapter)),
 			render_queue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
 			compute_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
 			copy_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY),
@@ -40,13 +40,24 @@ namespace vt::d3d12
 			VT_ENSURE(feature.HighestVersion == D3D_ROOT_SIGNATURE_VERSION_1_1,
 					  "The DirectX 12 root signature 1.1 feature isn't available. Try updating your Windows version and your "
 					  "graphics drivers. If the problem persists, you may need to switch to a newer GPU.");
+
+			D3D12MA::ALLOCATOR_DESC const desc {
+				.Flags				= D3D12MA::ALLOCATOR_FLAG_SINGLETHREADED,
+				.pDevice			= device.get(),
+				.PreferredBlockSize = 0,
+				.pAdapter			= adapter.d3d12.get(),
+			};
+			D3D12MA::Allocator* raw_allocator;
+			result = D3D12MA::CreateAllocator(&desc, &raw_allocator);
+			allocator.reset(raw_allocator);
+			VT_ENSURE_RESULT(result, "Failed to create D3D12 GPU allocator.");
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
 		{
 			std::vector<ComputePipeline> pipelines;
 			for(auto& spec : specs)
-				pipelines.emplace_back(device.get(), spec);
+				pipelines.emplace_back(D3D12ComputePipeline(device.get(), spec));
 			return pipelines;
 		}
 
@@ -54,49 +65,45 @@ namespace vt::d3d12
 		{
 			std::vector<RenderPipeline> pipelines;
 			for(auto& spec : specs)
-				pipelines.emplace_back(device.get(), spec);
+				pipelines.emplace_back(D3D12RenderPipeline(device.get(), spec));
 			return pipelines;
 		}
 
-		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts) override
+		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout>) override
 		{
 			return {};
 		}
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
 		{
-			return {spec};
+			return {D3D12DescriptorSetLayout(spec)};
 		}
 
 		RenderPass make_render_pass(RenderPassSpecification const& spec) override
 		{
-			return {spec};
+			return {D3D12RenderPass(spec)};
 		}
 
 		RenderTarget make_render_target(RenderTargetSpecification const& spec) override
 		{
-			RenderTarget::validate_spec(spec);
-			return {descriptor_pool, spec};
+			validate_render_target_spec(spec);
+			return {D3D12RenderTarget(descriptor_pool, spec), spec.width, spec.height};
 		}
 
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
-			return {device.get(), spec};
+			return {D3D12RootSignature(device.get(), spec)};
 		}
 
 		Sampler make_sampler(SamplerSpecification const& spec) override
 		{
-			return {spec};
-		}
-
-		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
-		{
-			return {render_queue, driver, window, buffer_count};
+			return {D3D12Sampler(spec)};
 		}
 
 		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
 		{
 			render_target.d3d12.recreate(spec);
+			DeviceBase::update_render_target_size(render_target, spec.width, spec.height);
 		}
 
 		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
@@ -144,6 +151,29 @@ namespace vt::d3d12
 			copy_queue.wait_for_idle();
 		}
 
+		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
+		{
+			return {render_queue, driver, window, buffer_count};
+		}
+
+		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
+										SwapChain const&					   swap_chain,
+										unsigned							   back_buffer_index) override
+		{
+			validate_shared_target_spec(spec, swap_chain, back_buffer_index);
+			return {D3D12RenderTarget(descriptor_pool, spec, swap_chain, back_buffer_index), swap_chain->get_width(),
+					swap_chain->get_height()};
+		}
+
+		void recreate_render_target(RenderTarget&						   render_target,
+									SharedRenderTargetSpecification const& spec,
+									SwapChain const&					   swap_chain,
+									unsigned							   back_buffer_index) override
+		{
+			render_target.d3d12.recreate(spec, swap_chain, back_buffer_index);
+			DeviceBase::update_render_target_size(render_target, swap_chain->get_width(), swap_chain->get_height());
+		}
+
 		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_descriptor_heaps()
 		{
 			return descriptor_pool.get_shader_visible_heaps();
@@ -155,13 +185,14 @@ namespace vt::d3d12
 		}
 
 	private:
-		ComUnique<ID3D12Device4> device;
-		Queue					 render_queue;
-		Queue					 compute_queue;
-		Queue					 copy_queue;
-		DescriptorPool			 descriptor_pool;
+		ComUnique<ID3D12Device4>	  device;
+		Queue						  render_queue;
+		Queue						  compute_queue;
+		Queue						  copy_queue;
+		DescriptorPool				  descriptor_pool;
+		ComUnique<D3D12MA::Allocator> allocator;
 
-		static ComUnique<ID3D12Device4> make_device(Adapter adapter)
+		static ComUnique<ID3D12Device4> make_device(Adapter const& adapter)
 		{
 			ID3D12Device4* raw_device;
 

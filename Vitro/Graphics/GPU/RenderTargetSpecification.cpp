@@ -1,6 +1,10 @@
-﻿export module vt.Graphics.RenderTargetSpecification;
+﻿module;
+#include <cstdint>
+#include <stdexcept>
+export module vt.Graphics.RenderTargetSpecification;
 
 import vt.Core.FixedList;
+import vt.Core.Specification;
 import vt.Graphics.AssetResource;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassSpecification;
@@ -10,12 +14,47 @@ namespace vt
 {
 	export struct RenderTargetSpecification
 	{
-		FixedList<Texture const*, MAX_COLOR_ATTACHMENTS> color_attachments;
+		using ColorAttachmentList = FixedList<Texture const*, MAX_COLOR_ATTACHMENTS>;
 
-		Texture const*	  depth_stencil_attachment = nullptr; // Optional depth stencil attachment.
-		RenderPass const* render_pass			   = nullptr; // Render pass this render target will be used with.
-		SwapChain const*  swap_chain			   = nullptr; // Optional swap chain to use a color attachment from.
-		unsigned		  swap_chain_src_index	   = ~0u;	  // Index of the swap chain back buffer to use as color attachment.
-		unsigned		  swap_chain_dst_index	   = ~0u;	  // Index within the render target to put the back buffer.
+		Explicit<ColorAttachmentList> color_attachments;
+		Texture const*				  depth_stencil_attachment = nullptr;
+		RenderPass const&			  render_pass;
+		Explicit<uint16_t>			  width;
+		Explicit<uint16_t>			  height;
 	};
+
+	export struct SharedRenderTargetSpecification
+	{
+		using ColorAttachmentList = FixedList<Texture const*, MAX_COLOR_ATTACHMENTS - 1>;
+
+		ColorAttachmentList color_attachments;
+		Texture const*		depth_stencil_attachment = nullptr;
+		RenderPass const&	render_pass;
+		Explicit<unsigned>	shared_img_dst_index;
+	};
+
+	export void validate_render_target_spec(RenderTargetSpecification const& spec)
+	{
+		if(spec.color_attachments.empty())
+			throw std::invalid_argument("A render target needs at least one color attachment.");
+
+		for(auto attachment : spec.color_attachments)
+			if(!attachment)
+				throw std::invalid_argument("Attachments must not be nullptr.");
+	}
+
+	export void validate_shared_target_spec(SharedRenderTargetSpecification const& spec,
+											SwapChain const&					   swap_chain,
+											unsigned							   back_buffer_index)
+	{
+		if(back_buffer_index >= swap_chain->get_buffer_count())
+			throw std::invalid_argument("Invalid swap chain back buffer index.");
+
+		if(spec.shared_img_dst_index > spec.color_attachments.size())
+			throw std::invalid_argument("Invalid swap chain image destination index.");
+
+		for(auto attachment : spec.color_attachments)
+			if(!attachment)
+				throw std::invalid_argument("Attachments must not be nullptr.");
+	}
 }

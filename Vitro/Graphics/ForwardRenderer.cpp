@@ -14,12 +14,10 @@ import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
 import vt.Graphics.FrameContext;
-import vt.Graphics.Handle;
 import vt.Graphics.RendererBase;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
 import vt.Graphics.RootSignature;
-import vt.Graphics.SwapChain;
 
 namespace vt
 {
@@ -29,12 +27,6 @@ namespace vt
 		ForwardRenderer(Device& device) :
 			RendererBase(device), present_pass(make_present_pass()), context(FRAMES_BUFFERED, device)
 		{
-			RenderTargetSpecification const render_target_spec {
-				.render_pass		  = &present_pass,
-				.swap_chain_dst_index = 0,
-			};
-			register_render_target_specification(render_target_spec);
-
 			RootSignatureSpecification const root_sig_spec {
 				.push_constants_byte_size = sizeof(Float4),
 			};
@@ -66,18 +58,15 @@ namespace vt
 			render_pipelines = device->make_render_pipelines(pipe_spec);
 		}
 
-		void draw(SwapChain& swap_chain) override
+	protected:
+		void draw(RenderTarget const& render_target) override
 		{
 			device->wait_for_workload(context->frame_finished);
 			context->deletion_queue.delete_all();
 
-			unsigned img_index		   = swap_chain->get_current_image_index();
-			auto&	 swap_chain_target = get_swap_chain_target(swap_chain, img_index);
-
 			auto& cmd = context->command_list;
 			cmd->reset();
 			cmd->begin();
-			cmd->bind_primitive_topology(PrimitiveTopology::TriangleList);
 
 			Float4 clear_color = 0.5f + 0.5f * cos(time++ / 1000.0f + Float3 {0, 2, 4});
 			clear_color.a	   = 1;
@@ -85,19 +74,19 @@ namespace vt
 			ClearValue clear_value {
 				.color = clear_color,
 			};
-			cmd->begin_render_pass(present_pass, swap_chain_target, clear_value);
+			cmd->begin_render_pass(present_pass, render_target, clear_value);
 			cmd->bind_render_root_signature(root_signatures.front());
 			cmd->bind_render_pipeline(render_pipelines.front());
 
 			Viewport viewport {
-				.width	= 1000,
-				.height = 1000,
+				.width	= static_cast<float>(render_target.get_width()),
+				.height = static_cast<float>(render_target.get_height()),
 			};
 			cmd->bind_viewports(viewport);
 
 			Rectangle scissor {
-				.width	= 1000,
-				.height = 1000,
+				.width	= render_target.get_width(),
+				.height = render_target.get_height(),
 			};
 			cmd->bind_scissors(scissor);
 
@@ -112,9 +101,19 @@ namespace vt
 			auto cmd_list = cmd->handle();
 
 			context->frame_finished = device->submit_render_commands(cmd_list);
-			swap_chain->present();
 
 			context.move_to_next_frame();
+		}
+
+		void on_render_target_resize(Extent) override
+		{}
+
+		SharedRenderTargetSpecification get_shared_render_target_specification() const override
+		{
+			return {
+				.render_pass		  = present_pass,
+				.shared_img_dst_index = 0,
+			};
 		}
 
 	private:

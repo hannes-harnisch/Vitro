@@ -1,11 +1,14 @@
 ﻿module;
 #include <algorithm>
+#include <stdexcept>
 #include <unordered_map>
+#include <vector>
 export module vt.Graphics.RendererBase;
 
 import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.Core.FixedList;
+import vt.Core.Rectangle;
 import vt.Graphics.Device;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
@@ -19,25 +22,28 @@ namespace vt
 	public:
 		virtual ~RendererBase() = default;
 
-		virtual void draw(SwapChain& swap_chain) = 0;
-
-		void recreate_swap_chain_render_targets(SwapChain& swap_chain)
+		void draw(SwapChain& swap_chain)
 		{
-			swap_chain_target_spec.swap_chain = &swap_chain;
+			unsigned index		   = swap_chain->get_current_image_index();
+			auto&	 render_target = shared_render_targets.find(&swap_chain)->second[index];
+			draw(render_target);
+			swap_chain->present();
+		}
 
+		void recreate_shared_render_targets(SwapChain& swap_chain)
+		{
 			size_t const new_count = swap_chain->get_buffer_count();
 
-			auto& targets = swap_chain_render_targets.find(&swap_chain)->second;
+			auto shared_target_spec = get_shared_render_target_specification();
+
+			auto& targets = shared_render_targets.find(&swap_chain)->second;
 			for(unsigned i = 0; i != std::min(new_count, targets.size()); ++i)
-			{
-				swap_chain_target_spec.swap_chain_src_index = i;
-				device->recreate_render_target(targets[i], swap_chain_target_spec);
-			}
+				device->recreate_render_target(targets[i], shared_target_spec, swap_chain, i);
 
 			if(new_count > targets.size())
 			{
-				swap_chain_target_spec.swap_chain_src_index = static_cast<unsigned>(new_count) - 1;
-				targets.emplace_back(device->make_render_target(swap_chain_target_spec));
+				unsigned back_buffer_index = static_cast<unsigned>(new_count) - 1;
+				targets.emplace_back(device->make_render_target(shared_target_spec, swap_chain, back_buffer_index));
 			}
 			else if(new_count < targets.size())
 				targets.pop_back();
@@ -52,35 +58,25 @@ namespace vt
 									&RendererBase::on_swap_chain_destroy, &RendererBase::on_swap_chain_move_assign>();
 		}
 
-		void register_render_target_specification(RenderTargetSpecification const& spec)
-		{
-			swap_chain_target_spec = spec;
-		}
-
-		RenderTarget const& get_swap_chain_target(SwapChain& swap_chain, unsigned index) const
-		{
-			return swap_chain_render_targets.find(&swap_chain)->second[index];
-		}
+		virtual void							draw(RenderTarget const& render_target)		   = 0;
+		virtual void							on_render_target_resize(Extent size)		   = 0;
+		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const = 0;
 
 	private:
 		using RenderTargetList = FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS>;
 
-		RenderTargetSpecification						 swap_chain_target_spec;
-		std::unordered_map<SwapChain*, RenderTargetList> swap_chain_render_targets;
+		std::unordered_map<SwapChain*, RenderTargetList> shared_render_targets;
 
 		void on_swap_chain_construct(ObjectConstructEvent<SwapChain>& swap_chain_constructed)
 		{
-			auto  swap_chain = &swap_chain_constructed.object;
-			auto& targets	 = swap_chain_render_targets.try_emplace(swap_chain).first->second;
+			auto& swap_chain = swap_chain_constructed.object;
+			auto& targets	 = shared_render_targets.try_emplace(&swap_chain).first->second;
 
-			swap_chain_target_spec.swap_chain = swap_chain;
+			auto shared_target_spec = get_shared_render_target_specification();
 
-			unsigned const count = swap_chain_constructed.object->get_buffer_count();
+			unsigned const count = swap_chain->get_buffer_count();
 			for(unsigned i = 0; i != count; ++i)
-			{
-				swap_chain_target_spec.swap_chain_src_index = i;
-				targets.emplace_back(device->make_render_target(swap_chain_target_spec));
-			}
+				targets.emplace_back(device->make_render_target(shared_target_spec, swap_chain, i));
 		}
 
 		void on_swap_chain_move_construct(ObjectMoveConstructEvent<SwapChain>& swap_chain_moved)
@@ -101,14 +97,14 @@ namespace vt
 
 		void remove_render_targets(SwapChain& swap_chain)
 		{
-			swap_chain_render_targets.erase(&swap_chain);
+			shared_render_targets.erase(&swap_chain);
 		}
 
 		void replace_key_for_render_targets(SwapChain& old_swap_chain, SwapChain& new_swap_chain)
 		{
-			auto node  = swap_chain_render_targets.extract(&old_swap_chain);
+			auto node  = shared_render_targets.extract(&old_swap_chain);
 			node.key() = &new_swap_chain;
-			swap_chain_render_targets.insert(std::move(node));
+			shared_render_targets.insert(std::move(node));
 		}
 	};
 }

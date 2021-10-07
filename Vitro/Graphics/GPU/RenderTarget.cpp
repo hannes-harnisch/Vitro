@@ -1,7 +1,5 @@
 ﻿module;
 #include "Core/Macros.hpp"
-
-#include <stdexcept>
 export module vt.Graphics.RenderTarget;
 
 import vt.Core.Array;
@@ -21,32 +19,35 @@ namespace vt
 	using PlatformRenderTarget = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderTarget)>;
 	export class RenderTarget : public PlatformRenderTarget
 	{
-		using PlatformRenderTarget::PlatformRenderTarget;
+		friend class DeviceBase;
 
 	public:
-		static void validate_spec(RenderTargetSpecification const& spec)
+		RenderTarget(PlatformRenderTarget platform_render_target, unsigned width, unsigned height) :
+			PlatformRenderTarget(std::move(platform_render_target)), width(width), height(height)
+		{}
+
+		unsigned get_width() const
 		{
-			if(!spec.render_pass)
-				throw std::invalid_argument("Render pass must not be nullptr.");
+			return width;
+		}
 
-			if(spec.swap_chain)
-			{
-				if(spec.swap_chain_src_index >= (*spec.swap_chain)->get_buffer_count())
-					throw std::invalid_argument("Invalid swap chain image source index.");
+		unsigned get_height() const
+		{
+			return height;
+		}
 
-				if(spec.swap_chain_dst_index > spec.color_attachments.size())
-					throw std::invalid_argument("Invalid swap chain image destination index.");
-			}
-			else if(spec.color_attachments.empty())
-				throw std::invalid_argument("A render target needs at least one color attachment.");
+	private:
+		unsigned width;
+		unsigned height;
 
-			for(auto attachment : spec.color_attachments)
-				if(!attachment)
-					throw std::invalid_argument("Attachments must not be nullptr.");
+		void set_width(unsigned new_width)
+		{
+			width = new_width;
+		}
 
-			if(spec.color_attachments.full() && spec.swap_chain)
-				throw std::invalid_argument("A swap chain must not be provided if the maximum of possible color attachments is "
-											"already specified.");
+		void set_height(unsigned new_height)
+		{
+			height = new_height;
 		}
 	};
 }

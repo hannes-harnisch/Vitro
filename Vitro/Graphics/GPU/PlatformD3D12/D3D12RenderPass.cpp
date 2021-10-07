@@ -38,9 +38,9 @@ namespace vt::d3d12
 
 	struct AttachmentAccess
 	{
-		DXGI_FORMAT								format : 8; // TODO: Replace with enum reflection
+		DXGI_FORMAT								format		 : 8; // TODO: Replace with enum reflection
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE begin_access : 3;
-		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	end_access : 3;
+		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	end_access	 : 3;
 
 		AttachmentAccess(AttachmentSpecification spec) :
 			format(convert_image_format(spec.format)),
@@ -55,7 +55,6 @@ namespace vt::d3d12
 		D3D12_RESOURCE_STATES old_layout;
 		D3D12_RESOURCE_STATES new_layout;
 	};
-
 	export using TransitionList = FixedList<AttachmentTransition, MAX_ATTACHMENTS>;
 
 	export class D3D12RenderPass
@@ -170,7 +169,7 @@ namespace vt::d3d12
 			auto it = std::find_if(attachments.begin(), attachments.end(), uses_depth_stencil_layout);
 
 			auto second = std::find_if(it, attachments.end(), uses_depth_stencil_layout);
-			VT_ASSERT(second == attachments.end(), "Multiple depth stencil attachments are unsupported.");
+			VT_ASSERT(second == attachments.end(), "Multiple depth stencil attachments are not allowed.");
 
 			return it != attachments.end();
 		}

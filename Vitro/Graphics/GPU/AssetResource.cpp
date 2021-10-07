@@ -35,16 +35,16 @@ namespace vt
 		unsigned stride = 0;
 	};
 
-	using PlatformPipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Pipeline)>;
-
-	export class ComputePipeline : public PlatformPipeline
+	using PlatformComputePipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(ComputePipeline)>;
+	export class ComputePipeline : public PlatformComputePipeline
 	{
-		using PlatformPipeline::PlatformPipeline;
+		using PlatformComputePipeline::PlatformComputePipeline;
 	};
 
-	export class RenderPipeline : public PlatformPipeline
+	using PlatformRenderPipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderPipeline)>;
+	export class RenderPipeline : public PlatformRenderPipeline
 	{
-		using PlatformPipeline::PlatformPipeline;
+		using PlatformRenderPipeline::PlatformRenderPipeline;
 	};
 
 	using PlatformTexture = ResourceVariant<VT_GPU_API_VARIANT_ARGS(Texture)>;
