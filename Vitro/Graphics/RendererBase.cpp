@@ -27,14 +27,13 @@ namespace vt
 			unsigned index		   = swap_chain->get_current_image_index();
 			auto&	 render_target = shared_render_targets.find(&swap_chain)->second[index];
 			draw(render_target);
-			swap_chain->present();
 		}
 
 		void recreate_shared_render_targets(SwapChain& swap_chain)
 		{
-			size_t const new_count = swap_chain->get_buffer_count();
-
-			auto shared_target_spec = get_shared_render_target_specification();
+			on_render_target_resize(swap_chain->get_width(), swap_chain->get_height());
+			auto		 shared_target_spec = get_shared_render_target_specification();
+			size_t const new_count			= swap_chain->get_buffer_count();
 
 			auto& targets = shared_render_targets.find(&swap_chain)->second;
 			for(unsigned i = 0; i != std::min(new_count, targets.size()); ++i)
@@ -58,13 +57,12 @@ namespace vt
 									&RendererBase::on_swap_chain_destroy, &RendererBase::on_swap_chain_move_assign>();
 		}
 
-		virtual void							draw(RenderTarget const& render_target)		   = 0;
-		virtual void							on_render_target_resize(Extent size)		   = 0;
-		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const = 0;
+		virtual void							draw(RenderTarget const& render_target)					 = 0;
+		virtual void							on_render_target_resize(unsigned width, unsigned height) = 0;
+		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const			 = 0;
 
 	private:
 		using RenderTargetList = FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS>;
-
 		std::unordered_map<SwapChain*, RenderTargetList> shared_render_targets;
 
 		void on_swap_chain_construct(ObjectConstructEvent<SwapChain>& swap_chain_constructed)

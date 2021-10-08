@@ -1,5 +1,5 @@
 ﻿module;
-#include <vulkan/vulkan.h>
+#include "VulkanAPI.hpp"
 export module vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan

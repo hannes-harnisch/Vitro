@@ -1,11 +1,11 @@
 ﻿module;
 #include "Core/Macros.hpp"
+#include "VulkanAPI.hpp"
 
 #include <array>
 #include <memory>
 #include <string_view>
 #include <vector>
-#include <vulkan/vulkan.h>
 export module vt.Graphics.Vulkan.Device;
 
 import vt.Graphics.DeviceBase;
@@ -35,12 +35,9 @@ namespace vt::vulkan
 
 			auto	 instance_api = VulkanDriver::get_api();
 			unsigned count;
-			auto	 result = instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &count, nullptr);
-			VT_ENSURE_RESULT(result, "Failed to query Vulkan queue family count.");
-
+			instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &count, nullptr);
 			std::vector<VkQueueFamilyProperties> properties(count);
-			result = instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &count, properties.data());
-			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan queue family properties.");
+			instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &count, properties.data());
 
 			for(auto& queue_family : properties)
 			{}
@@ -137,10 +134,10 @@ namespace vt::vulkan
 			using pointer = VkDevice;
 			void operator()(VkDevice device)
 			{
-				VulkanDriver::api()->vkDestroyDevice(device);
+				VulkanDriver::get_api()->vkDestroyDevice(device, nullptr);
 			}
 		};
-		std::unqiue_ptr<VkDevice, DeviceDeleter> device;
+		std::unique_ptr<VkDevice, DeviceDeleter> device;
 
 		Queue				   render_queue;
 		Queue				   compute_queue;

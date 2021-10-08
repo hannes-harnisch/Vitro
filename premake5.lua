@@ -29,7 +29,7 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
-		buildcommands	'C:/VulkanSDK/1.2.182.0/bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
+		buildcommands	'C:/VulkanSDK/1.2.189.2/bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
 
 	filter { 'files:**.hlsl', 'platforms:D3D12' }
 		buildcommands	'.cso ^'

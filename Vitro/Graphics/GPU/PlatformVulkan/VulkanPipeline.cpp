@@ -3,7 +3,6 @@
 #include "VulkanAPI.hpp"
 export module vt.Graphics.Vulkan.Pipeline;
 
-import vt.Graphics.Device;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.Vulkan.Driver;
 
@@ -12,7 +11,7 @@ namespace vt::vulkan
 	export class VulkanRenderPipeline
 	{
 	public:
-		VulkanRenderPipeline(Device& device, RenderPipelineSpecification const& spec)
+		VulkanRenderPipeline(RenderPipelineSpecification const& spec)
 		{}
 
 		VkPipeline ptr() const
@@ -27,7 +26,7 @@ namespace vt::vulkan
 	export class VulkanComputePipeline
 	{
 	public:
-		VulkanComputePipeline(Device& device, ComputePipelineSpecification const& spec)
+		VulkanComputePipeline(ComputePipelineSpecification const& spec)
 		{}
 
 		VkPipeline ptr() const

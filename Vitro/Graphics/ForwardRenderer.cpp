@@ -105,7 +105,7 @@ namespace vt
 			context.move_to_next_frame();
 		}
 
-		void on_render_target_resize(Extent) override
+		void on_render_target_resize(unsigned, unsigned) override
 		{}
 
 		SharedRenderTargetSpecification get_shared_render_target_specification() const override

@@ -1,9 +1,18 @@
 ﻿#pragma once
 
-#if VT_SYSTEM_MODULE == Windows
-	#define VK_USE_PLATFORM_WIN32_KHR
-#elif VT_SYSTEM_MODULE == Linux
+#if VT_SYSTEM_MODULE == Linux
 	#define VK_USE_PLATFORM_XCB_KHR
 #endif
 
 #include <vulkan/vulkan.h>
+
+#if VT_SYSTEM_MODULE == Windows
+typedef unsigned long				DWORD;
+typedef const wchar_t*				LPCWSTR;
+typedef void*						HANDLE;
+typedef struct HINSTANCE__*			HINSTANCE;
+typedef struct HWND__*				HWND;
+typedef struct HMONITOR__*			HMONITOR;
+typedef struct _SECURITY_ATTRIBUTES SECURITY_ATTRIBUTES;
+	#include <vulkan/vulkan_win32.h>
+#endif

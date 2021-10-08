@@ -172,9 +172,6 @@ namespace vt
 	export struct WindowCloseEvent : WindowEvent
 	{};
 
-	export struct WindowPaintEvent : WindowEvent
-	{};
-
 	export struct WindowFocusEvent : WindowEvent
 	{};
 

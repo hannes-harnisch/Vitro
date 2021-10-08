@@ -155,8 +155,8 @@ namespace vt::vulkan
 						.y = 0,
 					},
 					.extent {
-						.width	= render_target.vulkan.get_width(),
-						.height = render_target.vulkan.get_height(),
+						.width	= render_target.get_width(),
+						.height = render_target.get_height(),
 					},
 				},
 				.clearValueCount = count(clear_values),

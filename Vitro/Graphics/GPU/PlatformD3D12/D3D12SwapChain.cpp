@@ -22,7 +22,7 @@ namespace vt::d3d12
 			buffer_count(buffer_count),
 			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
 			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0),
-			size(window.get_size())
+			buffer_size(window.get_size())
 		{
 			auto factory = driver.d3d12.get_factory();
 			HWND hwnd	 = window.native_handle();
@@ -37,11 +37,12 @@ namespace vt::d3d12
 				.BufferCount = buffer_count,
 				.Scaling	 = DXGI_SCALING_STRETCH,
 				.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
-				.AlphaMode	 = DXGI_ALPHA_MODE_UNSPECIFIED,
+				.AlphaMode	 = DXGI_ALPHA_MODE_IGNORE,
 				.Flags		 = tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u,
 			};
 			IDXGISwapChain1* raw_swap_chain_prototype;
-			auto			 result = factory->CreateSwapChainForHwnd(render_queue->ptr(), hwnd, &desc, nullptr, nullptr,
+
+			auto result = factory->CreateSwapChainForHwnd(render_queue->ptr(), hwnd, &desc, nullptr, nullptr,
 														  &raw_swap_chain_prototype);
 			ComUnique<IDXGISwapChain1> swap_chain_prototype(raw_swap_chain_prototype);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 proxy swap chain.");
@@ -69,12 +70,12 @@ namespace vt::d3d12
 
 		unsigned get_width() const override
 		{
-			return size.width;
+			return buffer_size.width;
 		}
 
 		unsigned get_height() const override
 		{
-			return size.height;
+			return buffer_size.height;
 		}
 
 		void present() override
@@ -83,12 +84,12 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to present with D3D12 swap chain.");
 		}
 
-		void resize(WindowSizeEvent const& event) override
+		void resize(Extent size) override
 		{
 			render_queue->wait_for_idle();
 			back_buffers.clear();
 
-			size			= event.size;
+			buffer_size		= size;
 			unsigned flags	= tearing_supported ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0u;
 			auto	 result = swap_chain->ResizeBuffers(buffer_count, size.width, size.height, DESIRED_FORMAT, flags);
 			VT_ASSERT_RESULT(result, "Failed to resize D3D12 swap chain.");
@@ -121,7 +122,7 @@ namespace vt::d3d12
 		uint8_t buffer_count;
 		bool	tearing_supported;
 		UINT	present_flags;
-		Extent	size;
+		Extent	buffer_size;
 
 		ComUnique<IDXGISwapChain3>						  swap_chain;
 		FixedList<ComUnique<ID3D12Resource>, MAX_BUFFERS> back_buffers;

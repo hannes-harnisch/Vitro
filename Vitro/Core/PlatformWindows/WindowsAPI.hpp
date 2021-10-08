@@ -34,8 +34,8 @@
 #define NODEFERWINDOWPOS // DeferWindowPos routines
 #define NOMCX			 // Modem Configuration Extensions
 
-#include <Windows.h>
-#include <Windowsx.h>
+#include <windows.h>
+#include <windowsx.h>
 
 namespace vt
 {
