@@ -1,12 +1,12 @@
 ﻿#pragma once
 
-#if VT_SYSTEM_MODULE == Linux
+#if VT_SYSTEM_LINUX
 	#define VK_USE_PLATFORM_XCB_KHR
 #endif
 
 #include <vulkan/vulkan.h>
 
-#if VT_SYSTEM_MODULE == Windows
+#if VT_SYSTEM_WINDOWS
 typedef unsigned long				DWORD;
 typedef const wchar_t*				LPCWSTR;
 typedef void*						HANDLE;

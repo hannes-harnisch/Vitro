@@ -2,8 +2,10 @@
 #include <vector>
 export module vt.Graphics.DeviceBase;
 
+import vt.App.Window;
 import vt.Core.Array;
 import vt.Graphics.AssetResource;
+import vt.Graphics.CommandList;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.DescriptorSetLayout;
@@ -23,6 +25,9 @@ namespace vt
 	public:
 		virtual ~DeviceBase() = default;
 
+		virtual CopyCommandList				 make_copy_command_list()												  = 0;
+		virtual ComputeCommandList			 make_compute_command_list()											  = 0;
+		virtual RenderCommandList			 make_render_command_list()												  = 0;
 		virtual std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs)	  = 0;
 		virtual std::vector<RenderPipeline>	 make_render_pipelines(ArrayView<RenderPipelineSpecification> specs)	  = 0;
 		virtual std::vector<DescriptorSet>	 make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts)		  = 0;
@@ -36,6 +41,10 @@ namespace vt
 		virtual SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})  = 0;
 		virtual SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) = 0;
 		virtual SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})	  = 0;
+
+		virtual SyncValue submit_for_present(ArrayView<CommandListHandle> cmds,
+											 SwapChain&					  swap_chain,
+											 ConstSpan<SyncValue>		  gpu_syncs = {}) = 0;
 
 		virtual void wait_for_workload(SyncValue cpu_sync) = 0;
 		virtual void flush_render_queue()				   = 0;

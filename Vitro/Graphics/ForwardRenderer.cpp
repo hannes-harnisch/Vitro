@@ -24,8 +24,7 @@ namespace vt
 	export class ForwardRenderer : public RendererBase
 	{
 	public:
-		ForwardRenderer(Device& device) :
-			RendererBase(device), present_pass(make_present_pass()), context(FRAMES_BUFFERED, device)
+		ForwardRenderer(Device& device) : RendererBase(device), present_pass(make_present_pass()), context(device)
 		{
 			RootSignatureSpecification const root_sig_spec {
 				.push_constants_byte_size = sizeof(Float4),
@@ -43,6 +42,7 @@ namespace vt
 				.vertex_shader_bytecode	  = vert_shader,
 				.fragment_shader_bytecode = frag_shader,
 				.primitive_topology		  = PrimitiveTopology::TriangleList,
+				.subpass_index			  = 0,
 				.rasterizer {
 					.cull_mode	= CullMode::None,
 					.front_face = FrontFace::CounterClockwise,
@@ -59,9 +59,8 @@ namespace vt
 		}
 
 	protected:
-		void draw(RenderTarget const& render_target) override
+		std::vector<CommandListHandle> render(RenderTarget const& render_target) override
 		{
-			device->wait_for_workload(context->frame_finished);
 			context->deletion_queue.delete_all();
 
 			auto& cmd = context->command_list;
@@ -99,14 +98,9 @@ namespace vt
 			cmd->end();
 
 			auto cmd_list = cmd->handle();
-
-			context->frame_finished = device->submit_render_commands(cmd_list);
-
 			context.move_to_next_frame();
+			return {cmd_list};
 		}
-
-		void on_render_target_resize(unsigned, unsigned) override
-		{}
 
 		SharedRenderTargetSpecification get_shared_render_target_specification() const override
 		{
@@ -116,9 +110,10 @@ namespace vt
 			};
 		}
 
-	private:
-		static constexpr unsigned FRAMES_BUFFERED = 2;
+		void on_render_target_resize(unsigned, unsigned) override
+		{}
 
+	private:
 		unsigned time = 0;
 
 		RenderPass						 present_pass;
@@ -129,8 +124,10 @@ namespace vt
 		struct FrameResources
 		{
 			RenderCommandList command_list;
-			SyncValue		  frame_finished;
 			DeletionQueue	  deletion_queue;
+
+			FrameResources(Device& device) : command_list(device->make_render_command_list())
+			{}
 		};
 		FrameContext<FrameResources> context;
 

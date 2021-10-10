@@ -34,12 +34,12 @@ namespace vt::d3d12
 			std::vector<Adapter> adapters;
 			for(unsigned index = 0;; ++index)
 			{
-				IDXGIAdapter1* raw_adapter;
+				IDXGIAdapter1* unowned_adapter;
 
-				auto result = factory->EnumAdapters1(index, &raw_adapter);
+				auto result = factory->EnumAdapters1(index, &unowned_adapter);
 				if(result == DXGI_ERROR_NOT_FOUND)
 					break;
-				ComUnique<IDXGIAdapter1> adapter(raw_adapter);
+				ComUnique<IDXGIAdapter1> adapter(unowned_adapter);
 
 				DXGI_ADAPTER_DESC1 desc;
 				result = adapter->GetDesc1(&desc);
@@ -73,10 +73,10 @@ namespace vt::d3d12
 
 		void initialize_debug_interface()
 		{
-			ID3D12Debug* raw_debug;
+			ID3D12Debug* unowned_debug;
 
-			auto result = D3D12GetDebugInterface(IID_PPV_ARGS(&raw_debug));
-			debug.reset(raw_debug);
+			auto result = D3D12GetDebugInterface(IID_PPV_ARGS(&unowned_debug));
+			debug.reset(unowned_debug);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 debug interface.");
 
 			debug->EnableDebugLayer();
@@ -89,10 +89,10 @@ namespace vt::d3d12
 #else
 			UINT flags = 0;
 #endif
-			IDXGIFactory5* raw_factory;
+			IDXGIFactory5* unowned_factory;
 
-			auto result = CreateDXGIFactory2(flags, IID_PPV_ARGS(&raw_factory));
-			factory.reset(raw_factory);
+			auto result = CreateDXGIFactory2(flags, IID_PPV_ARGS(&unowned_factory));
+			factory.reset(unowned_factory);
 			VT_ENSURE_RESULT(result, "Failed to create DXGI factory.");
 		}
 	};

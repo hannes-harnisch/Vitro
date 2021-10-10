@@ -470,10 +470,10 @@ namespace vt::d3d12
 				.SizeInBytes				   = sizeof stream,
 				.pPipelineStateSubobjectStream = &stream,
 			};
-			ID3D12PipelineState* raw_pipeline;
+			ID3D12PipelineState* unowned_pipeline;
 
-			auto result = device->CreatePipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
-			pipeline.reset(raw_pipeline);
+			auto result = device->CreatePipelineState(&desc, IID_PPV_ARGS(&unowned_pipeline));
+			pipeline.reset(unowned_pipeline);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 render pipeline.");
 		}
 
@@ -498,10 +498,10 @@ namespace vt::d3d12
 					.BytecodeLength	 = spec.compute_shader_bytecode.size(),
 				},
 			};
-			ID3D12PipelineState* raw_pipeline;
+			ID3D12PipelineState* unowned_pipeline;
 
-			auto result = device->CreateComputePipelineState(&desc, IID_PPV_ARGS(&raw_pipeline));
-			pipeline.reset(raw_pipeline);
+			auto result = device->CreateComputePipelineState(&desc, IID_PPV_ARGS(&unowned_pipeline));
+			pipeline.reset(unowned_pipeline);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 compute pipeline.");
 		}
 	};

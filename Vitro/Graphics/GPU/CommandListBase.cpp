@@ -77,11 +77,11 @@ namespace vt
 								  unsigned first_instance)																   = 0;
 	};
 
-	export template<CommandType Type>
+	export template<CommandType TYPE>
 	using CommandListBase = std::conditional_t<
-		Type == CommandType::Render,
+		TYPE == CommandType::Render,
 		RenderCommandListBase,
-		std::conditional_t<Type == CommandType::Compute,
+		std::conditional_t<TYPE == CommandType::Compute,
 						   ComputeCommandListBase,
-						   std::conditional_t<Type == CommandType::Copy, CopyCommandListBase, void>>>;
+						   std::conditional_t<TYPE == CommandType::Copy, CopyCommandListBase, void>>>;
 }

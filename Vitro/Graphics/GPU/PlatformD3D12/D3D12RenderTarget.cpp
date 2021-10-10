@@ -90,7 +90,7 @@ namespace vt::d3d12
 			if(index == resources.size())
 				return dsv.get();
 			else
-				return {rtv_begin.get().ptr + index * pool->get_rtv_increment()};
+				return {rtv_begin.get().ptr + index * pool->get_rtv_stride()};
 		}
 
 		// Returns a null handle if the render target contains no depth stencil attachment.
@@ -128,12 +128,12 @@ namespace vt::d3d12
 
 		void create_render_target_views()
 		{
-			auto const increment = pool->get_rtv_increment();
-			auto	   temp_rtv	 = rtv_begin.get();
+			auto const stride	= pool->get_rtv_stride();
+			auto	   temp_rtv = rtv_begin.get();
 			for(auto resource : resources)
 			{
 				pool->get_device()->CreateRenderTargetView(resource, nullptr, temp_rtv);
-				temp_rtv.ptr += increment;
+				temp_rtv.ptr += stride;
 			}
 		}
 

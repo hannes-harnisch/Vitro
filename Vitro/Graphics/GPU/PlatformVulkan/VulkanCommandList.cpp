@@ -4,6 +4,7 @@
 
 #include <ranges>
 #include <type_traits>
+#include <vector>
 export module vt.Graphics.Vulkan.CommandList;
 
 import vt.Core.Algorithm;
@@ -13,7 +14,6 @@ import vt.Core.Rectangle;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorSet;
-import vt.Graphics.Device;
 import vt.Graphics.Handle;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPass;
@@ -23,7 +23,7 @@ import vt.Graphics.Vulkan.Driver;
 
 namespace vt::vulkan
 {
-	template<CommandType Type> class CommandListData;
+	template<CommandType> class CommandListData;
 
 	template<> class CommandListData<CommandType::Copy>
 	{};
@@ -40,20 +40,20 @@ namespace vt::vulkan
 		VkPipelineLayout bound_render_layout = nullptr;
 	};
 
-	export template<CommandType Type>
-	class VulkanCommandList final : public CommandListBase<Type>, private CommandListData<Type>
+	export template<CommandType TYPE>
+	class VulkanCommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
 	{
 	public:
-		VulkanCommandList(Device& device) : api(device.vulkan.get_api())
+		VulkanCommandList(DeviceApiTable const& api, unsigned queue_family) : api(&api)
 		{
 			VkCommandPoolCreateInfo const pool_info {
 				.sType			  = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-				.queueFamilyIndex = 0,
+				.queueFamilyIndex = queue_family,
 			};
-			VkCommandPool raw_pool;
+			VkCommandPool unowned_pool;
 
-			auto result = api->vkCreateCommandPool(api->device, &pool_info, nullptr, &raw_pool);
-			pool.reset(raw_pool);
+			auto result = api.vkCreateCommandPool(api.device, &pool_info, nullptr, &unowned_pool);
+			pool.reset(unowned_pool);
 			VT_ASSERT_RESULT(result, "Failed to create Vulkan command pool.");
 
 			VkCommandBufferAllocateInfo const alloc_info {
@@ -62,7 +62,7 @@ namespace vt::vulkan
 				.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				.commandBufferCount = 1,
 			};
-			result = api->vkAllocateCommandBuffers(api->device, &alloc_info, &cmd);
+			result = api.vkAllocateCommandBuffers(api.device, &alloc_info, &cmd);
 			VT_ASSERT_RESULT(result, "Failed to allocate Vulkan command buffer.");
 		}
 
@@ -106,13 +106,18 @@ namespace vt::vulkan
 
 		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
+			std::vector<VkDescriptorSet> sets(descriptor_sets.size());
+			for(auto& set : descriptor_sets)
+				sets.emplace_back(set.vulkan.ptr());
+
 			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, this->bound_compute_layout, 0,
-										 count(descriptor_sets), descriptor_sets.data(), 0, nullptr);
+										 count(descriptor_sets), sets.data(), 0, nullptr);
 		}
 
-		void push_compute_constants(unsigned byte_offset, unsigned byte_size, void const* data)
+		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_compute_layout, VK_SHADER_STAGE_COMPUTE_BIT, byte_offset, byte_size, data);
+			api->vkCmdPushConstants(cmd, this->bound_compute_layout, VK_SHADER_STAGE_COMPUTE_BIT,
+									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
 		}
 
 		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
@@ -132,13 +137,18 @@ namespace vt::vulkan
 
 		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
+			std::vector<VkDescriptorSet> sets(descriptor_sets.size());
+			for(auto& set : descriptor_sets)
+				sets.emplace_back(set.vulkan.ptr());
+
 			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->bound_render_layout, 0,
-										 count(descriptor_sets), descriptor_sets.data(), 0, nullptr);
+										 count(descriptor_sets), sets.data(), 0, nullptr);
 		}
 
-		void push_render_constants(unsigned byte_offset, unsigned byte_size, void const* data)
+		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS, byte_offset, byte_size, data);
+			api->vkCmdPushConstants(cmd, this->bound_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS,
+									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
 		}
 
 		void begin_render_pass(RenderPass const&	 render_pass,
@@ -148,7 +158,7 @@ namespace vt::vulkan
 			VkRenderPassBeginInfo const begin_info {
 				.sType		 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 				.renderPass	 = render_pass.vulkan.ptr(),
-				.framebuffer = render_target.vulkan.get_frame_buffer(),
+				.framebuffer = render_target.vulkan.get_framebuffer(),
 				.renderArea {
 					.offset {
 						.x = 0,
@@ -193,22 +203,22 @@ namespace vt::vulkan
 		void bind_viewports(ArrayView<Viewport> viewports)
 		{
 			static_assert(std::is_layout_compatible_v<Viewport, VkViewport>);
-			auto data = reinterpret_cast<VkViewport const*>(viewports.data());
 
+			auto data = reinterpret_cast<VkViewport const*>(viewports.data());
 			api->vkCmdSetViewport(cmd, 0, count(viewports), data);
 		}
 
 		void bind_scissors(ArrayView<Rectangle> scissors)
 		{
-			static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>);
-			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());
+			// static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>); // TODO: await type trait fix in MSVC
 
+			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());
 			api->vkCmdSetScissor(cmd, 0, count(scissors), data);
 		}
 
 		void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)
 		{
-			api->vkCmdDraw(cmd, vertex_count, instance_count, first_vertex, first_buffer);
+			api->vkCmdDraw(cmd, vertex_count, instance_count, first_vertex, first_instance);
 		}
 
 		void draw_indexed(unsigned index_count,
@@ -221,9 +231,9 @@ namespace vt::vulkan
 		}
 
 	private:
-		DeviceFunctionTable const* api;
-		UniqueVkCommandPool		   pool;
-		VkCommandBuffer			   cmd;
+		DeviceApiTable const* api;
+		UniqueVkCommandPool	  pool;
+		VkCommandBuffer		  cmd;
 
 		static VkIndexType get_index_type_from_stride(unsigned stride)
 		{

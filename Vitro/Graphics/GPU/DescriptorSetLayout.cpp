@@ -16,7 +16,9 @@ namespace vt
 {
 	using PlatformDescriptorSetLayout = ResourceVariant<VT_GPU_API_VARIANT_ARGS(DescriptorSetLayout)>;
 	export class DescriptorSetLayout : public PlatformDescriptorSetLayout
-	{};
+	{
+		using PlatformDescriptorSetLayout::PlatformDescriptorSetLayout;
+	};
 
 	export enum class Filter : uint8_t {
 		MinMagMipNearest,

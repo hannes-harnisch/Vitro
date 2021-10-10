@@ -65,7 +65,7 @@ namespace vt::windows
 			switch(message)
 			{ // clang-format off
 				case WM_MOVE:		   get().on_window_move(hwnd, l_param); return 0;
-				case WM_SIZING:		   get().on_window_size(hwnd, l_param); return 0;
+				case WM_SIZE:		   get().on_window_size(hwnd, l_param); return 0;
 				case WM_ACTIVATE:	   get().restore_window_cursor_state(hwnd, w_param); return 0;
 				case WM_SETFOCUS:	   get().on_window_event<WindowFocusEvent>(hwnd); return 0;
 				case WM_KILLFOCUS:	   get().on_window_event<WindowUnfocusEvent>(hwnd); return 0;
@@ -270,10 +270,9 @@ namespace vt::windows
 			if(!window)
 				return;
 
-			auto   rect = reinterpret_cast<RECT*>(l_param);
 			Extent size {
-				.width	= static_cast<unsigned>(rect->right - rect->left),
-				.height = static_cast<unsigned>(rect->bottom - rect->top),
+				.width	= LOWORD(l_param),
+				.height = HIWORD(l_param),
 			};
 			EventSystem::notify<WindowSizeEvent>(*window, size);
 		}

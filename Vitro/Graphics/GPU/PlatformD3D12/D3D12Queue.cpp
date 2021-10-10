@@ -29,15 +29,15 @@ namespace vt::d3d12
 				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
 			};
-			ID3D12CommandQueue* raw_queue;
+			ID3D12CommandQueue* unowned_queue;
 
-			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&raw_queue));
-			queue.reset(raw_queue);
+			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&unowned_queue));
+			queue.reset(unowned_queue);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 command queue.");
 
-			ID3D12Fence* raw_fence;
-			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&raw_fence));
-			fence.reset(raw_fence);
+			ID3D12Fence* unowned_fence;
+			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&unowned_fence));
+			fence.reset(unowned_fence);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 fence.");
 		}
 
@@ -46,7 +46,7 @@ namespace vt::d3d12
 			wait_for_fence_value(fence.get(), signal());
 		}
 
-		D3D12SyncValue submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncValue> gpu_syncs)
+		void submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncValue> gpu_syncs)
 		{
 			for(auto sync : gpu_syncs)
 			{
@@ -56,21 +56,7 @@ namespace vt::d3d12
 
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(cmd_lists.data());
 			queue->ExecuteCommandLists(count(cmd_lists), lists);
-			return {
-				.wait_fence		  = fence.get(),
-				.wait_fence_value = signal(),
-			};
 		}
-
-		ID3D12CommandQueue* ptr() const // TODO: no const here
-		{
-			return queue.get();
-		}
-
-	private:
-		ComUnique<ID3D12CommandQueue> queue;
-		ComUnique<ID3D12Fence>		  fence;
-		uint64_t					  fence_value = 0;
 
 		uint64_t signal()
 		{
@@ -79,5 +65,20 @@ namespace vt::d3d12
 
 			return fence_value;
 		}
+
+		ID3D12Fence* get_fence()
+		{
+			return fence.get();
+		}
+
+		ID3D12CommandQueue* ptr()
+		{
+			return queue.get();
+		}
+
+	private:
+		ComUnique<ID3D12CommandQueue> queue;
+		ComUnique<ID3D12Fence>		  fence;
+		uint64_t					  fence_value = 0;
 	};
 }

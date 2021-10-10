@@ -211,6 +211,7 @@ namespace vt
 		Explicit<PrimitiveTopology> primitive_topology;
 		uint8_t						patch_list_control_point_count = 0;
 		bool						enable_primitive_restart	   = false;
+		Explicit<uint8_t>			subpass_index;
 		RasterizerState				rasterizer;
 		DepthStencilState			depth_stencil;
 		MultisampleState			multisample;

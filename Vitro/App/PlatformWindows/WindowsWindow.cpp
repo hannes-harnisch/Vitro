@@ -30,11 +30,11 @@ namespace vt::windows
 			auto widened_title = widen_string(title);
 			auto instance	   = AppContextBase::get().get_system_window_owner();
 
-			HWND raw_window = ::CreateWindowEx(WS_EX_APPWINDOW, WINDOW_CLASS_NAME, widened_title.data(), WS_OVERLAPPEDWINDOW,
-											   rect.x, rect.y, rect.width, rect.height, nullptr, nullptr, instance, nullptr);
-
-			window.reset(raw_window);
-			VT_ENSURE(raw_window, "Failed to create window.");
+			HWND unowned_window = ::CreateWindowEx(WS_EX_APPWINDOW, WINDOW_CLASS_NAME, widened_title.data(),
+												   WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width, rect.height, nullptr,
+												   nullptr, instance, nullptr);
+			window.reset(unowned_window);
+			VT_ENSURE(window != nullptr, "Failed to create window.");
 		}
 
 		void open()
@@ -162,7 +162,8 @@ namespace vt::windows
 			using pointer = HWND;
 			void operator()(HWND hwnd)
 			{
-				::DestroyWindow(hwnd);
+				BOOL succeeded = ::DestroyWindow(hwnd);
+				VT_ASSERT(succeeded, "Failed to destroy window.");
 			}
 		};
 		std::unique_ptr<HWND, WindowDeleter> window;

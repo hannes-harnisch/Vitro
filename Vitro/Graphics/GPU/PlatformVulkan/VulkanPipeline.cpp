@@ -8,33 +8,23 @@ import vt.Graphics.Vulkan.Driver;
 
 namespace vt::vulkan
 {
-	export class VulkanRenderPipeline
+	class Pipeline
 	{
 	public:
-		VulkanRenderPipeline(RenderPipelineSpecification const& spec)
-		{}
-
 		VkPipeline ptr() const
 		{
 			return pipeline.get();
 		}
 
-	private:
+	protected:
 		UniqueVkPipeline pipeline;
 	};
 
-	export class VulkanComputePipeline
+	export class VulkanRenderPipeline : public Pipeline
 	{
 	public:
-		VulkanComputePipeline(ComputePipelineSpecification const& spec)
+		VulkanRenderPipeline()
 		{}
-
-		VkPipeline ptr() const
-		{
-			return pipeline.get();
-		}
-
-	private:
-		UniqueVkPipeline pipeline;
 	};
+
 }

@@ -25,9 +25,9 @@ namespace vt
 
 		static constexpr Matrix identity() noexcept requires(R == C)
 		{
-			Matrix mat;
+			Matrix mat {};
 			for(int r = 0; r != R; ++r)
-				mat.rows[r].arr[r] = 1;
+				mat.rows[r][r] = 1;
 			return mat;
 		}
 
@@ -169,29 +169,29 @@ namespace vt
 
 		template<Scalar S, int C2> constexpr auto operator*(Matrix<S, C, C2> const& that) const noexcept
 		{
-			Matrix<decltype(rows[0][0] * that[0][0]), R, C2> product;
+			Matrix<decltype(rows[0][0] * that[0][0]), R, C2> product {};
 			for(int r = 0; r != R; ++r)
 				for(int c = 0; c != C2; ++c)
 					for(int i = 0; i != C; ++i)
-						product.rows[r].arr[c] += rows[r].arr[i] * that.rows[i].arr[c];
+						product.rows[r][c] += rows[r][i] * that.rows[i][c];
 			return product;
 		}
 
 		template<Scalar S> constexpr auto operator*(Vector<S, C> vec) const noexcept
 		{
-			Vector<decltype(rows[0][0] * vec[0]), R> product;
+			Vector<decltype(rows[0][0] * vec[0]), R> product {};
 			for(int r = 0; r != R; ++r)
 				for(int c = 0; c != C; ++c)
-					product.arr[r] += rows[c].arr[r] * vec.arr[c];
+					product[r] += rows[c][r] * vec[c];
 			return product;
 		}
 
 		template<Scalar S> friend constexpr auto operator*(Vector<S, R> vec, Matrix const& mat) noexcept
 		{
-			Vector<decltype(vec[0] * rows[0][0]), C> product;
+			Vector<decltype(vec[0] * rows[0][0]), C> product {};
 			for(int c = 0; c != C; ++c)
 				for(int r = 0; r != R; ++r)
-					product.arr[c] += vec.arr[r] * mat.rows[r].arr[c];
+					product[c] += vec[r] * mat.rows[r][c];
 			return product;
 		}
 
@@ -243,21 +243,11 @@ namespace vt
 			return *this;
 		}
 
-		constexpr T* data() noexcept
-		{
-			return rows[0].arr.data();
-		}
-
-		constexpr T const* data() const noexcept
-		{
-			return rows[0].arr.data();
-		}
-
 		template<Scalar S, int R2, int C2> constexpr Matrix<S, R2, C2> to() const noexcept
 		{
 			Matrix<S, R2, C2> cast;
 			for(int r = 0; r != std::min(R, R2); ++r)
-				cast.rows[r] = rows[r].template to<S, C2>();
+				cast.rows[r] = vector_cast<S, C2>(rows[r]);
 			return cast;
 		}
 
@@ -276,23 +266,23 @@ namespace vt
 			Matrix<T, C, R> transposed;
 			for(int c = 0; c != C; ++c)
 				for(int r = 0; r != R; ++r)
-					transposed.rows[c].arr[r] = mat.rows[r].arr[c];
+					transposed.rows[c][r] = mat.rows[r][c];
 			return transposed;
 		}
 
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R == 1)
 		{
-			return mat.rows[0].arr[0];
+			return mat.rows[0][0];
 		}
 
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R == 2)
 		{
-			return mat.rows[0].arr[0] * mat.rows[1].arr[1] - mat.rows[1].arr[0] * mat.rows[0].arr[1];
+			return mat.rows[0][0] * mat.rows[1][1] - mat.rows[1][0] * mat.rows[0][1];
 		}
 
 		friend constexpr T determinant(Matrix const& mat) noexcept requires(R == C && R > 2)
 		{
-			Matrix<T, R - 1, R - 1> submatrix;
+			Matrix<T, R - 1, R - 1> submatrix {};
 
 			T det = 0;
 			for(int i = 0; i != R; ++i)
@@ -303,23 +293,24 @@ namespace vt
 					{
 						if(c == i)
 							continue;
-						submatrix.rows[r - 1].arr[sub_c] = mat.rows[r].arr[c];
+
+						submatrix.rows[r - 1][sub_c] = mat.rows[r][c];
 						++sub_c;
 					}
 				}
 				T minor = determinant(submatrix);
 				if(i & 1)
 					minor = -minor;
-				det += mat.rows[0].arr[i] * minor;
+				det += mat.rows[0][i] * minor;
 			}
 			return det;
 		}
 
 		friend constexpr auto inverse(Matrix const& mat) noexcept requires(R == C)
 		{
-			Matrix cofactor;
+			Matrix cofactor {};
 
-			Matrix<T, R - 1, R - 1> submatrix;
+			Matrix<T, R - 1, R - 1> submatrix {};
 			for(int cof_c = 0; cof_c != C; ++cof_c)
 			{
 				for(int cof_r = 0; cof_r != R; ++cof_r)
@@ -328,11 +319,13 @@ namespace vt
 					{
 						if(r == cof_r)
 							continue;
+
 						for(int c = 0, sub_c = 0; c != C; ++c)
 						{
 							if(c == cof_c)
 								continue;
-							submatrix.rows[sub_r].arr[sub_c] = mat.rows[r].arr[c];
+
+							submatrix.rows[sub_r][sub_c] = mat.rows[r][c];
 							++sub_c;
 						}
 						++sub_r;
@@ -340,7 +333,7 @@ namespace vt
 					T minor = determinant(submatrix);
 					if((cof_r + cof_c) & 1)
 						minor = -minor;
-					cofactor.rows[cof_r].arr[cof_c] = minor;
+					cofactor.rows[cof_r][cof_c] = minor;
 				}
 			}
 			return transpose(cofactor) * (1.0f / determinant(mat));

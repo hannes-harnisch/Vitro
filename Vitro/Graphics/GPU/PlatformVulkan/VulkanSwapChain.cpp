@@ -3,6 +3,7 @@
 #include "VulkanAPI.hpp"
 export module vt.Graphics.Vulkan.SwapChain;
 
+import vt.Core.Rectangle;
 import vt.Graphics.SwapChainBase;
 
 namespace vt::vulkan
@@ -33,7 +34,7 @@ namespace vt::vulkan
 		void present() override
 		{}
 
-		void resize(WindowSizeEvent const& event) override
+		void resize(Extent) override
 		{}
 
 		void enable_vsync() override

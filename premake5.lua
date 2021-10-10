@@ -75,7 +75,9 @@ project 'Vitro'
 	filter 'system:Windows'
 		systemversion	'latest'
 		files			'%{prj.name}/**/PlatformWindows/**'
+		links			'user32'
 		defines			{
+							'VT_SYSTEM_WINDOWS',
 							'VT_SYSTEM_MODULE=Windows',
 							'VT_SYSTEM_NAME=windows',
 						}

@@ -10,6 +10,7 @@ export module vt.Graphics.D3D12.CommandList;
 import vt.Core.Algorithm;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
+import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.RenderPass;
 import vt.Graphics.D3D12.RenderTarget;
@@ -17,7 +18,6 @@ import vt.Graphics.D3D12.RootSignature;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorSet;
-import vt.Graphics.Device;
 import vt.Graphics.Handle;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPass;
@@ -46,34 +46,33 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		RootSignatureParameterMap const* active_compute_root_indices = nullptr;
+		RootSignatureParameterMap const* bound_compute_root_indices = nullptr;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		RootSignatureParameterMap const* active_render_root_indices = nullptr;
-		D3D12RenderPass const*			 active_render_pass			= nullptr;
-		D3D12RenderTarget const*		 active_render_target		= nullptr;
-		unsigned						 subpass_index				= 1;
-		D3D_PRIMITIVE_TOPOLOGY			 current_topology			= D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		RootSignatureParameterMap const* bound_render_root_indices = nullptr;
+		D3D12RenderPass const*			 bound_render_pass		   = nullptr;
+		D3D12RenderTarget const*		 bound_render_target	   = nullptr;
+		unsigned						 subpass_index			   = 1;
+		D3D_PRIMITIVE_TOPOLOGY			 bound_primitive_topology  = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 	};
 
 	export template<CommandType TYPE> class D3D12CommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
 	{
 	public:
-		D3D12CommandList(Device& in_device) : device(&in_device.d3d12)
+		D3D12CommandList(ID3D12Device4* device, DescriptorPool& pool) : descriptor_pool(&pool)
 		{
-			ID3D12CommandAllocator* raw_allocator;
+			ID3D12CommandAllocator* unowned_allocator;
 
-			auto dev_ptr = device->ptr();
-			auto result	 = dev_ptr->CreateCommandAllocator(COMMAND_LIST_TYPE, IID_PPV_ARGS(&raw_allocator));
-			allocator.reset(raw_allocator);
+			auto result = device->CreateCommandAllocator(COMMAND_LIST_TYPE, IID_PPV_ARGS(&unowned_allocator));
+			allocator.reset(unowned_allocator);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 command allocator.");
 
-			ID3D12GraphicsCommandList4* raw_cmd;
-			result = dev_ptr->CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&raw_cmd));
-			cmd.reset(raw_cmd);
+			ID3D12GraphicsCommandList4* unowned_cmd;
+			result = device->CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&unowned_cmd));
+			cmd.reset(unowned_cmd);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 command list.");
 		}
 
@@ -93,7 +92,7 @@ namespace vt::d3d12
 			auto result = cmd->Reset(allocator.get(), nullptr);
 			VT_ASSERT_RESULT(result, "Failed to reset D3D12 command list.");
 
-			auto heaps = device->get_shader_visible_descriptor_heaps();
+			auto heaps = descriptor_pool->get_shader_visible_heaps();
 			cmd->SetDescriptorHeaps(2, heaps.data());
 		}
 
@@ -103,7 +102,7 @@ namespace vt::d3d12
 			VT_ASSERT_RESULT(result, "Failed to end D3D12 command list.");
 
 			if constexpr(TYPE == CommandType::Render)
-				this->current_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+				this->bound_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
@@ -114,14 +113,14 @@ namespace vt::d3d12
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
 			cmd->SetComputeRootSignature(root_signature.d3d12.ptr());
-			this->active_compute_root_indices = &root_signature.d3d12.get_parameter_map();
+			this->bound_compute_root_indices = &root_signature.d3d12.get_parameter_map();
 		}
 
 		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
 			for(auto& set : descriptor_sets)
 			{
-				unsigned index = this->active_compute_root_indices->find(set.d3d12.get_layout_id());
+				unsigned index = this->bound_compute_root_indices->find(set.d3d12.get_layout_id());
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
@@ -160,24 +159,24 @@ namespace vt::d3d12
 			cmd->SetPipelineState(pipeline.d3d12.ptr());
 
 			auto pipeline_topology = pipeline.d3d12.get_topology();
-			if(this->current_topology != pipeline_topology)
+			if(this->bound_primitive_topology != pipeline_topology)
 			{
 				cmd->IASetPrimitiveTopology(pipeline_topology);
-				this->current_topology = pipeline_topology;
+				this->bound_primitive_topology = pipeline_topology;
 			}
 		}
 
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
 			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
-			this->active_render_root_indices = &root_signature.d3d12.get_parameter_map();
+			this->bound_render_root_indices = &root_signature.d3d12.get_parameter_map();
 		}
 
 		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
 			for(auto& set : descriptor_sets)
 			{
-				unsigned index = this->active_render_root_indices->find(set.d3d12.get_layout_id());
+				unsigned index = this->bound_render_root_indices->find(set.d3d12.get_layout_id());
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
@@ -210,11 +209,11 @@ namespace vt::d3d12
 							   RenderTarget const&	 render_target,
 							   ConstSpan<ClearValue> clear_values = {})
 		{
-			this->active_render_pass   = &render_pass.d3d12;
-			this->active_render_target = &render_target.d3d12;
+			this->bound_render_pass	  = &render_pass.d3d12;
+			this->bound_render_target = &render_target.d3d12;
 
-			auto& pass	 = *this->active_render_pass;
-			auto& target = *this->active_render_target;
+			auto& pass	 = *this->bound_render_pass;
+			auto& target = *this->bound_render_target;
 			insert_render_pass_barriers(pass.get_subpass_transitions(0));
 
 			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs;
@@ -300,10 +299,10 @@ namespace vt::d3d12
 
 		void transition_subpass()
 		{
-			VT_ASSERT(this->subpass_index < this->active_render_pass->subpass_count() - 1,
+			VT_ASSERT(this->subpass_index < this->bound_render_pass->subpass_count() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
 
-			auto& subpass_transitions = this->active_render_pass->get_subpass_transitions(this->subpass_index++);
+			auto& subpass_transitions = this->bound_render_pass->get_subpass_transitions(this->subpass_index++);
 			insert_render_pass_barriers(subpass_transitions);
 		}
 
@@ -311,7 +310,7 @@ namespace vt::d3d12
 		{
 			cmd->EndRenderPass();
 
-			auto& final_transitions = this->active_render_pass->get_final_transitions();
+			auto& final_transitions = this->bound_render_pass->get_final_transitions();
 			insert_render_pass_barriers(final_transitions);
 		}
 
@@ -343,8 +342,8 @@ namespace vt::d3d12
 		void bind_viewports(ArrayView<Viewport> viewports)
 		{
 			static_assert(std::is_layout_compatible_v<Viewport, D3D12_VIEWPORT>);
-			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(viewports.data());
 
+			auto data = reinterpret_cast<D3D12_VIEWPORT const*>(viewports.data());
 			cmd->RSSetViewports(count(viewports), data);
 		}
 
@@ -379,7 +378,7 @@ namespace vt::d3d12
 	private:
 		static constexpr D3D12_COMMAND_LIST_TYPE COMMAND_LIST_TYPE = convert_command_type(TYPE);
 
-		D3D12Device*						  device;
+		DescriptorPool*						  descriptor_pool;
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
@@ -402,7 +401,7 @@ namespace vt::d3d12
 					.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
 					.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
 					.Transition {
-						.pResource	 = this->active_render_target->get_attachment(transition.index),
+						.pResource	 = this->bound_render_target->get_attachment(transition.index),
 						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
 						.StateBefore = transition.old_layout,
 						.StateAfter	 = transition.new_layout,

@@ -77,17 +77,17 @@ namespace vt::d3d12
 					.Flags			   = D3D12_ROOT_SIGNATURE_FLAG_NONE,
 				},
 			};
-			ID3DBlob *raw_blob, *raw_error;
+			ID3DBlob *unowned_blob, *unowned_error;
 
-			auto result = D3D12SerializeVersionedRootSignature(&desc, &raw_blob, &raw_error);
+			auto result = D3D12SerializeVersionedRootSignature(&desc, &unowned_blob, &unowned_error);
 
-			ComUnique<ID3DBlob> blob(raw_blob), error(raw_error);
+			ComUnique<ID3DBlob> blob(unowned_blob), error(unowned_error);
 			VT_ASSERT_RESULT(result, "Failed to serialize D3D12 root signature.");
 
-			ID3D12RootSignature* raw_root_signature;
+			ID3D12RootSignature* unowned_root_signature;
 			result = device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
-												 IID_PPV_ARGS(&raw_root_signature));
-			root_signature.reset(raw_root_signature);
+												 IID_PPV_ARGS(&unowned_root_signature));
+			root_signature.reset(unowned_root_signature);
 			VT_ASSERT_RESULT(result, "Failed to create D3D12 root signature.");
 		}
 

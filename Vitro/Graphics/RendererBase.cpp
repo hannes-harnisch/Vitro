@@ -10,6 +10,7 @@ import vt.App.ObjectEvent;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
 import vt.Graphics.Device;
+import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
 import vt.Graphics.RenderTargetSpecification;
@@ -22,11 +23,11 @@ namespace vt
 	public:
 		virtual ~RendererBase() = default;
 
-		void draw(SwapChain& swap_chain)
+		std::vector<CommandListHandle> render(SwapChain& swap_chain)
 		{
 			unsigned index		   = swap_chain->get_current_image_index();
 			auto&	 render_target = shared_render_targets.find(&swap_chain)->second[index];
-			draw(render_target);
+			return render(render_target);
 		}
 
 		void recreate_shared_render_targets(SwapChain& swap_chain)
@@ -57,9 +58,9 @@ namespace vt
 									&RendererBase::on_swap_chain_destroy, &RendererBase::on_swap_chain_move_assign>();
 		}
 
-		virtual void							draw(RenderTarget const& render_target)					 = 0;
-		virtual void							on_render_target_resize(unsigned width, unsigned height) = 0;
+		virtual std::vector<CommandListHandle>	render(RenderTarget const& render_target)				 = 0;
 		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const			 = 0;
+		virtual void							on_render_target_resize(unsigned width, unsigned height) = 0;
 
 	private:
 		using RenderTargetList = FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS>;

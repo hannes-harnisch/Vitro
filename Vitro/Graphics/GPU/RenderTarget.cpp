@@ -19,8 +19,6 @@ namespace vt
 	using PlatformRenderTarget = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderTarget)>;
 	export class RenderTarget : public PlatformRenderTarget
 	{
-		friend class DeviceBase;
-
 	public:
 		RenderTarget(PlatformRenderTarget platform_render_target, unsigned width, unsigned height) :
 			PlatformRenderTarget(std::move(platform_render_target)), width(width), height(height)
@@ -49,5 +47,7 @@ namespace vt
 		{
 			height = new_height;
 		}
+
+		friend class DeviceBase;
 	};
 }

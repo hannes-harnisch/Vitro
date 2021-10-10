@@ -8,6 +8,12 @@ namespace vt::vulkan
 	export class VulkanDescriptorSet
 	{
 	public:
+		VkDescriptorSet ptr() const
+		{
+			return descriptor_set;
+		}
+
 	private:
+		VkDescriptorSet descriptor_set;
 	};
 }

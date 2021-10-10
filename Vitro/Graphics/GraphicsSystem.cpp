@@ -19,6 +19,7 @@ import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.ForwardRenderer;
+import vt.Graphics.FrameContext;
 import vt.Graphics.RendererBase;
 import vt.Graphics.Handle;
 import vt.Graphics.SwapChain;
@@ -50,6 +51,12 @@ namespace vt
 		{
 			SwapChain			swap_chain;
 			std::atomic<Extent> size_to_update;
+
+			struct FrameResources
+			{
+				SyncValue present_sync;
+			};
+			FrameContext<FrameResources> context;
 		};
 		std::unordered_map<Window const*, WindowState> window_states; // Iterator stability is needed, hence unordered_map.
 
@@ -75,19 +82,23 @@ namespace vt
 		{
 			while(should_run)
 			{
-				std::unique_lock lock(mutex);
+				std::lock_guard lock(mutex);
 				for(auto& [window, window_state] : window_states)
 				{
 					auto& swap_chain = window_state.swap_chain;
 					if(!window_state.size_to_update.load().zero())
 					{
+						device->wait_for_workload(window_state.context.oldest().present_sync);
 						swap_chain->resize(window_state.size_to_update);
 						renderer->recreate_shared_render_targets(swap_chain);
 						window_state.size_to_update.store({0, 0});
 					}
 
-					renderer->draw(swap_chain);
-					swap_chain->present();
+					auto& present_sync = window_state.context->present_sync;
+					device->wait_for_workload(present_sync);
+					auto commands = renderer->render(swap_chain);
+					present_sync  = device->submit_for_present(commands, swap_chain);
+					window_state.context.move_to_next_frame();
 				}
 			}
 		}
@@ -101,7 +112,7 @@ namespace vt
 
 		void on_window_object_construct(ObjectConstructEvent<Window>& window_constructed)
 		{
-			std::unique_lock lock(mutex);
+			std::lock_guard lock(mutex);
 
 			auto& window = window_constructed.object;
 			window_states.try_emplace(&window, device->make_swap_chain(driver, window));
@@ -109,19 +120,19 @@ namespace vt
 
 		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_moved)
 		{
-			std::unique_lock lock(mutex);
+			std::lock_guard lock(mutex);
 			replace_key_for_swap_chain(window_moved.moved, window_moved.constructed);
 		}
 
 		void on_window_object_destroy(ObjectDestroyEvent<Window>& window_destroyed)
 		{
-			std::unique_lock lock(mutex);
+			std::lock_guard lock(mutex);
 			remove_swap_chain(window_destroyed.object);
 		}
 
 		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& window_moved)
 		{
-			std::unique_lock lock(mutex);
+			std::lock_guard lock(mutex);
 			remove_swap_chain(window_moved.left);
 			replace_key_for_swap_chain(window_moved.right, window_moved.left);
 		}

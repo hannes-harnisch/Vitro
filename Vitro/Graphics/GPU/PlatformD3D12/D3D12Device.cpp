@@ -47,10 +47,25 @@ namespace vt::d3d12
 				.PreferredBlockSize = 0,
 				.pAdapter			= adapter.d3d12.get(),
 			};
-			D3D12MA::Allocator* raw_allocator;
-			result = D3D12MA::CreateAllocator(&desc, &raw_allocator);
-			allocator.reset(raw_allocator);
+			D3D12MA::Allocator* unowned_allocator;
+			result = D3D12MA::CreateAllocator(&desc, &unowned_allocator);
+			allocator.reset(unowned_allocator);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 GPU allocator.");
+		}
+
+		CopyCommandList make_copy_command_list() override
+		{
+			return D3D12CommandList<CommandType::Copy>(device.get(), descriptor_pool);
+		}
+
+		ComputeCommandList make_compute_command_list() override
+		{
+			return D3D12CommandList<CommandType::Compute>(device.get(), descriptor_pool);
+		}
+
+		RenderCommandList make_render_command_list() override
+		{
+			return D3D12CommandList<CommandType::Render>(device.get(), descriptor_pool);
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
@@ -76,12 +91,12 @@ namespace vt::d3d12
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
 		{
-			return {D3D12DescriptorSetLayout(spec)};
+			return D3D12DescriptorSetLayout(spec);
 		}
 
 		RenderPass make_render_pass(RenderPassSpecification const& spec) override
 		{
-			return {D3D12RenderPass(spec)};
+			return D3D12RenderPass(spec);
 		}
 
 		RenderTarget make_render_target(RenderTargetSpecification const& spec) override
@@ -92,12 +107,12 @@ namespace vt::d3d12
 
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
-			return {D3D12RootSignature(device.get(), spec)};
+			return D3D12RootSignature(device.get(), spec);
 		}
 
 		Sampler make_sampler(SamplerSpecification const& spec) override
 		{
-			return {D3D12Sampler(spec)};
+			return D3D12Sampler(spec);
 		}
 
 		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
@@ -109,19 +124,32 @@ namespace vt::d3d12
 		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_DIRECT);
-			return {render_queue.submit(cmds, gpu_syncs)};
+			render_queue.submit(cmds, gpu_syncs);
+			return {render_queue.get_fence(), render_queue.signal()};
 		}
 
 		SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-			return {compute_queue.submit(cmds, gpu_syncs)};
+			compute_queue.submit(cmds, gpu_syncs);
+			return {compute_queue.get_fence(), compute_queue.signal()};
 		}
 
 		SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_COPY);
-			return {copy_queue.submit(cmds, gpu_syncs)};
+			copy_queue.submit(cmds, gpu_syncs);
+			return {copy_queue.get_fence(), copy_queue.signal()};
+		}
+
+		SyncValue submit_for_present(ArrayView<CommandListHandle> cmds,
+									 SwapChain&					  swap_chain,
+									 ConstSpan<SyncValue>		  gpu_syncs = {}) override
+		{
+			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_DIRECT);
+			render_queue.submit(cmds, gpu_syncs);
+			swap_chain.d3d12.present();
+			return {render_queue.get_fence(), render_queue.signal()};
 		}
 
 		void wait_for_workload(SyncValue cpu_sync) override
@@ -153,7 +181,7 @@ namespace vt::d3d12
 
 		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
 		{
-			return {render_queue, driver, window, buffer_count};
+			return {render_queue.ptr(), driver, window, buffer_count};
 		}
 
 		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
@@ -174,16 +202,6 @@ namespace vt::d3d12
 			DeviceBase::update_render_target_size(render_target, swap_chain->get_width(), swap_chain->get_height());
 		}
 
-		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_descriptor_heaps()
-		{
-			return descriptor_pool.get_shader_visible_heaps();
-		}
-
-		ID3D12Device4* ptr()
-		{
-			return device.get();
-		}
-
 	private:
 		ComUnique<ID3D12Device4>	  device;
 		Queue						  render_queue;
@@ -194,11 +212,11 @@ namespace vt::d3d12
 
 		static ComUnique<ID3D12Device4> make_device(Adapter const& adapter)
 		{
-			ID3D12Device4* raw_device;
+			ID3D12Device4* unowned_device;
 
-			auto result = D3D12CreateDevice(adapter.d3d12.get(), D3D12Driver::MIN_FEATURE_LEVEL, IID_PPV_ARGS(&raw_device));
+			auto result = D3D12CreateDevice(adapter.d3d12.get(), D3D12Driver::MIN_FEATURE_LEVEL, IID_PPV_ARGS(&unowned_device));
 
-			ComUnique<ID3D12Device4> fresh_device(raw_device);
+			ComUnique<ID3D12Device4> fresh_device(unowned_device);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 device.");
 
 			return fresh_device;

@@ -31,17 +31,17 @@ namespace vt::d3d12
 							D3D12_DESCRIPTOR_HEAP_TYPE type,
 							UINT					   descriptor_count,
 							bool					   shader_visible) :
-			unit_size(device->GetDescriptorHandleIncrementSize(type))
+			stride(device->GetDescriptorHandleIncrementSize(type))
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= type,
 				.NumDescriptors = descriptor_count,
 				.Flags			= shader_visible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 			};
-			ID3D12DescriptorHeap* raw_heap;
+			ID3D12DescriptorHeap* unowned_heap;
 
-			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&raw_heap));
-			heap.reset(raw_heap);
+			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&unowned_heap));
+			heap.reset(unowned_heap);
 			VT_ENSURE_RESULT(result, "Failed to create D3D12 descriptor heap.");
 
 			free_blocks.emplace_back(get_cpu_heap_start(), descriptor_count);
@@ -60,7 +60,7 @@ namespace vt::d3d12
 				free_blocks.erase(it);
 			else
 			{
-				it->handle.ptr += unit_count * unit_size;
+				it->handle.ptr += unit_count * stride;
 				it->unit_count -= unit_count;
 			}
 			return {handle, unit_count};
@@ -78,7 +78,7 @@ namespace vt::d3d12
 
 			if(next != free_blocks.end()) // there is a free block after the allocation
 			{
-				if(alloc.handle.ptr + alloc.unit_count * unit_size == next->handle.ptr) // allocation spans up to next block
+				if(alloc.handle.ptr + alloc.unit_count * stride == next->handle.ptr) // allocation spans up to next block
 				{
 					next->handle.ptr = alloc.handle.ptr;  // adjust free block handle down to freed handle
 					next->unit_count += alloc.unit_count; // add freed space
@@ -88,7 +88,7 @@ namespace vt::d3d12
 						auto   prev		  = next - 1;
 						auto   prev_ptr	  = prev->handle.ptr;
 						size_t prev_count = prev->unit_count;
-						if(prev_ptr + prev_count * unit_size == alloc.handle.ptr) // previous block spans up to allocation
+						if(prev_ptr + prev_count * stride == alloc.handle.ptr) // previous block spans up to allocation
 						{
 							next->handle.ptr = prev_ptr;	// adjust free block handle down to previous free block handle
 							next->unit_count += prev_count; // add space of previous block, remove previous block, then exit
@@ -102,7 +102,7 @@ namespace vt::d3d12
 			if(next != free_blocks.begin()) // there is a free block somewhere before the next block
 			{
 				auto& prev = next[-1];
-				if(prev.handle.ptr + prev.unit_count * unit_size == alloc.handle.ptr) // previous block spans up to allocation
+				if(prev.handle.ptr + prev.unit_count * stride == alloc.handle.ptr) // previous block spans up to allocation
 				{
 					prev.unit_count += alloc.unit_count; // add freed space, then exit
 					return;
@@ -111,9 +111,9 @@ namespace vt::d3d12
 			free_blocks.emplace(next, alloc); // add standalone free block before the next one
 		}
 
-		unsigned get_increment_size() const
+		unsigned get_stride() const
 		{
-			return unit_size;
+			return stride;
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE get_cpu_heap_start() const
@@ -134,7 +134,7 @@ namespace vt::d3d12
 	private:
 		std::deque<DescriptorAllocation> free_blocks;
 		ComUnique<ID3D12DescriptorHeap>	 heap;
-		unsigned						 unit_size;
+		unsigned						 stride;
 	};
 
 	export class DescriptorPool
@@ -170,14 +170,14 @@ namespace vt::d3d12
 			dsv_allocator.deallocate(dsvs);
 		}
 
-		unsigned get_rtv_increment() const
+		unsigned get_rtv_stride() const
 		{
-			return rtv_allocator.get_increment_size();
+			return rtv_allocator.get_stride();
 		}
 
-		unsigned get_dsv_increment() const
+		unsigned get_dsv_stride() const
 		{
-			return dsv_allocator.get_increment_size();
+			return dsv_allocator.get_stride();
 		}
 
 		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_heaps()

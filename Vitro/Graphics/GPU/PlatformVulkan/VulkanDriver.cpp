@@ -13,6 +13,7 @@ export module vt.Graphics.Vulkan.Driver;
 import vt.Core.Algorithm;
 import vt.Core.SharedLibrary;
 import vt.Core.Singleton;
+import vt.Core.SwapPtr;
 import vt.Core.Version;
 import vt.Graphics.DriverBase;
 import vt.Graphics.Handle;
@@ -23,15 +24,22 @@ namespace vt::vulkan
 	export class VulkanDriver final : public Singleton<VulkanDriver>, public DriverBase
 	{
 	public:
-		struct InstanceFunctionTable
+		static constexpr std::array REQUIRED_LAYERS =
+#if VT_DEBUG
+			{"VK_LAYER_KHRONOS_validation"};
+#else
+			std::array<char const*, 0> {};
+#endif
+
+		struct InstanceApiTable
 		{
 #define INSTANCE_FUNC(func) PFN_##func func = VulkanDriver::get().load_instance_func<PFN_##func>(#func);
 
 			INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT)
 			INSTANCE_FUNC(vkCreateDevice)
-#if VT_SYSTEM_MODULE == Windows
+#if VT_SYSTEM_WINDOWS
 			INSTANCE_FUNC(vkCreateWin32SurfaceKHR)
-#elif VT_SYSTEM_MODULE == Linux
+#elif VT_SYSTEM_LINUX
 			INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
 #endif
 			INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
@@ -51,7 +59,7 @@ namespace vt::vulkan
 			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
 		};
 
-		static InstanceFunctionTable const* get_api()
+		static InstanceApiTable const* get_api()
 		{
 			return get().api.get();
 		}
@@ -61,7 +69,7 @@ namespace vt::vulkan
 			return get().instance.get();
 		}
 
-		static void notify_new_resource(void* resource, struct DeviceFunctionTable const* owner)
+		static void notify_new_resource(void* resource, struct DeviceApiTable const* owner)
 		{
 			get().resource_owners.try_emplace(resource, owner);
 		}
@@ -105,34 +113,40 @@ namespace vt::vulkan
 				.sType					 = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 				.pNext					 = instance_info_next,
 				.pApplicationInfo		 = &app_info,
-				.enabledLayerCount		 = count(REQUIRED_INSTANCE_LAYERS),
-				.ppEnabledLayerNames	 = REQUIRED_INSTANCE_LAYERS.data(),
+				.enabledLayerCount		 = count(REQUIRED_LAYERS),
+				.ppEnabledLayerNames	 = REQUIRED_LAYERS.data(),
 				.enabledExtensionCount	 = count(REQUIRED_INSTANCE_EXTENSIONS),
 				.ppEnabledExtensionNames = REQUIRED_INSTANCE_EXTENSIONS.data(),
 			};
-			VkInstance raw_instance;
+			VkInstance unowned_instance;
 
-			auto result = vkCreateInstance(&instance_info, nullptr, &raw_instance);
-			instance.reset(raw_instance);
-			api = std::make_unique<InstanceFunctionTable>();
+			auto result = vkCreateInstance(&instance_info, nullptr, &unowned_instance);
+			instance.set(unowned_instance);
+			api = std::make_unique<InstanceApiTable>();
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan instance.");
 
 #if VT_DEBUG
-			VkDebugUtilsMessengerEXT raw_messenger;
-			result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, &raw_messenger);
-			debug_messenger.reset(raw_messenger);
+			VkDebugUtilsMessengerEXT unowned_messenger;
+			result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, &unowned_messenger);
+			debug_messenger.set(unowned_messenger);
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan debug utils messenger.");
 #endif
 		}
 
+		~VulkanDriver()
+		{
+			api->vkDestroyDebugUtilsMessengerEXT(instance.get(), debug_messenger.get(), nullptr);
+			api->vkDestroyInstance(instance.get(), nullptr);
+		}
+
 		std::vector<Adapter> enumerate_adapters() const override
 		{
-			unsigned count;
-			auto	 result = api->vkEnumeratePhysicalDevices(instance.get(), &count, nullptr);
+			unsigned device_count;
+			auto	 result = api->vkEnumeratePhysicalDevices(instance.get(), &device_count, nullptr);
 			VT_ENSURE_RESULT(result, "Failed to query Vulkan physical device count.");
 
-			std::vector<VkPhysicalDevice> physical_devices(count);
-			result = api->vkEnumeratePhysicalDevices(instance.get(), &count, physical_devices.data());
+			std::vector<VkPhysicalDevice> physical_devices(device_count);
+			result = api->vkEnumeratePhysicalDevices(instance.get(), &device_count, physical_devices.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
 			std::vector<Adapter> adapters;
@@ -156,9 +170,12 @@ namespace vt::vulkan
 			return adapters;
 		}
 
-		DeviceFunctionTable const* get_owner(void* resource) const
+		DeviceApiTable const* get_owner_and_erase(void* resource)
 		{
-			return resource_owners.find(resource)->second;
+			auto it	   = resource_owners.find(resource);
+			auto owner = it->second;
+			resource_owners.erase(it);
+			return owner;
 		}
 
 		template<typename F> F load_instance_func(char const name[]) const
@@ -171,14 +188,10 @@ namespace vt::vulkan
 			return reinterpret_cast<F>(api->vkGetDeviceProcAddr(device, name));
 		}
 
-	private:
-		static constexpr std::array REQUIRED_INSTANCE_LAYERS =
-#if VT_DEBUG
-			{"VK_LAYER_KHRONOS_validation"};
-#else
-			std::array<char const*, 0> {};
-#endif
+		VulkanDriver(VulkanDriver&&) = default;
+		VulkanDriver& operator=(VulkanDriver&&) = default;
 
+	private:
 		static constexpr std::array REQUIRED_INSTANCE_EXTENSIONS = {
 #if VT_DEBUG
 			VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
@@ -186,9 +199,9 @@ namespace vt::vulkan
 
 			VK_KHR_SURFACE_EXTENSION_NAME,
 
-#if VT_SYSTEM_MODULE == Windows
+#if VT_SYSTEM_WINDOWS
 			VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
-#elif VT_SYSTEM_MODULE == Linux
+#elif VT_SYSTEM_LINUX
 			VK_KHR_XCB_SURFACE_EXTENSION_NAME,
 #endif
 		};
@@ -202,29 +215,11 @@ namespace vt::vulkan
 		INSTANCE_NULL_FUNC(vkCreateInstance)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceExtensionProperties)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceLayerProperties)
-		std::unique_ptr<InstanceFunctionTable const> api;
 
-		struct InstanceDeleter
-		{
-			using pointer = VkInstance;
-			void operator()(VkInstance instance)
-			{
-				VulkanDriver::get_api()->vkDestroyInstance(instance, nullptr);
-			}
-		};
-		std::unique_ptr<VkInstance, InstanceDeleter> instance;
-
-		struct MessengerDeleter
-		{
-			using pointer = VkDebugUtilsMessengerEXT;
-			void operator()(VkDebugUtilsMessengerEXT messenger)
-			{
-				auto inst = VulkanDriver::get_vk_instance();
-				VulkanDriver::get_api()->vkDestroyDebugUtilsMessengerEXT(inst, messenger, nullptr);
-			}
-		};
-		std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter> debug_messenger;
-		std::unordered_map<void*, DeviceFunctionTable const*>		resource_owners;
+		SwapPtr<VkInstance>								 instance;
+		SwapPtr<VkDebugUtilsMessengerEXT>				 debug_messenger;
+		std::unique_ptr<InstanceApiTable const>			 api;
+		std::unordered_map<void*, DeviceApiTable const*> resource_owners;
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL log_vulkan_validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 																	VkDebugUtilsMessageTypeFlagsEXT,
@@ -241,14 +236,14 @@ namespace vt::vulkan
 			return false;
 		}
 
-		void ensure_instance_extensions_exist()
+		void ensure_instance_extensions_exist() const
 		{
-			unsigned count;
-			auto	 result = vkEnumerateInstanceExtensionProperties(nullptr, &count, nullptr);
+			unsigned extension_count;
+			auto	 result = vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
 			VT_ENSURE_RESULT(result, "Failed to query Vulkan instance extension count.");
 
-			std::vector<VkExtensionProperties> extensions(count);
-			result = vkEnumerateInstanceExtensionProperties(nullptr, &count, extensions.data());
+			std::vector<VkExtensionProperties> extensions(extension_count);
+			result = vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, extensions.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
 			for(std::string_view required_ext : REQUIRED_INSTANCE_EXTENSIONS)
@@ -266,17 +261,17 @@ namespace vt::vulkan
 			}
 		}
 
-		void ensure_layers_exist()
+		void ensure_layers_exist() const
 		{
-			unsigned count;
-			auto	 result = vkEnumerateInstanceLayerProperties(&count, nullptr);
+			unsigned layer_count;
+			auto	 result = vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
 			VT_ENSURE_RESULT(result, "Failed to query Vulkan instance layer count.");
 
-			std::vector<VkLayerProperties> layers(count);
-			result = vkEnumerateInstanceLayerProperties(&count, layers.data());
+			std::vector<VkLayerProperties> layers(layer_count);
+			result = vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
 			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan layers.");
 
-			for(std::string_view required_layer : REQUIRED_INSTANCE_LAYERS)
+			for(std::string_view required_layer : REQUIRED_LAYERS)
 			{
 				bool found = false;
 				for(auto& layer : layers)
@@ -292,7 +287,7 @@ namespace vt::vulkan
 		}
 	};
 
-	export struct DeviceFunctionTable
+	export struct DeviceApiTable
 	{
 		VkDevice device;
 
@@ -353,33 +348,38 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkDestroySwapchainKHR)
 		DEVICE_FUNC(vkDeviceWaitIdle)
 		DEVICE_FUNC(vkEndCommandBuffer)
+		DEVICE_FUNC(vkGetDeviceQueue)
 		DEVICE_FUNC(vkGetSwapchainImagesKHR)
 		DEVICE_FUNC(vkQueuePresentKHR)
 		DEVICE_FUNC(vkQueueSubmit)
 		DEVICE_FUNC(vkQueueWaitIdle)
 		DEVICE_FUNC(vkResetCommandPool)
 		DEVICE_FUNC(vkResetDescriptorPool)
+		DEVICE_FUNC(vkResetFences)
 		DEVICE_FUNC(vkUpdateDescriptorSets)
 		DEVICE_FUNC(vkWaitForFences)
+
+		DeviceApiTable(VkDevice device) : device(device)
+		{}
 	};
 
 	template<typename T>
-	using DeviceTableFunctionPointerMember = void (*DeviceFunctionTable::*)(VkDevice, T, VkAllocationCallbacks const*);
+	using DeviceTableFunctionPointerMember = void (*DeviceApiTable::*)(VkDevice, T, VkAllocationCallbacks const*);
 
-	template<typename T, DeviceTableFunctionPointerMember<T> Deleter> struct DeviceResourceDeleter
+	template<typename T, DeviceTableFunctionPointerMember<T> DELETER> struct DeviceResourceDeleter
 	{
 		using pointer = T;
 		void operator()(T ptr)
 		{
-			auto table = VulkanDriver::get().get_owner(ptr);
-			(table->*Deleter)(table->device, ptr, nullptr);
+			auto table = VulkanDriver::get().get_owner_and_erase(ptr);
+			(table->*DELETER)(table->device, ptr, nullptr);
 		}
 	};
-	template<typename T, DeviceTableFunctionPointerMember<T> Deleter>
-	using UniqueVulkanResource = std::unique_ptr<T, DeviceResourceDeleter<T, Deleter>>;
+	template<typename T, DeviceTableFunctionPointerMember<T> DELETER>
+	using UniqueVulkanResource = std::unique_ptr<T, DeviceResourceDeleter<T, DELETER>>;
 
 #define EXPORT_UNIQUE_DEVICE_RESOURCE(resource)                                                                                \
-	export using UniqueVk##resource = UniqueVulkanResource<Vk##resource, &DeviceFunctionTable::vkDestroy##resource>;
+	export using UniqueVk##resource = UniqueVulkanResource<Vk##resource, &DeviceApiTable::vkDestroy##resource>;
 
 	EXPORT_UNIQUE_DEVICE_RESOURCE(Buffer)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(CommandPool)
