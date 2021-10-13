@@ -19,8 +19,8 @@ import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.ForwardRenderer;
-import vt.Graphics.FrameContext;
 import vt.Graphics.RendererBase;
+import vt.Graphics.RingBuffer;
 import vt.Graphics.Handle;
 import vt.Graphics.SwapChain;
 import vt.Trace.Log;
@@ -33,7 +33,6 @@ namespace vt
 		GraphicsSystem(std::string const& app_name, Version app_version, Version engine_version) :
 			driver(app_name, app_version, engine_version),
 			device(select_adapter()),
-			renderer(std::make_unique<ForwardRenderer>(device)),
 			render_thread(&GraphicsSystem::run_rendering, this)
 		{
 			register_event_handlers<&GraphicsSystem::on_window_resize, &GraphicsSystem::on_window_object_construct,
@@ -47,26 +46,29 @@ namespace vt
 		}
 
 	private:
-		struct WindowState
+		struct WindowContext
 		{
-			SwapChain			swap_chain;
-			std::atomic<Extent> size_to_update;
-
 			struct FrameResources
 			{
 				SyncValue present_sync;
 			};
-			FrameContext<FrameResources> context;
-		};
-		std::unordered_map<Window const*, WindowState> window_states; // Iterator stability is needed, hence unordered_map.
+			RingBuffer<FrameResources>	  buffered;
+			SwapChain					  swap_chain;
+			std::atomic<Extent>			  size_to_update;
+			std::unique_ptr<RendererBase> renderer;
 
-		DynamicGpuApi				  dynamic_gpu_api;
-		Driver						  driver;
-		Device						  device;
-		std::unique_ptr<RendererBase> renderer;
-		std::atomic_bool			  should_run = true;
-		std::mutex					  mutex;
-		std::jthread				  render_thread;
+			WindowContext(SwapChain swap_chain, std::unique_ptr<RendererBase> renderer) :
+				swap_chain(std::move(swap_chain)), renderer(std::move(renderer))
+			{}
+		};
+		std::unordered_map<Window const*, WindowContext> window_contexts; // Iterator stability is needed, hence unordered_map.
+
+		DynamicGpuApi	 dynamic_gpu_api;
+		Driver			 driver;
+		Device			 device;
+		std::atomic_bool should_run = true;
+		std::mutex		 mutex;
+		std::jthread	 render_thread;
 
 		Adapter select_adapter()
 		{
@@ -83,31 +85,33 @@ namespace vt
 			while(should_run)
 			{
 				std::lock_guard lock(mutex);
-				for(auto& [window, window_state] : window_states)
+				for(auto& [window, context] : window_contexts)
 				{
-					auto& swap_chain = window_state.swap_chain;
-					if(!window_state.size_to_update.load().zero())
-					{
-						device->wait_for_workload(window_state.context.oldest().present_sync);
-						swap_chain->resize(window_state.size_to_update);
-						renderer->recreate_shared_render_targets(swap_chain);
-						window_state.size_to_update.store({0, 0});
-					}
+					auto& swap_chain   = context.swap_chain;
+					auto& present_sync = context.buffered->present_sync;
 
-					auto& present_sync = window_state.context->present_sync;
-					device->wait_for_workload(present_sync);
-					auto commands = renderer->render(swap_chain);
+					if(!context.size_to_update.load().zero())
+					{
+						device->wait_for_workload(context.buffered.get_previous().present_sync);
+						swap_chain->resize(context.size_to_update);
+						context.renderer->recreate_shared_render_targets(swap_chain);
+						context.size_to_update.store({0, 0});
+					}
+					else
+						device->wait_for_workload(present_sync);
+
+					auto commands = context.renderer->render(swap_chain);
 					present_sync  = device->submit_for_present(commands, swap_chain);
-					window_state.context.move_to_next_frame();
+					context.buffered.move_to_next_frame();
 				}
 			}
 		}
 
 		void on_window_resize(WindowSizeEvent& window_size_event)
 		{
-			auto& window_state = window_states.find(&window_size_event.window)->second;
+			auto& context = window_contexts.find(&window_size_event.window)->second;
 
-			window_state.size_to_update = window_size_event.size;
+			context.size_to_update = window_size_event.size;
 		}
 
 		void on_window_object_construct(ObjectConstructEvent<Window>& window_constructed)
@@ -115,7 +119,8 @@ namespace vt
 			std::lock_guard lock(mutex);
 
 			auto& window = window_constructed.object;
-			window_states.try_emplace(&window, device->make_swap_chain(driver, window));
+			window_contexts.try_emplace(&window, device->make_swap_chain(driver, window),
+										std::make_unique<ForwardRenderer>(device));
 		}
 
 		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_moved)
@@ -140,14 +145,14 @@ namespace vt
 		void remove_swap_chain(Window const& window)
 		{
 			device->flush_render_queue();
-			window_states.erase(&window);
+			window_contexts.erase(&window);
 		}
 
 		void replace_key_for_swap_chain(Window const& old_window, Window const& new_window)
 		{
-			auto node  = window_states.extract(&old_window);
+			auto node  = window_contexts.extract(&old_window);
 			node.key() = &new_window;
-			window_states.insert(std::move(node));
+			window_contexts.insert(std::move(node));
 		}
 	};
 }

@@ -11,6 +11,7 @@ export module vt.Graphics.Vulkan.Device;
 import vt.Core.Algorithm;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.Handle;
+import vt.Graphics.RingBuffer;
 import vt.Graphics.Vulkan.Driver;
 
 namespace vt::vulkan
@@ -103,7 +104,43 @@ namespace vt::vulkan
 
 		std::vector<RenderPipeline> make_render_pipelines(ArrayView<RenderPipelineSpecification> specs) override
 		{
-			return {};
+			std::vector<GraphicsPipelineInfoState> states;
+			states.reserve(specs.size());
+			for(auto& spec : specs)
+				states.emplace_back(*api, spec);
+
+			std::vector<VkGraphicsPipelineCreateInfo> pipeline_infos;
+			pipeline_infos.reserve(specs.size());
+			for(auto const& state : states)
+				pipeline_infos.emplace_back(VkGraphicsPipelineCreateInfo {
+					.sType				 = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+					.stageCount			 = count(state.shader_stages),
+					.pStages			 = state.shader_stages.data(),
+					.pVertexInputState	 = &state.vertex_input,
+					.pInputAssemblyState = &state.input_assembly,
+					.pTessellationState	 = &state.tessellation,
+					.pViewportState		 = &state.viewport,
+					.pRasterizationState = &state.rasterization,
+					.pMultisampleState	 = &state.multisample,
+					.pDepthStencilState	 = &state.depth_stencil,
+					.pColorBlendState	 = &state.color_blend,
+					.pDynamicState		 = &state.dynamic_state,
+					.layout				 = state.pipeline_layout,
+					.renderPass			 = state.render_pass,
+					.subpass			 = state.subpass_index,
+				});
+
+			std::vector<VkPipeline> pipelines(specs.size());
+			auto result = api->vkCreateGraphicsPipelines(device.get(), nullptr, count(pipeline_infos), pipeline_infos.data(),
+														 nullptr, pipelines.data());
+
+			std::vector<RenderPipeline> render_pipelines;
+			render_pipelines.reserve(specs.size());
+			for(auto pipeline : pipelines)
+				render_pipelines.emplace_back(pipeline);
+
+			VT_ASSERT_RESULT(result, "Failed to create Vulkan graphics pipelines.");
+			return render_pipelines;
 		}
 
 		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts) override
@@ -140,8 +177,19 @@ namespace vt::vulkan
 		SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{}
 
-		void wait_for_workload(SyncValue cpu_sync) override
+		SyncValue submit_for_present(ArrayView<CommandListHandle> cmds,
+									 SwapChain&					  swap_chain,
+									 ConstSpan<SyncValue>		  gpu_syncs = {}) override
 		{}
+
+		void wait_for_workload(SyncValue cpu_sync) override
+		{
+			auto result = api->vkWaitForFences(device.get(), 1, &cpu_sync.vulkan.fence, true, UINT64_MAX);
+			VT_ASSERT_RESULT(result, "Failed to wait for Vulkan fence.");
+
+			result = api->vkResetFences(device.get(), 1, &cpu_sync.vulkan.fence);
+			VT_ASSERT_RESULT(result, "Failed to reset Vulkan fence.");
+		}
 
 		void flush_render_queue() override
 		{

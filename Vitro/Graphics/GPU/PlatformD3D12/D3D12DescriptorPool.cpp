@@ -191,10 +191,10 @@ namespace vt::d3d12
 		}
 
 	private:
-		static constexpr unsigned MAX_RENDER_TARGET_VIEWS	 = 120;		// Arbitrarily chosen.
-		static constexpr unsigned MAX_DEPTH_STENCIL_VIEWS	 = 40;		// Arbitrarily chosen.
-		static constexpr unsigned MAX_CBV_SRV_UAVS_ON_GPU	 = 1000000; // Maximum for resource binding tier 2
-		static constexpr unsigned MAX_DYNAMIC_SAMPLER_ON_GPU = 2048;	// Maximum for resource binding tier 2
+		static constexpr unsigned MAX_RENDER_TARGET_VIEWS	 = 120; // Arbitrarily chosen.
+		static constexpr unsigned MAX_DEPTH_STENCIL_VIEWS	 = 40;	// Arbitrarily chosen.
+		static constexpr unsigned MAX_CBV_SRV_UAVS_ON_GPU	 = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+		static constexpr unsigned MAX_DYNAMIC_SAMPLER_ON_GPU = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
 
 		ID3D12Device4*		device;
 		DescriptorAllocator rtv_allocator;

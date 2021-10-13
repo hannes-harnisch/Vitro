@@ -13,10 +13,10 @@ import vt.Graphics.DeletionQueue;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Device;
-import vt.Graphics.FrameContext;
 import vt.Graphics.RendererBase;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
+import vt.Graphics.RingBuffer;
 import vt.Graphics.RootSignature;
 
 namespace vt
@@ -81,13 +81,13 @@ namespace vt
 				.width	= static_cast<float>(render_target.get_width()),
 				.height = static_cast<float>(render_target.get_height()),
 			};
-			cmd->bind_viewports(viewport);
+			cmd->set_viewports(viewport);
 
 			Rectangle scissor {
 				.width	= render_target.get_width(),
 				.height = render_target.get_height(),
 			};
-			cmd->bind_scissors(scissor);
+			cmd->set_scissors(scissor);
 
 			Float4 triangle_color = 0.5f + 0.5f * cos(time / 1000.0f + Float3 {3, 1.5, 0});
 			triangle_color.a	  = 1;
@@ -129,7 +129,7 @@ namespace vt
 			FrameResources(Device& device) : command_list(device->make_render_command_list())
 			{}
 		};
-		FrameContext<FrameResources> context;
+		RingBuffer<FrameResources> context;
 
 		RenderPass make_present_pass()
 		{

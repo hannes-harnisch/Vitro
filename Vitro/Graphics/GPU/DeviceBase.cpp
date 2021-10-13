@@ -11,6 +11,7 @@ import vt.Graphics.DescriptorSet;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Driver;
 import vt.Graphics.Handle;
+import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassSpecification;
 import vt.Graphics.RenderTarget;

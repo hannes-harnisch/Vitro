@@ -154,57 +154,6 @@ namespace vt::d3d12
 			cmd->Dispatch(x_count, y_count, z_count);
 		}
 
-		void bind_render_pipeline(RenderPipeline const& pipeline)
-		{
-			cmd->SetPipelineState(pipeline.d3d12.ptr());
-
-			auto pipeline_topology = pipeline.d3d12.get_topology();
-			if(this->bound_primitive_topology != pipeline_topology)
-			{
-				cmd->IASetPrimitiveTopology(pipeline_topology);
-				this->bound_primitive_topology = pipeline_topology;
-			}
-		}
-
-		void bind_render_root_signature(RootSignature const& root_signature)
-		{
-			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
-			this->bound_render_root_indices = &root_signature.d3d12.get_parameter_map();
-		}
-
-		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
-		{
-			for(auto& set : descriptor_sets)
-			{
-				unsigned index = this->bound_render_root_indices->find(set.d3d12.get_layout_id());
-				switch(set.d3d12.get_parameter_type())
-				{
-					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						cmd->SetGraphicsRootDescriptorTable(index, set.d3d12.get_table_handle());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_CBV:
-						cmd->SetGraphicsRootConstantBufferView(index, set.d3d12.get_gpu_address());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_SRV:
-						cmd->SetGraphicsRootShaderResourceView(index, set.d3d12.get_gpu_address());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_UAV:
-						cmd->SetGraphicsRootUnorderedAccessView(index, set.d3d12.get_gpu_address());
-						break;
-				}
-			}
-		}
-
-		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
-		{
-			VT_ASSERT(byte_offset % sizeof(DWORD) == 0, "Byte offset must be divisible by 4.");
-			VT_ASSERT(byte_size % sizeof(DWORD) == 0, "Byte size must be divisible by 4.");
-
-			UINT dword_size	  = static_cast<UINT>(byte_size / sizeof(DWORD));
-			UINT dword_offset = static_cast<UINT>(byte_offset / sizeof(DWORD));
-			cmd->SetGraphicsRoot32BitConstants(0, dword_size, data, dword_offset);
-		}
-
 		void begin_render_pass(RenderPass const&	 render_pass,
 							   RenderTarget const&	 render_target,
 							   ConstSpan<ClearValue> clear_values = {})
@@ -314,9 +263,60 @@ namespace vt::d3d12
 			insert_render_pass_barriers(final_transitions);
 		}
 
+		void bind_render_pipeline(RenderPipeline const& pipeline)
+		{
+			cmd->SetPipelineState(pipeline.d3d12.ptr());
+
+			auto pipeline_topology = pipeline.d3d12.get_topology();
+			if(this->bound_primitive_topology != pipeline_topology)
+			{
+				cmd->IASetPrimitiveTopology(pipeline_topology);
+				this->bound_primitive_topology = pipeline_topology;
+			}
+		}
+
+		void bind_render_root_signature(RootSignature const& root_signature)
+		{
+			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
+			this->bound_render_root_indices = &root_signature.d3d12.get_parameter_map();
+		}
+
+		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
+		{
+			for(auto& set : descriptor_sets)
+			{
+				unsigned index = this->bound_render_root_indices->find(set.d3d12.get_layout_id());
+				switch(set.d3d12.get_parameter_type())
+				{
+					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+						cmd->SetGraphicsRootDescriptorTable(index, set.d3d12.get_table_handle());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_CBV:
+						cmd->SetGraphicsRootConstantBufferView(index, set.d3d12.get_gpu_address());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_SRV:
+						cmd->SetGraphicsRootShaderResourceView(index, set.d3d12.get_gpu_address());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_UAV:
+						cmd->SetGraphicsRootUnorderedAccessView(index, set.d3d12.get_gpu_address());
+						break;
+				}
+			}
+		}
+
+		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
+		{
+			VT_ASSERT(byte_offset % sizeof(DWORD) == 0, "Byte offset must be divisible by 4.");
+			VT_ASSERT(byte_size % sizeof(DWORD) == 0, "Byte size must be divisible by 4.");
+
+			UINT dword_size	  = static_cast<UINT>(byte_size / sizeof(DWORD));
+			UINT dword_offset = static_cast<UINT>(byte_offset / sizeof(DWORD));
+			cmd->SetGraphicsRoot32BitConstants(0, dword_size, data, dword_offset);
+		}
+
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<D3D12_VERTEX_BUFFER_VIEW, MAX_VERTEX_ATTRIBUTES> views(first_buffer);
+			FixedList<D3D12_VERTEX_BUFFER_VIEW, MAX_VERTEX_BUFFERS> views(first_buffer);
 
 			auto offset = byte_offsets.begin() + first_buffer;
 			for(auto& buffer : std::views::take(buffers, first_buffer))
@@ -339,7 +339,7 @@ namespace vt::d3d12
 			cmd->IASetIndexBuffer(&view);
 		}
 
-		void bind_viewports(ArrayView<Viewport> viewports)
+		void set_viewports(ArrayView<Viewport> viewports)
 		{
 			static_assert(std::is_layout_compatible_v<Viewport, D3D12_VIEWPORT>);
 
@@ -347,7 +347,7 @@ namespace vt::d3d12
 			cmd->RSSetViewports(count(viewports), data);
 		}
 
-		void bind_scissors(ArrayView<Rectangle> scissors)
+		void set_scissors(ArrayView<Rectangle> scissors)
 		{
 			FixedList<D3D12_RECT, MAX_ATTACHMENTS> rects;
 			for(auto&& scissor : scissors)
@@ -359,6 +359,27 @@ namespace vt::d3d12
 				});
 
 			cmd->RSSetScissorRects(count(rects), rects.data());
+		}
+
+		void set_blend_constants(Float4 blend_constants)
+		{
+			float const factor[] {
+				blend_constants.r,
+				blend_constants.g,
+				blend_constants.b,
+				blend_constants.a,
+			};
+			cmd->OMSetBlendFactor(factor);
+		}
+
+		void set_depth_bounds(float min, float max)
+		{
+			cmd->OMSetDepthBounds(min, max);
+		}
+
+		void set_stencil_reference(unsigned reference_value)
+		{
+			cmd->OMSetStencilRef(reference_value);
 		}
 
 		void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)

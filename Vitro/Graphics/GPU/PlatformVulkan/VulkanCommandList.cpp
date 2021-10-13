@@ -125,32 +125,6 @@ namespace vt::vulkan
 			api->vkCmdDispatch(cmd, x_count, y_count, z_count);
 		}
 
-		void bind_render_pipeline(RenderPipeline const& pipeline)
-		{
-			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.vulkan.ptr());
-		}
-
-		void bind_render_root_signature(RootSignature const& root_signature)
-		{
-			this->bound_render_layout = root_signature.vulkan.ptr();
-		}
-
-		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
-		{
-			std::vector<VkDescriptorSet> sets(descriptor_sets.size());
-			for(auto& set : descriptor_sets)
-				sets.emplace_back(set.vulkan.ptr());
-
-			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->bound_render_layout, 0,
-										 count(descriptor_sets), sets.data(), 0, nullptr);
-		}
-
-		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
-		{
-			api->vkCmdPushConstants(cmd, this->bound_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS,
-									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
-		}
-
 		void begin_render_pass(RenderPass const&	 render_pass,
 							   RenderTarget const&	 render_target,
 							   ConstSpan<ClearValue> clear_values = {})
@@ -185,9 +159,35 @@ namespace vt::vulkan
 			api->vkCmdEndRenderPass(cmd);
 		}
 
+		void bind_render_pipeline(RenderPipeline const& pipeline)
+		{
+			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.vulkan.ptr());
+		}
+
+		void bind_render_root_signature(RootSignature const& root_signature)
+		{
+			this->bound_render_layout = root_signature.vulkan.ptr();
+		}
+
+		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
+		{
+			std::vector<VkDescriptorSet> sets(descriptor_sets.size());
+			for(auto& set : descriptor_sets)
+				sets.emplace_back(set.vulkan.ptr());
+
+			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->bound_render_layout, 0,
+										 count(descriptor_sets), sets.data(), 0, nullptr);
+		}
+
+		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
+		{
+			api->vkCmdPushConstants(cmd, this->bound_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS,
+									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
+		}
+
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<VkBuffer, MAX_VERTEX_ATTRIBUTES> handles(first_buffer);
+			FixedList<VkBuffer, MAX_VERTEX_BUFFERS> handles(first_buffer);
 			for(auto& buffer : std::views::take(buffers, first_buffer))
 				handles.emplace_back(buffer.vulkan.ptr());
 
@@ -200,7 +200,7 @@ namespace vt::vulkan
 			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, index_type);
 		}
 
-		void bind_viewports(ArrayView<Viewport> viewports)
+		void set_viewports(ArrayView<Viewport> viewports)
 		{
 			static_assert(std::is_layout_compatible_v<Viewport, VkViewport>);
 
@@ -208,12 +208,33 @@ namespace vt::vulkan
 			api->vkCmdSetViewport(cmd, 0, count(viewports), data);
 		}
 
-		void bind_scissors(ArrayView<Rectangle> scissors)
+		void set_scissors(ArrayView<Rectangle> scissors)
 		{
 			// static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>); // TODO: await type trait fix in MSVC
 
 			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());
 			api->vkCmdSetScissor(cmd, 0, count(scissors), data);
+		}
+
+		void set_blend_constants(Float4 blend_constants)
+		{
+			float const constants[] {
+				blend_constants.r,
+				blend_constants.g,
+				blend_constants.b,
+				blend_constants.a,
+			};
+			api->vkCmdSetBlendConstants(cmd, constants);
+		}
+
+		void set_depth_bounds(float min, float max)
+		{
+			api->vkCmdSetDepthBounds(cmd, min, max);
+		}
+
+		void set_stencil_reference(unsigned reference_value)
+		{
+			api->vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK, reference_value);
 		}
 
 		void draw(unsigned vertex_count, unsigned instance_count, unsigned first_vertex, unsigned first_instance)

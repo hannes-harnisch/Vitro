@@ -2,7 +2,6 @@
 #include "Core/Macros.hpp"
 export module vt.Graphics.SwapChain;
 
-import vt.App.ObjectEvent;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.SwapChainBase;
 import vt.Graphics.VT_GPU_API_MODULE.SwapChain;
@@ -14,7 +13,7 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.SwapChain;
 namespace vt
 {
 	export using PlatformSwapChain = InterfaceVariant<SwapChainBase, VT_GPU_API_VARIANT_ARGS(SwapChain)>;
-	export class SwapChain : public PlatformSwapChain, public ObjectEventSentinel<SwapChain>
+	export class SwapChain : public PlatformSwapChain
 	{
 	public:
 		static constexpr unsigned DEFAULT_BUFFERS = 3;

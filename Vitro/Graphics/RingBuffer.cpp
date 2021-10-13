@@ -1,6 +1,6 @@
 ﻿module;
 #include <utility>
-export module vt.Graphics.FrameContext;
+export module vt.Graphics.RingBuffer;
 
 import vt.Core.FixedList;
 
@@ -10,30 +10,34 @@ namespace vt
 
 	// Implements a simple ring-buffer-like data structure that holds a globally defined number of instances of T and allows
 	// switching between them.
-	export template<typename T> class FrameContext
+	export template<typename T> class RingBuffer
 	{
 	public:
-		FrameContext(auto&... args)
+		RingBuffer(auto&... args)
 		{
 			for(int i = 0; i != MAX_FRAMES_IN_FLIGHT; ++i)
 				frame_resources.emplace_back(args...);
 		}
 
+		// Gives the currently active frame resources.
 		T& operator*() noexcept
 		{
 			return frame_resources[index];
 		}
 
+		// Gives the currently active frame resources.
 		T const& operator*() const noexcept
 		{
 			return frame_resources[index];
 		}
 
+		// Allows indirection to the currently active frame resources.
 		T* operator->() noexcept
 		{
 			return &frame_resources[index];
 		}
 
+		// Allows indirection to the currently active frame resources.
 		T const* operator->() const noexcept
 		{
 			return &frame_resources[index];
@@ -44,14 +48,16 @@ namespace vt
 			index = (index + 1) % frame_resources.size();
 		}
 
-		T& oldest() noexcept
+		T& get_previous() noexcept
 		{
-			return frame_resources[(index + frame_resources.size() - 1) % frame_resources.size()];
+			size_t size = frame_resources.size();
+			return frame_resources[(index + size - 1) % size];
 		}
 
-		T const& oldest() const noexcept
+		T const& get_previous() const noexcept
 		{
-			return frame_resources[(index + frame_resources.size() - 1) % frame_resources.size()];
+			size_t size = frame_resources.size();
+			return frame_resources[(index + size - 1) % size];
 		}
 
 		unsigned current_index() const noexcept

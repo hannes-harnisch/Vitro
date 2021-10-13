@@ -11,6 +11,14 @@ namespace vt::vulkan
 	export class VulkanSwapChain final : public SwapChainBase
 	{
 	public:
+		VulkanSwapChain()
+		{
+			VkFenceCreateInfo const fence_info {
+				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+				.flags = VK_FENCE_CREATE_SIGNALED_BIT,
+			};
+		}
+
 		unsigned get_current_image_index() const override
 		{
 			return 0;
@@ -30,9 +38,6 @@ namespace vt::vulkan
 		{
 			return 0;
 		}
-
-		void present() override
-		{}
 
 		void resize(Extent) override
 		{}

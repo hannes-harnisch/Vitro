@@ -11,34 +11,50 @@ import vt.Graphics.PipelineSpecification;
 
 namespace vt::d3d12
 {
-	DXGI_FORMAT convert_vertex_data_type(VertexDataType type)
+	char const* convert_vertex_data_type_semantic(VertexDataType type)
 	{
 		using enum VertexDataType;
 		switch(type)
 		{ // clang-format off
-			case Float:	 return DXGI_FORMAT_R32_FLOAT;
-			case Float2: return DXGI_FORMAT_R32G32_FLOAT;
-			case Float3: return DXGI_FORMAT_R32G32B32_FLOAT;
-			case Float4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case Int:	 return DXGI_FORMAT_R32_SINT;
-			case Int2:	 return DXGI_FORMAT_R32G32_SINT;
-			case Int3:	 return DXGI_FORMAT_R32G32B32_SINT;
-			case Int4:	 return DXGI_FORMAT_R32G32B32A32_SINT;
-			case UInt:	 return DXGI_FORMAT_R32_UINT;
-			case UInt2:	 return DXGI_FORMAT_R32G32_UINT;
-			case UInt3:	 return DXGI_FORMAT_R32G32B32_UINT;
-			case UInt4:	 return DXGI_FORMAT_R32G32B32A32_UINT;
-			case Bool:	 return DXGI_FORMAT_R8_UINT;
+			case Position:			  return "POSITION";
+			case TransformedPosition: return "POSITIONT";
+			case TextureCoordinates:  return "TEXCOORD";
+			case Normal:			  return "NORMAL";
+			case Binormal:			  return "BINORMAL";
+			case Tangent:			  return "TANGENT";
+			case Color:				  return "COLOR";
+			case BlendIndices:		  return "BLENDINDICES";
+			case BlendWeight:		  return "BLENDWEIGHT";
+			case PointSize:			  return "PSIZE";
 		}
 		VT_UNREACHABLE();
 	}
 
-	D3D12_INPUT_CLASSIFICATION convert_attribute_input_rate(AttributeInputRate rate)
+	DXGI_FORMAT convert_vertex_data_type_format(VertexDataType type)
+	{
+		using enum VertexDataType;
+		switch(type)
+		{
+			case Position:
+			case TransformedPosition:
+			case TextureCoordinates:
+			case Normal:
+			case Binormal:
+			case Tangent:
+			case Color:		   return DXGI_FORMAT_R32G32B32A32_FLOAT;
+			case PointSize:
+			case BlendWeight:  return DXGI_FORMAT_R32_FLOAT;
+			case BlendIndices: return DXGI_FORMAT_R32_UINT;
+		}
+		VT_UNREACHABLE();
+	}
+
+	D3D12_INPUT_CLASSIFICATION convert_input_rate(VertexBufferInputRate rate)
 	{
 		switch(rate)
 		{
-			case AttributeInputRate::PerVertex:	  return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-			case AttributeInputRate::PerInstance: return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+			case VertexBufferInputRate::PerVertex:	 return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+			case VertexBufferInputRate::PerInstance: return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
 		}
 		VT_UNREACHABLE();
 	}
@@ -177,19 +193,6 @@ namespace vt::d3d12
 														   control_point_count);
 		}
 		VT_UNREACHABLE();
-	}
-
-	D3D12_INPUT_ELEMENT_DESC convert_vertex_attribute(VertexAttribute attrib)
-	{
-		return {
-			.SemanticName		  = nullptr,
-			.SemanticIndex		  = 0,
-			.Format				  = convert_vertex_data_type(attrib.data_type),
-			.InputSlot			  = attrib.slot,
-			.AlignedByteOffset	  = attrib.byte_offset,
-			.InputSlotClass		  = convert_attribute_input_rate(attrib.input_rate),
-			.InstanceDataStepRate = attrib.input_rate == AttributeInputRate::PerInstance ? 1u : 0u,
-		};
 	}
 
 	D3D12_DEPTH_STENCILOP_DESC convert_stencil_op_state(StencilOpState op_state)
@@ -377,9 +380,29 @@ namespace vt::d3d12
 		D3D12RenderPipeline(ID3D12Device4* device, RenderPipelineSpecification const& spec) :
 			primitive_topology(convert_primitive_topology(spec.primitive_topology, spec.patch_list_control_point_count))
 		{
-			FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_ATTRIBUTES> input_element_descs;
-			for(auto attrib : spec.vertex_attributes)
-				input_element_descs.emplace_back(convert_vertex_attribute(attrib));
+			FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES> input_element_descs;
+
+			unsigned index = 0;
+			for(auto& buffer_binding : spec.vertex_buffer_bindings)
+			{
+				auto	 input_rate = convert_input_rate(buffer_binding.input_rate);
+				unsigned step_rate	= buffer_binding.input_rate == VertexBufferInputRate::PerInstance ? 1u : 0u;
+				size_t	 offset		= 0;
+				for(auto attribute : buffer_binding.attributes)
+				{
+					input_element_descs.emplace_back(D3D12_INPUT_ELEMENT_DESC {
+						.SemanticName		  = convert_vertex_data_type_semantic(attribute.type),
+						.SemanticIndex		  = attribute.semantic_index,
+						.Format				  = convert_vertex_data_type_format(attribute.type),
+						.InputSlot			  = index,
+						.AlignedByteOffset	  = static_cast<UINT>(offset),
+						.InputSlotClass		  = input_rate,
+						.InstanceDataStepRate = step_rate,
+					});
+					offset += get_vertex_data_type_size(attribute.type);
+				}
+				++index;
+			}
 
 			auto& pass = spec.render_pass.d3d12;
 
@@ -458,7 +481,7 @@ namespace vt::d3d12
 					.DepthBoundsTestEnable = spec.depth_stencil.enable_depth_bounds_test,
 				},
 			};
-			int i = 0;
+			unsigned i = 0;
 			for(auto state : spec.blend.attachment_states)
 				stream.blend_desc.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
 
