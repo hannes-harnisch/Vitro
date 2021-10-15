@@ -92,7 +92,7 @@ namespace vt::vulkan
 	export class VulkanSampler
 	{
 	public:
-		VulkanSampler(DeviceApiTable const& api, SamplerSpecification const& spec)
+		VulkanSampler(SamplerSpecification const& spec, DeviceApiTable const& api)
 		{
 			VkSamplerCreateInfo const sampler_info {
 				.sType					 = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -115,7 +115,7 @@ namespace vt::vulkan
 			VkSampler unowned_sampler;
 
 			auto result = api.vkCreateSampler(api.device, &sampler_info, nullptr, &unowned_sampler);
-			sampler.reset(unowned_sampler);
+			sampler.reset(unowned_sampler, api);
 			VT_ASSERT_RESULT(result, "Failed to create Vulkan sampler.");
 		}
 

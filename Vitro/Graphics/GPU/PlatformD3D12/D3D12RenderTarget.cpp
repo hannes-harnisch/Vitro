@@ -6,7 +6,6 @@
 #include <utility>
 export module vt.Graphics.D3D12.RenderTarget;
 
-import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.SwapPtr;

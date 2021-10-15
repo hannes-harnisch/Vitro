@@ -8,7 +8,7 @@
 #include <vector>
 export module vt.Graphics.Vulkan.Device;
 
-import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.Handle;
 import vt.Graphics.RingBuffer;
@@ -80,26 +80,58 @@ namespace vt::vulkan
 			api->vkGetDeviceQueue(device.get(), render_queue_family, 0, &render_queue);
 			api->vkGetDeviceQueue(device.get(), compute_queue_family, 0, &compute_queue);
 			api->vkGetDeviceQueue(device.get(), copy_queue_family, 0, &copy_queue);
+
+			initialize_queue_sync_objects(render_queue_fence, render_queue_semaphore);
+			initialize_queue_sync_objects(compute_queue_fence, compute_queue_semaphore);
+			initialize_queue_sync_objects(copy_queue_fence, copy_queue_semaphore);
 		}
 
 		CopyCommandList make_copy_command_list() override
 		{
-			return VulkanCommandList<CommandType::Copy>(*api, copy_queue_family);
+			return VulkanCommandList<CommandType::Copy>(copy_queue_family, *api);
 		}
 
 		ComputeCommandList make_compute_command_list() override
 		{
-			return VulkanCommandList<CommandType::Compute>(*api, compute_queue_family);
+			return VulkanCommandList<CommandType::Compute>(compute_queue_family, *api);
 		}
 
 		RenderCommandList make_render_command_list() override
 		{
-			return VulkanCommandList<CommandType::Render>(*api, render_queue_family);
+			return VulkanCommandList<CommandType::Render>(render_queue_family, *api);
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
 		{
-			return {};
+			std::vector<VkComputePipelineCreateInfo> pipeline_infos;
+			pipeline_infos.reserve(specs.size());
+			for(auto const& spec : specs)
+				pipeline_infos.emplace_back(VkComputePipelineCreateInfo {
+					.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+					.stage {
+						.sType				 = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+						.stage				 = VK_SHADER_STAGE_COMPUTE_BIT,
+						.module				 = spec.compute_shader.vulkan.ptr(),
+						.pName				 = "main",
+						.pSpecializationInfo = nullptr,
+					},
+					.layout				= spec.root_signature.vulkan.ptr(),
+					.basePipelineHandle = nullptr,
+					.basePipelineIndex	= 0,
+				});
+
+			Array<VkPipeline> pipelines(specs.size());
+
+			auto result = api->vkCreateComputePipelines(device.get(), pipeline_cache.get(), count(pipeline_infos),
+														pipeline_infos.data(), nullptr, pipelines.data());
+
+			std::vector<ComputePipeline> compute_pipelines;
+			compute_pipelines.reserve(specs.size());
+			for(auto pipeline : pipelines)
+				compute_pipelines.emplace_back(VulkanComputePipeline(pipeline, *api));
+
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan graphics pipelines.");
+			return compute_pipelines;
 		}
 
 		std::vector<RenderPipeline> make_render_pipelines(ArrayView<RenderPipelineSpecification> specs) override
@@ -107,7 +139,7 @@ namespace vt::vulkan
 			std::vector<GraphicsPipelineInfoState> states;
 			states.reserve(specs.size());
 			for(auto& spec : specs)
-				states.emplace_back(*api, spec);
+				states.emplace_back(spec, *api);
 
 			std::vector<VkGraphicsPipelineCreateInfo> pipeline_infos;
 			pipeline_infos.reserve(specs.size());
@@ -128,18 +160,21 @@ namespace vt::vulkan
 					.layout				 = state.pipeline_layout,
 					.renderPass			 = state.render_pass,
 					.subpass			 = state.subpass_index,
+					.basePipelineHandle	 = nullptr,
+					.basePipelineIndex	 = 0,
 				});
 
-			std::vector<VkPipeline> pipelines(specs.size());
-			auto result = api->vkCreateGraphicsPipelines(device.get(), nullptr, count(pipeline_infos), pipeline_infos.data(),
-														 nullptr, pipelines.data());
+			Array<VkPipeline> pipelines(specs.size());
+
+			auto result = api->vkCreateGraphicsPipelines(device.get(), pipeline_cache.get(), count(pipeline_infos),
+														 pipeline_infos.data(), nullptr, pipelines.data());
 
 			std::vector<RenderPipeline> render_pipelines;
 			render_pipelines.reserve(specs.size());
 			for(auto pipeline : pipelines)
-				render_pipelines.emplace_back(pipeline);
+				render_pipelines.emplace_back(VulkanRenderPipeline(pipeline, *api));
 
-			VT_ASSERT_RESULT(result, "Failed to create Vulkan graphics pipelines.");
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan graphics pipelines.");
 			return render_pipelines;
 		}
 
@@ -149,7 +184,9 @@ namespace vt::vulkan
 		}
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
-		{}
+		{
+			return VulkanDescriptorSetLayout(spec, *api);
+		}
 
 		RenderPass make_render_pass(RenderPassSpecification const& spec) override
 		{}
@@ -158,11 +195,18 @@ namespace vt::vulkan
 		{}
 
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
-		{}
+		{
+			return VulkanRootSignature(spec, *api);
+		}
 
 		Sampler make_sampler(SamplerSpecification const& spec) override
 		{
-			return VulkanSampler(*api, spec);
+			return VulkanSampler(spec, *api);
+		}
+
+		Shader make_shader(char const path[]) override
+		{
+			return VulkanShader(path, *api);
 		}
 
 		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
@@ -235,7 +279,7 @@ namespace vt::vulkan
 		struct DeviceDeleter
 		{
 			using pointer = VkDevice;
-			void operator()(VkDevice device)
+			void operator()(VkDevice device) const
 			{
 				VulkanDriver::get_api()->vkDestroyDevice(device, nullptr);
 			}
@@ -250,8 +294,14 @@ namespace vt::vulkan
 		unsigned			   compute_queue_family = ~0u;
 		unsigned			   copy_queue_family	= ~0u;
 		VkQueue				   render_queue;
+		UniqueVkFence		   render_queue_fence;
+		UniqueVkSemaphore	   render_queue_semaphore;
 		VkQueue				   compute_queue;
+		UniqueVkFence		   compute_queue_fence;
+		UniqueVkSemaphore	   compute_queue_semaphore;
 		VkQueue				   copy_queue;
+		UniqueVkFence		   copy_queue_fence;
+		UniqueVkSemaphore	   copy_queue_semaphore;
 		UniqueVkDescriptorPool descriptor_pool;
 		UniqueVkPipelineCache  pipeline_cache;
 
@@ -304,6 +354,26 @@ namespace vt::vulkan
 
 				++available;
 			}
+		}
+
+		void initialize_queue_sync_objects(UniqueVkFence& fence, UniqueVkSemaphore& semaphore) const
+		{
+			VkFenceCreateInfo const fence_info {
+				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+			};
+			VkFence unowned_fence;
+
+			auto result = api->vkCreateFence(device.get(), &fence_info, nullptr, &unowned_fence);
+			fence.reset(unowned_fence, *api);
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan fence for queue.");
+
+			VkSemaphoreCreateInfo const semaphore_info {
+				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			};
+			VkSemaphore unowned_semaphore;
+			result = api->vkCreateSemaphore(device.get(), &semaphore_info, nullptr, &unowned_semaphore);
+			semaphore.reset(unowned_semaphore, *api);
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan semaphore for queue.");
 		}
 	};
 }

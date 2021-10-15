@@ -16,6 +16,12 @@ namespace vt
 {
 	export template<typename T> using Array = hh::Array<T>;
 
+	// Helper for API calls that expect array sizes as unsigned int instead of size_t.
+	export constexpr unsigned count(auto const& container) noexcept
+	{
+		return static_cast<unsigned>(std::size(container));
+	}
+
 	// Non-empty non-writable view into a contiguous range of elements. Will also bind to a single element.
 	export template<typename T> class ArrayView : public std::span<T const>
 	{

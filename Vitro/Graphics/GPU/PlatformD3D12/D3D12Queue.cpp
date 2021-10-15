@@ -3,7 +3,6 @@
 #include "D3D12API.hpp"
 export module vt.Graphics.D3D12.Queue;
 
-import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.Handle;

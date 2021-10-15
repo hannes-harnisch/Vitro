@@ -7,10 +7,11 @@ import vt.Core.Enum;
 import vt.Core.FixedList;
 import vt.Core.Specification;
 import vt.Core.Vector;
-import vt.Graphics.DescriptorSetLayout;
+import vt.Graphics.DescriptorBinding;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderPassSpecification;
 import vt.Graphics.RootSignature;
+import vt.Graphics.Shader;
 
 namespace vt
 {
@@ -208,10 +209,10 @@ namespace vt
 
 		RootSignature const&		root_signature;
 		RenderPass const&			render_pass;
-		ArrayView<char>				vertex_shader_bytecode;
-		ConstSpan<char>				hull_shader_bytecode;
-		ConstSpan<char>				domain_shader_bytecode;
-		ConstSpan<char>				fragment_shader_bytecode;
+		Shader const&				vertex_shader;
+		Shader const*				hull_shader		= nullptr;
+		Shader const*				domain_shader	= nullptr;
+		Shader const*				fragment_shader = nullptr;
 		VertexBufferBindingList		vertex_buffer_bindings;
 		Explicit<PrimitiveTopology> primitive_topology;
 		uint8_t						patch_list_control_point_count = 0;
@@ -226,7 +227,7 @@ namespace vt
 	export struct ComputePipelineSpecification
 	{
 		RootSignature const& root_signature;
-		ArrayView<char>		 compute_shader_bytecode;
+		Shader const&		 compute_shader;
 	};
 
 	export size_t get_vertex_data_type_size(VertexDataType type)

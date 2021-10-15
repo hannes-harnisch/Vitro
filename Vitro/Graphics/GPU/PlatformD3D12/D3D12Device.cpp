@@ -3,12 +3,12 @@
 #include "D3D12API.hpp"
 
 #include <array>
+#include <fstream>
 #include <ranges>
 #include <span>
 #include <vector>
 export module vt.Graphics.D3D12.Device;
 
-import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.DescriptorSetLayout;
@@ -113,6 +113,11 @@ namespace vt::d3d12
 		Sampler make_sampler(SamplerSpecification const& spec) override
 		{
 			return D3D12Sampler(spec);
+		}
+
+		Shader make_shader(char const path[]) override
+		{
+			return D3D12Shader(std::ifstream(path, std::ios::binary));
 		}
 
 		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override

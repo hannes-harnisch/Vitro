@@ -8,7 +8,7 @@ namespace vt::d3d12
 {
 	template<typename T> struct ComDeleter
 	{
-		void operator()(T* ptr)
+		void operator()(T* ptr) const
 		{
 			ptr->Release();
 		}

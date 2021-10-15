@@ -160,7 +160,7 @@ namespace vt::windows
 		struct WindowDeleter
 		{
 			using pointer = HWND;
-			void operator()(HWND hwnd)
+			void operator()(HWND hwnd) const
 			{
 				BOOL succeeded = ::DestroyWindow(hwnd);
 				VT_ASSERT(succeeded, "Failed to destroy window.");

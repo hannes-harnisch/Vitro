@@ -7,7 +7,7 @@
 #include <type_traits>
 export module vt.Graphics.D3D12.CommandList;
 
-import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
 import vt.Graphics.D3D12.DescriptorPool;

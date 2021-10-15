@@ -13,7 +13,13 @@ namespace vt::vulkan
 			return descriptor_set;
 		}
 
+		VkDescriptorSetLayout get_layout() const
+		{
+			return layout;
+		}
+
 	private:
-		VkDescriptorSet descriptor_set;
+		VkDescriptorSet		  descriptor_set;
+		VkDescriptorSetLayout layout;
 	};
 }

@@ -24,13 +24,10 @@ namespace vt::d3d12
 		size_t						unit_count = 0;
 	};
 
-	class DescriptorAllocator
+	class DescriptorHeap
 	{
 	public:
-		DescriptorAllocator(ID3D12Device4*			   device,
-							D3D12_DESCRIPTOR_HEAP_TYPE type,
-							UINT					   descriptor_count,
-							bool					   shader_visible) :
+		DescriptorHeap(ID3D12Device4* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT descriptor_count, bool shader_visible) :
 			stride(device->GetDescriptorHandleIncrementSize(type))
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
@@ -142,47 +139,47 @@ namespace vt::d3d12
 	public:
 		DescriptorPool(ID3D12Device4* in_device) :
 			device(in_device),
-			rtv_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, MAX_RENDER_TARGET_VIEWS, false),
-			dsv_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, MAX_DEPTH_STENCIL_VIEWS, false),
-			view_staging_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, false),
-			sampler_staging_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, false),
-			gpu_view_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, true),
-			gpu_sampler_allocator(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, true)
+			rtv_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, MAX_RENDER_TARGET_VIEWS, false),
+			dsv_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, MAX_DEPTH_STENCIL_VIEWS, false),
+			view_staging_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, false),
+			sampler_staging_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, false),
+			gpu_view_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, true),
+			gpu_sampler_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, true)
 		{}
 
 		DescriptorAllocation allocate_render_target_views(size_t count)
 		{
-			return rtv_allocator.allocate(count);
+			return rtv_heap.allocate(count);
 		}
 
 		DescriptorAllocation allocate_depth_stencil_view()
 		{
-			return dsv_allocator.allocate(1);
+			return dsv_heap.allocate(1);
 		}
 
 		void deallocate_render_target_views(DescriptorAllocation rtvs)
 		{
-			rtv_allocator.deallocate(rtvs);
+			rtv_heap.deallocate(rtvs);
 		}
 
 		void deallocate_depth_stencil_views(DescriptorAllocation dsvs)
 		{
-			dsv_allocator.deallocate(dsvs);
+			dsv_heap.deallocate(dsvs);
 		}
 
 		unsigned get_rtv_stride() const
 		{
-			return rtv_allocator.get_stride();
+			return rtv_heap.get_stride();
 		}
 
 		unsigned get_dsv_stride() const
 		{
-			return dsv_allocator.get_stride();
+			return dsv_heap.get_stride();
 		}
 
 		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_heaps()
 		{
-			return {gpu_view_allocator.ptr(), gpu_sampler_allocator.ptr()};
+			return {gpu_view_heap.ptr(), gpu_sampler_heap.ptr()};
 		}
 
 		ID3D12Device4* get_device()
@@ -196,12 +193,12 @@ namespace vt::d3d12
 		static constexpr unsigned MAX_CBV_SRV_UAVS_ON_GPU	 = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
 		static constexpr unsigned MAX_DYNAMIC_SAMPLER_ON_GPU = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
 
-		ID3D12Device4*		device;
-		DescriptorAllocator rtv_allocator;
-		DescriptorAllocator dsv_allocator;
-		DescriptorAllocator view_staging_allocator;
-		DescriptorAllocator sampler_staging_allocator;
-		DescriptorAllocator gpu_view_allocator;
-		DescriptorAllocator gpu_sampler_allocator;
+		ID3D12Device4* device;
+		DescriptorHeap rtv_heap;
+		DescriptorHeap dsv_heap;
+		DescriptorHeap view_staging_heap;
+		DescriptorHeap sampler_staging_heap;
+		DescriptorHeap gpu_view_heap;
+		DescriptorHeap gpu_sampler_heap;
 	};
 }

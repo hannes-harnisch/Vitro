@@ -10,10 +10,9 @@
 #include <vector>
 export module vt.Graphics.Vulkan.Driver;
 
-import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Core.SharedLibrary;
 import vt.Core.Singleton;
-import vt.Core.SwapPtr;
 import vt.Core.Version;
 import vt.Graphics.DriverBase;
 import vt.Graphics.Handle;
@@ -21,6 +20,41 @@ import vt.Trace.Log;
 
 namespace vt::vulkan
 {
+	struct InstanceApiTable
+	{
+		VkInstance instance;
+
+#define INSTANCE_FUNC(func) PFN_##func func = reinterpret_cast<PFN_##func>(vkGetInstanceProcAddr(instance, #func));
+
+		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
+		INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT)
+		INSTANCE_FUNC(vkCreateDevice)
+#if VT_SYSTEM_WINDOWS
+		INSTANCE_FUNC(vkCreateWin32SurfaceKHR)
+#elif VT_SYSTEM_LINUX
+		INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
+#endif
+		INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
+		INSTANCE_FUNC(vkDestroyDevice)
+		INSTANCE_FUNC(vkDestroyInstance)
+		INSTANCE_FUNC(vkDestroySurfaceKHR)
+		INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
+		INSTANCE_FUNC(vkEnumeratePhysicalDevices)
+		INSTANCE_FUNC(vkGetDeviceProcAddr)
+		INSTANCE_FUNC(vkGetPhysicalDeviceFeatures)
+		INSTANCE_FUNC(vkGetPhysicalDeviceMemoryProperties)
+		INSTANCE_FUNC(vkGetPhysicalDeviceProperties)
+		INSTANCE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
+		INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
+		INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
+		INSTANCE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
+		INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
+
+		InstanceApiTable(VkInstance instance, PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr) :
+			instance(instance), vkGetInstanceProcAddr(vkGetInstanceProcAddr)
+		{}
+	};
+
 	export class VulkanDriver final : public Singleton<VulkanDriver>, public DriverBase
 	{
 	public:
@@ -31,47 +65,9 @@ namespace vt::vulkan
 			std::array<char const*, 0> {};
 #endif
 
-		struct InstanceApiTable
-		{
-#define INSTANCE_FUNC(func) PFN_##func func = VulkanDriver::get().load_instance_func<PFN_##func>(#func);
-
-			INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT)
-			INSTANCE_FUNC(vkCreateDevice)
-#if VT_SYSTEM_WINDOWS
-			INSTANCE_FUNC(vkCreateWin32SurfaceKHR)
-#elif VT_SYSTEM_LINUX
-			INSTANCE_FUNC(vkCreateXcbSurfaceKHR)
-#endif
-			INSTANCE_FUNC(vkDestroyDebugUtilsMessengerEXT)
-			INSTANCE_FUNC(vkDestroyDevice)
-			INSTANCE_FUNC(vkDestroyInstance)
-			INSTANCE_FUNC(vkDestroySurfaceKHR)
-			INSTANCE_FUNC(vkEnumerateDeviceExtensionProperties)
-			INSTANCE_FUNC(vkEnumeratePhysicalDevices)
-			INSTANCE_FUNC(vkGetDeviceProcAddr)
-			INSTANCE_FUNC(vkGetPhysicalDeviceFeatures)
-			INSTANCE_FUNC(vkGetPhysicalDeviceMemoryProperties)
-			INSTANCE_FUNC(vkGetPhysicalDeviceProperties)
-			INSTANCE_FUNC(vkGetPhysicalDeviceQueueFamilyProperties)
-			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceCapabilitiesKHR)
-			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceFormatsKHR)
-			INSTANCE_FUNC(vkGetPhysicalDeviceSurfacePresentModesKHR)
-			INSTANCE_FUNC(vkGetPhysicalDeviceSurfaceSupportKHR)
-		};
-
 		static InstanceApiTable const* get_api()
 		{
 			return get().api.get();
-		}
-
-		static VkInstance get_vk_instance()
-		{
-			return get().instance.get();
-		}
-
-		static void notify_new_resource(void* resource, struct DeviceApiTable const* owner)
-		{
-			get().resource_owners.try_emplace(resource, owner);
 		}
 
 		VulkanDriver(std::string const& app_name, Version app_version, Version engine_version)
@@ -121,22 +117,16 @@ namespace vt::vulkan
 			VkInstance unowned_instance;
 
 			auto result = vkCreateInstance(&instance_info, nullptr, &unowned_instance);
-			instance.set(unowned_instance);
-			api = std::make_unique<InstanceApiTable>();
+			instance.reset(unowned_instance);
+			api = std::make_unique<InstanceApiTable>(instance.get(), vkGetInstanceProcAddr);
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan instance.");
 
 #if VT_DEBUG
 			VkDebugUtilsMessengerEXT unowned_messenger;
 			result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, &unowned_messenger);
-			debug_messenger.set(unowned_messenger);
+			debug_messenger.reset(unowned_messenger);
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan debug utils messenger.");
 #endif
-		}
-
-		~VulkanDriver()
-		{
-			api->vkDestroyDebugUtilsMessengerEXT(instance.get(), debug_messenger.get(), nullptr);
-			api->vkDestroyInstance(instance.get(), nullptr);
 		}
 
 		std::vector<Adapter> enumerate_adapters() const override
@@ -170,6 +160,16 @@ namespace vt::vulkan
 			return adapters;
 		}
 
+		template<typename F> F load_device_func(VkDevice device, char const name[]) const
+		{
+			return reinterpret_cast<F>(api->vkGetDeviceProcAddr(device, name));
+		}
+
+		void notify_new_resource(void* resource, struct DeviceApiTable const& owner)
+		{
+			resource_owners.try_emplace(resource, &owner);
+		}
+
 		DeviceApiTable const* get_owner_and_erase(void* resource)
 		{
 			auto it	   = resource_owners.find(resource);
@@ -177,19 +177,6 @@ namespace vt::vulkan
 			resource_owners.erase(it);
 			return owner;
 		}
-
-		template<typename F> F load_instance_func(char const name[]) const
-		{
-			return reinterpret_cast<F>(vkGetInstanceProcAddr(instance.get(), name));
-		}
-
-		template<typename F> F load_device_func(VkDevice device, char const name[]) const
-		{
-			return reinterpret_cast<F>(api->vkGetDeviceProcAddr(device, name));
-		}
-
-		VulkanDriver(VulkanDriver&&) = default;
-		VulkanDriver& operator=(VulkanDriver&&) = default;
 
 	private:
 		static constexpr std::array REQUIRED_INSTANCE_EXTENSIONS = {
@@ -206,20 +193,38 @@ namespace vt::vulkan
 #endif
 		};
 
+		struct InstanceDeleter
+		{
+			using pointer = VkInstance;
+			void operator()(VkInstance instance) const
+			{
+				VulkanDriver::get_api()->vkDestroyInstance(instance, nullptr);
+			}
+		};
+		struct MessengerDeleter
+		{
+			using pointer = VkDebugUtilsMessengerEXT;
+			void operator()(VkDebugUtilsMessengerEXT messenger) const
+			{
+				auto api = VulkanDriver::get_api();
+				api->vkDestroyDebugUtilsMessengerEXT(api->instance, messenger, nullptr);
+			}
+		};
+
 		SharedLibrary driver = "vulkan-1";
 
 		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = driver.load_symbol<decltype(::vkGetInstanceProcAddr)>(
 			"vkGetInstanceProcAddr");
+		std::unique_ptr<InstanceApiTable const> api;
 
 #define INSTANCE_NULL_FUNC(func) PFN_##func func = reinterpret_cast<PFN_##func>(vkGetInstanceProcAddr(nullptr, #func));
+
 		INSTANCE_NULL_FUNC(vkCreateInstance)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceExtensionProperties)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceLayerProperties)
-
-		SwapPtr<VkInstance>								 instance;
-		SwapPtr<VkDebugUtilsMessengerEXT>				 debug_messenger;
-		std::unique_ptr<InstanceApiTable const>			 api;
-		std::unordered_map<void*, DeviceApiTable const*> resource_owners;
+		std::unique_ptr<VkInstance, InstanceDeleter>				instance;
+		std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter> debug_messenger;
+		std::unordered_map<void*, DeviceApiTable const*>			resource_owners;
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL log_vulkan_validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 																	VkDebugUtilsMessageTypeFlagsEXT,
@@ -372,17 +377,35 @@ namespace vt::vulkan
 	template<typename T, DeviceTableFunctionPointerMember<T> DELETER> struct DeviceResourceDeleter
 	{
 		using pointer = T;
-		void operator()(T ptr)
+		void operator()(T ptr) const
 		{
 			auto table = VulkanDriver::get().get_owner_and_erase(ptr);
 			(table->*DELETER)(table->device, ptr, nullptr);
 		}
 	};
+
 	template<typename T, DeviceTableFunctionPointerMember<T> DELETER>
-	using UniqueVulkanResource = std::unique_ptr<T, DeviceResourceDeleter<T, DELETER>>;
+	class UniqueDeviceResource : public std::unique_ptr<T, DeviceResourceDeleter<T, DELETER>>
+	{
+		using Base = std::unique_ptr<T, DeviceResourceDeleter<T, DELETER>>;
+
+	public:
+		UniqueDeviceResource() = default;
+
+		UniqueDeviceResource(T resource, DeviceApiTable const& owner) : Base(resource)
+		{
+			VulkanDriver::get().notify_new_resource(resource, owner);
+		}
+
+		void reset(T resource, DeviceApiTable const& owner) noexcept
+		{
+			Base::reset(resource);
+			VulkanDriver::get().notify_new_resource(resource, owner);
+		}
+	};
 
 #define EXPORT_UNIQUE_DEVICE_RESOURCE(resource)                                                                                \
-	export using UniqueVk##resource = UniqueVulkanResource<Vk##resource, &DeviceApiTable::vkDestroy##resource>;
+	export using UniqueVk##resource = UniqueDeviceResource<Vk##resource, &DeviceApiTable::vkDestroy##resource>;
 
 	EXPORT_UNIQUE_DEVICE_RESOURCE(Buffer)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(CommandPool)

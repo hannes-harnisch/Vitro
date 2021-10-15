@@ -6,7 +6,7 @@
 #include <vector>
 export module vt.Graphics.Vulkan.Pipeline;
 
-import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPassSpecification;
@@ -227,9 +227,9 @@ namespace vt::vulkan
 		VkRenderPass														  render_pass;
 		unsigned															  subpass_index;
 
-		GraphicsPipelineInfoState(DeviceApiTable const& api, RenderPipelineSpecification const& spec)
+		GraphicsPipelineInfoState(RenderPipelineSpecification const& spec, DeviceApiTable const& api)
 		{
-			initialize_shader_stages(api, spec);
+			initialize_shader_stages(spec, api);
 			initialize_vertex_input(spec);
 
 			input_assembly = VkPipelineInputAssemblyStateCreateInfo {
@@ -259,45 +259,34 @@ namespace vt::vulkan
 		}
 
 	private:
-		void initialize_shader_stages(DeviceApiTable const& api, RenderPipelineSpecification const& spec)
+		void initialize_shader_stages(RenderPipelineSpecification const& spec, DeviceApiTable const& api)
 		{
 			struct ShaderStage
 			{
-				std::span<char const> bytecode;
+				VkShaderModule		  shader;
 				VkShaderStageFlagBits stage_flag;
 			};
 			FixedList<ShaderStage, MAX_SHADER_STAGES> stages {
-				ShaderStage {spec.vertex_shader_bytecode, VK_SHADER_STAGE_VERTEX_BIT},
+				ShaderStage {spec.vertex_shader.vulkan.ptr(), VK_SHADER_STAGE_VERTEX_BIT},
 			};
-			if(!spec.hull_shader_bytecode.empty())
-				stages.emplace_back(spec.hull_shader_bytecode, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
-			if(!spec.domain_shader_bytecode.empty())
-				stages.emplace_back(spec.domain_shader_bytecode, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+			if(spec.hull_shader)
+				stages.emplace_back(spec.hull_shader->vulkan.ptr(), VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
-			if(!spec.fragment_shader_bytecode.empty())
-				stages.emplace_back(spec.fragment_shader_bytecode, VK_SHADER_STAGE_FRAGMENT_BIT);
+			if(spec.domain_shader)
+				stages.emplace_back(spec.domain_shader->vulkan.ptr(), VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+
+			if(spec.fragment_shader)
+				stages.emplace_back(spec.fragment_shader->vulkan.ptr(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			for(auto& stage : stages)
-			{
-				VkShaderModuleCreateInfo const shader_info {
-					.sType	  = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-					.codeSize = stage.bytecode.size(),
-					.pCode	  = reinterpret_cast<uint32_t const*>(stage.bytecode.data()),
-				};
-				VkShaderModule unowned_shader;
-
-				auto result = api.vkCreateShaderModule(api.device, &shader_info, nullptr, &unowned_shader);
-				shader_modules.emplace_back(unowned_shader);
-				VT_ASSERT_RESULT(result, "Failed to create Vulkan shader module.");
-
 				shader_stages.emplace_back(VkPipelineShaderStageCreateInfo {
-					.sType	= VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-					.stage	= stage.stage_flag,
-					.module = unowned_shader,
-					.pName	= "main",
+					.sType				 = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+					.stage				 = stage.stage_flag,
+					.module				 = stage.shader,
+					.pName				 = "main",
+					.pSpecializationInfo = nullptr,
 				});
-			}
 		}
 
 		void initialize_vertex_input(RenderPipelineSpecification const& spec)
@@ -424,6 +413,9 @@ namespace vt::vulkan
 	class Pipeline
 	{
 	public:
+		Pipeline(VkPipeline pipeline, DeviceApiTable const& owner) : pipeline(pipeline, owner)
+		{}
+
 		VkPipeline ptr() const
 		{
 			return pipeline.get();
@@ -431,22 +423,15 @@ namespace vt::vulkan
 
 	protected:
 		UniqueVkPipeline pipeline;
-
-		Pipeline(VkPipeline pipeline) : pipeline(pipeline)
-		{}
 	};
 
 	export class VulkanRenderPipeline : public Pipeline
 	{
-	public:
-		VulkanRenderPipeline(VkPipeline pipeline) : Pipeline(pipeline)
-		{}
+		using Pipeline::Pipeline;
 	};
 
 	export class VulkanComputePipeline : public Pipeline
 	{
-	public:
-		VulkanComputePipeline(VkPipeline pipeline) : Pipeline(pipeline)
-		{}
+		using Pipeline::Pipeline;
 	};
 }

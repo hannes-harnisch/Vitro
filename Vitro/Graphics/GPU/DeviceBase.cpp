@@ -37,6 +37,7 @@ namespace vt
 		virtual RenderTarget				 make_render_target(RenderTargetSpecification const& spec)				  = 0;
 		virtual RootSignature				 make_root_signature(RootSignatureSpecification const& spec)			  = 0;
 		virtual Sampler						 make_sampler(SamplerSpecification const& spec)							  = 0;
+		virtual Shader						 make_shader(char const path[])											  = 0;
 
 		virtual void	  recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec)	  = 0;
 		virtual SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})  = 0;

@@ -4,9 +4,7 @@
 export module vt.Graphics.D3D12.Sampler;
 
 import vt.Core.Vector;
-import vt.Graphics.D3D12.DescriptorSetLayout;
 import vt.Graphics.DescriptorBinding;
-import vt.Graphics.DescriptorSetLayout;
 
 namespace vt::d3d12
 {
@@ -68,7 +66,7 @@ namespace vt::d3d12
 			case NotEqual:		 return D3D12_COMPARISON_FUNC_NOT_EQUAL;
 			case GreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
 			case Always:		 return D3D12_COMPARISON_FUNC_ALWAYS;
-		} // clang-format on
+		}
 		VT_UNREACHABLE();
 	}
 
@@ -81,6 +79,29 @@ namespace vt::d3d12
 			case OpaqueBlack: return {0, 0, 0, 1};
 			case OpaqueWhite: return {1, 1, 1, 1};
 		}
+		VT_UNREACHABLE();
+	}
+
+	export D3D12_SHADER_VISIBILITY convert_shader_stage(ShaderStage stage)
+	{
+		using enum ShaderStage;
+		switch(stage)
+		{
+			case Vertex:   return D3D12_SHADER_VISIBILITY_VERTEX;
+			case Hull:	   return D3D12_SHADER_VISIBILITY_HULL;
+			case Domain:   return D3D12_SHADER_VISIBILITY_DOMAIN;
+			case Fragment: return D3D12_SHADER_VISIBILITY_PIXEL;
+			case Task:	   return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+			case Mesh:	   return D3D12_SHADER_VISIBILITY_MESH;
+			case All:
+			case Compute:
+			case RayGen:
+			case AnyHit:
+			case ClosestHit:
+			case Miss:
+			case Intersection:
+			case Callable: return D3D12_SHADER_VISIBILITY_ALL;
+		} // clang-format on
 		VT_UNREACHABLE();
 	}
 
@@ -123,9 +144,11 @@ namespace vt::d3d12
 			return D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
 	}
 
-	export D3D12_STATIC_SAMPLER_DESC convert_static_sampler_spec(StaticSamplerSpecification const& spec)
+	export D3D12_STATIC_SAMPLER_DESC convert_static_sampler_spec(SamplerSpecification const& spec,
+																 unsigned					 shader_register,
+																 ShaderStage				 visibility)
 	{
-		auto desc = convert_dynamic_sampler_spec(spec.sampler_spec);
+		auto desc = convert_dynamic_sampler_spec(spec);
 		return {
 			.Filter			  = desc.Filter,
 			.AddressU		  = desc.AddressU,
@@ -137,9 +160,9 @@ namespace vt::d3d12
 			.BorderColor	  = convert_to_static_border_color(desc.BorderColor),
 			.MinLOD			  = desc.MinLOD,
 			.MaxLOD			  = desc.MaxLOD,
-			.ShaderRegister	  = spec.shader_register,
-			.RegisterSpace	  = spec.space,
-			.ShaderVisibility = convert_shader_stage(spec.visibility),
+			.ShaderRegister	  = shader_register,
+			.RegisterSpace	  = 0, // will be set during root signature creation
+			.ShaderVisibility = convert_shader_stage(visibility),
 		};
 	}
 

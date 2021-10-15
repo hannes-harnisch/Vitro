@@ -1,5 +1,4 @@
 ﻿module;
-#include <fstream>
 #include <vector>
 export module vt.Graphics.ForwardRenderer;
 
@@ -31,18 +30,16 @@ namespace vt
 			};
 			auto& sig = root_signatures.emplace_back(device->make_root_signature(root_sig_spec));
 
-			std::ifstream	  vert_file("Triangle.vert.cso", std::ios::binary);
-			std::ifstream	  frag_file("Triangle.frag.cso", std::ios::binary);
-			std::vector<char> vert_shader(std::istreambuf_iterator<char>(vert_file), {});
-			std::vector<char> frag_shader(std::istreambuf_iterator<char>(frag_file), {});
+			auto vertex_shader	 = device->make_shader("Triangle.vert.cso");
+			auto fragment_shader = device->make_shader("Triangle.frag.cso");
 
 			RenderPipelineSpecification const pipe_spec {
-				.root_signature			  = sig,
-				.render_pass			  = present_pass,
-				.vertex_shader_bytecode	  = vert_shader,
-				.fragment_shader_bytecode = frag_shader,
-				.primitive_topology		  = PrimitiveTopology::TriangleList,
-				.subpass_index			  = 0,
+				.root_signature		= sig,
+				.render_pass		= present_pass,
+				.vertex_shader		= vertex_shader,
+				.fragment_shader	= &fragment_shader,
+				.primitive_topology = PrimitiveTopology::TriangleList,
+				.subpass_index		= 0,
 				.rasterizer {
 					.cull_mode	= CullMode::None,
 					.front_face = FrontFace::CounterClockwise,

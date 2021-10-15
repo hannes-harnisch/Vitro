@@ -3,7 +3,7 @@
 #include "D3D12API.hpp"
 export module vt.Graphics.D3D12.Pipeline;
 
-import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Sampler;
@@ -185,12 +185,14 @@ namespace vt::d3d12
 			case LineList:		return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
 			case LineStrip:		return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
 			case TriangleList:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			case TriangleStrip:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
-			case PatchList: // clang-format on
+			case TriangleStrip:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP; // clang-format on
+			case PatchList:
+			{
 				VT_ASSERT(control_point_count > 0 && control_point_count <= MAX_PATCH_LIST_CONTROL_POINTS,
-						  "Amount of control points is out of bounds.");
-				return static_cast<D3D_PRIMITIVE_TOPOLOGY>(D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST - 1 +
-														   control_point_count);
+						  "The number of control points is out of bounds.");
+				unsigned patch_list_topology = D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST - 1 + control_point_count;
+				return static_cast<D3D_PRIMITIVE_TOPOLOGY>(patch_list_topology);
+			}
 		}
 		VT_UNREACHABLE();
 	}
@@ -407,29 +409,19 @@ namespace vt::d3d12
 			auto& pass = spec.render_pass.d3d12;
 
 			RenderPipelineStream stream {
-				.type_0			= D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE,
-				.root_signature = spec.root_signature.d3d12.ptr(),
-				.type_1			= D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS,
-				.vertex_shader_bytecode {
-					.pShaderBytecode = spec.vertex_shader_bytecode.data(),
-					.BytecodeLength	 = spec.vertex_shader_bytecode.size(),
-				},
-				.type_2 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS,
-				.fragment_shader_bytecode {
-					.pShaderBytecode = spec.fragment_shader_bytecode.data(),
-					.BytecodeLength	 = spec.fragment_shader_bytecode.size(),
-				},
-				.type_3 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS,
-				.domain_shader_bytecode {
-					.pShaderBytecode = spec.domain_shader_bytecode.data(),
-					.BytecodeLength	 = spec.domain_shader_bytecode.size(),
-				},
-				.type_4 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS,
-				.hull_shader_bytecode {
-					.pShaderBytecode = spec.hull_shader_bytecode.data(),
-					.BytecodeLength	 = spec.hull_shader_bytecode.size(),
-				},
-				.type_5 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND,
+				.type_0					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE,
+				.root_signature			  = spec.root_signature.d3d12.ptr(),
+				.type_1					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS,
+				.vertex_shader_bytecode	  = spec.vertex_shader.d3d12.get_bytecode(),
+				.type_2					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS,
+				.fragment_shader_bytecode = spec.fragment_shader ? spec.fragment_shader->d3d12.get_bytecode()
+																 : D3D12_SHADER_BYTECODE(),
+				.type_3					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS,
+				.domain_shader_bytecode	  = spec.domain_shader ? spec.domain_shader->d3d12.get_bytecode()
+															   : D3D12_SHADER_BYTECODE(),
+				.type_4					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS,
+				.hull_shader_bytecode	  = spec.hull_shader ? spec.hull_shader->d3d12.get_bytecode() : D3D12_SHADER_BYTECODE(),
+				.type_5					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND,
 				.blend_desc {
 					.AlphaToCoverageEnable	= spec.multisample.enable_alpha_to_coverage,
 					.IndependentBlendEnable = false,
@@ -516,10 +508,7 @@ namespace vt::d3d12
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
 				.pRootSignature = spec.root_signature.d3d12.ptr(),
-				.CS {
-					.pShaderBytecode = spec.compute_shader_bytecode.data(),
-					.BytecodeLength	 = spec.compute_shader_bytecode.size(),
-				},
+				.CS				= spec.compute_shader.d3d12.get_bytecode(),
 			};
 			ID3D12PipelineState* unowned_pipeline;
 

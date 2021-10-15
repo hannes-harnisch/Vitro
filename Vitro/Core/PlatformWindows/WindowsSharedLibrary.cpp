@@ -45,7 +45,7 @@ namespace vt::windows
 		struct LibraryDeleter
 		{
 			using pointer = HMODULE;
-			void operator()(HMODULE module)
+			void operator()(HMODULE module) const
 			{
 				BOOL succeeded = ::FreeLibrary(module);
 				VT_ASSERT(succeeded, "Failed to free shared library.");

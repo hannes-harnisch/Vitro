@@ -7,7 +7,6 @@
 #include <vector>
 export module vt.Graphics.Vulkan.CommandList;
 
-import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
@@ -31,20 +30,20 @@ namespace vt::vulkan
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		VkPipelineLayout bound_compute_layout = nullptr;
+		VulkanRootSignature const* bound_compute_layout = nullptr;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		VkPipelineLayout bound_render_layout = nullptr;
+		VulkanRootSignature const* bound_render_layout = nullptr;
 	};
 
 	export template<CommandType TYPE>
 	class VulkanCommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
 	{
 	public:
-		VulkanCommandList(DeviceApiTable const& api, unsigned queue_family) : api(&api)
+		VulkanCommandList(unsigned queue_family, DeviceApiTable const& api) : api(&api)
 		{
 			VkCommandPoolCreateInfo const pool_info {
 				.sType			  = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -53,7 +52,7 @@ namespace vt::vulkan
 			VkCommandPool unowned_pool;
 
 			auto result = api.vkCreateCommandPool(api.device, &pool_info, nullptr, &unowned_pool);
-			pool.reset(unowned_pool);
+			pool.reset(unowned_pool, api);
 			VT_ASSERT_RESULT(result, "Failed to create Vulkan command pool.");
 
 			VkCommandBufferAllocateInfo const alloc_info {
@@ -101,22 +100,17 @@ namespace vt::vulkan
 
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
-			this->bound_compute_layout = root_signature.vulkan.ptr();
+			this->bound_compute_layout = &root_signature.vulkan;
 		}
 
 		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			std::vector<VkDescriptorSet> sets(descriptor_sets.size());
-			for(auto& set : descriptor_sets)
-				sets.emplace_back(set.vulkan.ptr());
-
-			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, this->bound_compute_layout, 0,
-										 count(descriptor_sets), sets.data(), 0, nullptr);
+			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_COMPUTE, *this->bound_compute_layout, descriptor_sets);
 		}
 
 		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_compute_layout, VK_SHADER_STAGE_COMPUTE_BIT,
+			api->vkCmdPushConstants(cmd, this->bound_compute_layout->ptr(), VK_SHADER_STAGE_COMPUTE_BIT,
 									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
 		}
 
@@ -166,22 +160,17 @@ namespace vt::vulkan
 
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
-			this->bound_render_layout = root_signature.vulkan.ptr();
+			this->bound_render_layout = &root_signature.vulkan;
 		}
 
 		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			std::vector<VkDescriptorSet> sets(descriptor_sets.size());
-			for(auto& set : descriptor_sets)
-				sets.emplace_back(set.vulkan.ptr());
-
-			api->vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, this->bound_render_layout, 0,
-										 count(descriptor_sets), sets.data(), 0, nullptr);
+			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_GRAPHICS, *this->bound_render_layout, descriptor_sets);
 		}
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_render_layout, VK_SHADER_STAGE_ALL_GRAPHICS,
+			api->vkCmdPushConstants(cmd, this->bound_render_layout->ptr(), VK_SHADER_STAGE_ALL_GRAPHICS,
 									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
 		}
 
@@ -264,6 +253,19 @@ namespace vt::vulkan
 				case 4: return VK_INDEX_TYPE_UINT32;
 			}
 			VT_UNREACHABLE();
+		}
+
+		void bind_descriptor_sets(VkPipelineBindPoint		 bind_point,
+								  VulkanRootSignature const& layout,
+								  ArrayView<DescriptorSet>	 descriptor_sets) const
+		{
+			std::vector<VkDescriptorSet> sets;
+			sets.reserve(descriptor_sets.size());
+			for(auto& set : descriptor_sets)
+				sets.emplace_back(set.vulkan.ptr());
+
+			api->vkCmdBindDescriptorSets(cmd, bind_point, layout.ptr(), first_set, count(descriptor_sets), sets.data(), 0,
+										 nullptr);
 		}
 	};
 }

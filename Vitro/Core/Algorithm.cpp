@@ -6,12 +6,6 @@ export module vt.Core.Algorithm;
 
 namespace vt
 {
-	// Helper for API calls that expect array sizes as unsigned int instead of size_t.
-	export constexpr unsigned count(auto const& container) noexcept
-	{
-		return static_cast<unsigned>(std::size(container));
-	}
-
 	export void remove_first_of(std::string& str, std::string_view pattern)
 	{
 		size_t i = str.find(pattern);

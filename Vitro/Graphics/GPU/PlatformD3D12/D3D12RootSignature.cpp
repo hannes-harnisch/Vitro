@@ -8,7 +8,7 @@
 #include <vector>
 export module vt.Graphics.D3D12.RootSignature;
 
-import vt.Core.Algorithm;
+import vt.Core.Array;
 import vt.Core.Enum;
 import vt.Graphics.D3D12.DescriptorSetLayout;
 import vt.Graphics.D3D12.Handle;
@@ -55,17 +55,42 @@ namespace vt::d3d12
 				.ShaderVisibility = convert_shader_stage(spec.push_constants_visibility),
 			});
 
-			uint8_t index = 1;
+			std::vector<D3D12_DESCRIPTOR_RANGE1>   descriptor_ranges;
+			std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
+
+			uint8_t index = 0;
 			for(auto& layout : spec.layouts)
 			{
-				parameters.emplace_back(layout.d3d12.get_root_parameter());
-				parameter_indices.emplace(layout.d3d12.get_id(), index++);
-			}
+				if(layout.d3d12.holds_descriptor_table())
+				{
+					auto ranges			 = layout.d3d12.get_descriptor_ranges();
+					auto new_range_begin = descriptor_ranges.insert(descriptor_ranges.end(), ranges.begin(), ranges.end());
+					for(auto it = new_range_begin; it != descriptor_ranges.end(); ++it)
+						it->RegisterSpace = index;
 
-			std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
-			static_samplers.reserve(spec.static_sampler_specs.size());
-			for(auto& static_sampler_spec : spec.static_sampler_specs)
-				static_samplers.emplace_back(convert_static_sampler_spec(static_sampler_spec));
+					parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
+						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+						.DescriptorTable {
+							.NumDescriptorRanges = count(ranges),
+							.pDescriptorRanges	 = &*new_range_begin,
+						},
+						.ShaderVisibility = layout.d3d12.get_visibility(),
+					});
+				}
+				else
+				{
+					auto& new_parameter = parameters.emplace_back(layout.d3d12.get_root_descriptor_parameter());
+					new_parameter.Descriptor.RegisterSpace = index;
+				}
+
+				auto descs		= layout.d3d12.get_static_sampler_descs();
+				auto desc_begin = static_samplers.insert(static_samplers.end(), descs.begin(), descs.end());
+				for(auto it = desc_begin; it != static_samplers.end(); ++it)
+					it->RegisterSpace = index;
+
+				// Pre-increment to be offset by 1, because we reserve index 0 for push constants.
+				parameter_indices.emplace(layout.d3d12.get_id(), ++index);
+			}
 
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC const desc {
 				.Version = D3D_ROOT_SIGNATURE_VERSION_1_1,

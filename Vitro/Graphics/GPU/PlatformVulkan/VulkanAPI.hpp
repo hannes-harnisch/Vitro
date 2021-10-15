@@ -7,6 +7,9 @@
 #include <vulkan/vulkan.h>
 
 #if VT_SYSTEM_WINDOWS
+// Forward-declare these instead of defining a use-platform macro so that vulkan.h doesn't include
+// all of Windows.h just for these.
+
 typedef unsigned long				DWORD;
 typedef const wchar_t*				LPCWSTR;
 typedef void*						HANDLE;
