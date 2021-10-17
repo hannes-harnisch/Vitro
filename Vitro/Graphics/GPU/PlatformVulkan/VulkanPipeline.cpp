@@ -11,6 +11,7 @@ import vt.Core.FixedList;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPassSpecification;
 import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.RenderPass;
 import vt.Graphics.Vulkan.Sampler;
 
 namespace vt::vulkan
@@ -87,21 +88,6 @@ namespace vt::vulkan
 		{
 			case FrontFace::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
 			case FrontFace::Clockwise:		  return VK_FRONT_FACE_CLOCKWISE;
-		}
-		VT_UNREACHABLE();
-	}
-
-	VkSampleCountFlagBits convert_rasterizer_sample_count(uint8_t count)
-	{
-		switch(count)
-		{
-			case 1:	 return VK_SAMPLE_COUNT_1_BIT;
-			case 2:	 return VK_SAMPLE_COUNT_2_BIT;
-			case 4:	 return VK_SAMPLE_COUNT_4_BIT;
-			case 8:	 return VK_SAMPLE_COUNT_8_BIT;
-			case 16: return VK_SAMPLE_COUNT_16_BIT;
-			case 32: return VK_SAMPLE_COUNT_32_BIT;
-			case 64: return VK_SAMPLE_COUNT_64_BIT;
 		}
 		VT_UNREACHABLE();
 	}
@@ -227,9 +213,9 @@ namespace vt::vulkan
 		VkRenderPass														  render_pass;
 		unsigned															  subpass_index;
 
-		GraphicsPipelineInfoState(RenderPipelineSpecification const& spec, DeviceApiTable const& api)
+		GraphicsPipelineInfoState(RenderPipelineSpecification const& spec)
 		{
-			initialize_shader_stages(spec, api);
+			initialize_shader_stages(spec);
 			initialize_vertex_input(spec);
 
 			input_assembly = VkPipelineInputAssemblyStateCreateInfo {
@@ -259,7 +245,7 @@ namespace vt::vulkan
 		}
 
 	private:
-		void initialize_shader_stages(RenderPipelineSpecification const& spec, DeviceApiTable const& api)
+		void initialize_shader_stages(RenderPipelineSpecification const& spec)
 		{
 			struct ShaderStage
 			{
@@ -358,7 +344,7 @@ namespace vt::vulkan
 
 			multisample = VkPipelineMultisampleStateCreateInfo {
 				.sType				   = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-				.rasterizationSamples  = convert_rasterizer_sample_count(spec.multisample.rasterizer_sample_count),
+				.rasterizationSamples  = convert_sample_count(spec.multisample.rasterizer_sample_count),
 				.sampleShadingEnable   = false,
 				.minSampleShading	   = 0.0f,
 				.pSampleMask		   = sample_masks,

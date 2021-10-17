@@ -12,19 +12,24 @@ namespace vt
 	export template<std::unsigned_integral T> class Positive
 	{
 	public:
-		Positive(T value) : value(value)
+		Positive(T value) : val(value)
 		{
-			if(value == 0)
+			if(val == 0)
 				throw std::invalid_argument("This value is not allowed to be zero.");
 		}
 
 		operator T() const noexcept
 		{
-			return value;
+			return val;
+		}
+
+		T get() const noexcept
+		{
+			return val;
 		}
 
 	private:
-		T value;
+		T val;
 	};
 
 	// Forces explicit initialization with designated initializers. To be used when no reasonable default value can be used.
@@ -33,28 +38,42 @@ namespace vt
 		Explicit() = delete;
 
 		using T::T;
+
+		T& get() noexcept
+		{
+			return *this;
+		}
+
+		T const& get() const noexcept
+		{
+			return *this;
+		}
 	};
 
 	export template<typename T>
 	requires std::is_scalar_v<T>
 	struct Explicit<T>
 	{
-		Explicit(T value) noexcept : value(value)
+		Explicit(T value) noexcept : val(value)
 		{}
 
 		operator T() const noexcept
 		{
-			return value;
+			return val;
+		}
+
+		T get() const noexcept
+		{
+			return val;
 		}
 
 	private:
-		T value;
+		T val;
 	};
 
 	// Forces explicit initialization with designated initializers. To be used when no reasonable default value can be used.
 	export template<typename T>
-	requires std::is_union_v<T>
-	struct Explicit<T>
+	requires(std::is_union_v<T> || std::is_final_v<T>) struct Explicit<T>
 	{
 		Explicit() = delete;
 

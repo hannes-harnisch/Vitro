@@ -23,6 +23,7 @@ namespace vt
 		Explicit<uint16_t>			  height;
 	};
 
+	// Specifies render targets shared between renderers.
 	export struct SharedRenderTargetSpecification
 	{
 		using ColorAttachmentList = FixedList<Texture const*, MAX_COLOR_ATTACHMENTS - 1>;

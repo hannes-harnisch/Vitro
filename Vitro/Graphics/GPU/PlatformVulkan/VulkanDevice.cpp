@@ -12,10 +12,23 @@ import vt.Core.Array;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.Handle;
 import vt.Graphics.RingBuffer;
+import vt.Graphics.Vulkan.DescriptorPool;
 import vt.Graphics.Vulkan.Driver;
 
 namespace vt::vulkan
 {
+	class SyncObjectPool
+	{
+	public:
+	private:
+		struct SyncObject
+		{
+			UniqueVkFence	  fence;
+			UniqueVkSemaphore semaphore;
+			uint64_t		  reset_value = 0;
+		};
+	};
+
 	export class VulkanDevice final : public DeviceBase
 	{
 	public:
@@ -139,7 +152,7 @@ namespace vt::vulkan
 			std::vector<GraphicsPipelineInfoState> states;
 			states.reserve(specs.size());
 			for(auto& spec : specs)
-				states.emplace_back(spec, *api);
+				states.emplace_back(spec);
 
 			std::vector<VkGraphicsPipelineCreateInfo> pipeline_infos;
 			pipeline_infos.reserve(specs.size());
@@ -189,10 +202,14 @@ namespace vt::vulkan
 		}
 
 		RenderPass make_render_pass(RenderPassSpecification const& spec) override
-		{}
+		{
+			return VulkanRenderPass(spec, *api);
+		}
 
 		RenderTarget make_render_target(RenderTargetSpecification const& spec) override
-		{}
+		{
+			return VulkanRenderTarget(spec, *api);
+		}
 
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
@@ -208,9 +225,6 @@ namespace vt::vulkan
 		{
 			return VulkanShader(path, *api);
 		}
-
-		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
-		{}
 
 		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{}
@@ -263,12 +277,6 @@ namespace vt::vulkan
 										unsigned							   back_buffer_index) override
 		{}
 
-		void recreate_render_target(RenderTarget&						   render_target,
-									SharedRenderTargetSpecification const& spec,
-									SwapChain const&					   swap_chain,
-									unsigned							   back_buffer_index) override
-		{}
-
 	private:
 		static constexpr std::array REQUIRED_DEVICE_EXTENSIONS = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -288,22 +296,22 @@ namespace vt::vulkan
 
 		std::unique_ptr<DeviceApiTable const> api;
 
-		VkPhysicalDevice	   adapter;
-		UniqueVkDevice		   device;
-		unsigned			   render_queue_family	= ~0u;
-		unsigned			   compute_queue_family = ~0u;
-		unsigned			   copy_queue_family	= ~0u;
-		VkQueue				   render_queue;
-		UniqueVkFence		   render_queue_fence;
-		UniqueVkSemaphore	   render_queue_semaphore;
-		VkQueue				   compute_queue;
-		UniqueVkFence		   compute_queue_fence;
-		UniqueVkSemaphore	   compute_queue_semaphore;
-		VkQueue				   copy_queue;
-		UniqueVkFence		   copy_queue_fence;
-		UniqueVkSemaphore	   copy_queue_semaphore;
-		UniqueVkDescriptorPool descriptor_pool;
-		UniqueVkPipelineCache  pipeline_cache;
+		VkPhysicalDevice	  adapter;
+		UniqueVkDevice		  device;
+		unsigned			  render_queue_family  = ~0u;
+		unsigned			  compute_queue_family = ~0u;
+		unsigned			  copy_queue_family	   = ~0u;
+		VkQueue				  render_queue;
+		UniqueVkFence		  render_queue_fence;
+		UniqueVkSemaphore	  render_queue_semaphore;
+		VkQueue				  compute_queue;
+		UniqueVkFence		  compute_queue_fence;
+		UniqueVkSemaphore	  compute_queue_semaphore;
+		VkQueue				  copy_queue;
+		UniqueVkFence		  copy_queue_fence;
+		UniqueVkSemaphore	  copy_queue_semaphore;
+		DescriptorPool		  descriptor_pool;
+		UniqueVkPipelineCache pipeline_cache;
 
 		static bool check_queue_flags(VkQueueFlags flags, VkQueueFlags wanted, VkQueueFlags unwanted)
 		{
@@ -375,5 +383,14 @@ namespace vt::vulkan
 			semaphore.reset(unowned_semaphore, *api);
 			VT_ENSURE_RESULT(result, "Failed to create Vulkan semaphore for queue.");
 		}
+
+		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
+		{}
+
+		void recreate_platform_render_target(RenderTarget&							render_target,
+											 SharedRenderTargetSpecification const& spec,
+											 SwapChain const&						swap_chain,
+											 unsigned								back_buffer_index) override
+		{}
 	};
 }

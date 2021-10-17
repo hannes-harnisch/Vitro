@@ -39,7 +39,14 @@ namespace vt
 		virtual Sampler						 make_sampler(SamplerSpecification const& spec)							  = 0;
 		virtual Shader						 make_shader(char const path[])											  = 0;
 
-		virtual void	  recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec)	  = 0;
+		virtual RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
+												SwapChain const&					   swap_chain,
+												unsigned							   back_buffer_index) = 0;
+
+		virtual SwapChain make_swap_chain(Driver& driver,
+										  Window& window,
+										  uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) = 0;
+
 		virtual SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})  = 0;
 		virtual SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) = 0;
 		virtual SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})	  = 0;
@@ -54,20 +61,29 @@ namespace vt
 		virtual void flush_copy_queue()					   = 0;
 		virtual void wait_for_idle()					   = 0;
 
-		virtual SwapChain make_swap_chain(Driver& driver,
-										  Window& window,
-										  uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) = 0;
+		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec)
+		{
+			recreate_platform_render_target(render_target, spec);
+			update_render_target_size(render_target, spec.width, spec.height);
+		}
 
-		virtual RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
-												SwapChain const&					   swap_chain,
-												unsigned							   back_buffer_index) = 0;
+		void recreate_render_target(RenderTarget&						   render_target,
+									SharedRenderTargetSpecification const& spec,
+									SwapChain const&					   swap_chain,
+									unsigned							   back_buffer_index)
+		{
+			recreate_platform_render_target(render_target, spec, swap_chain, back_buffer_index);
+			update_render_target_size(render_target, swap_chain->get_width(), swap_chain->get_height());
+		}
 
-		virtual void recreate_render_target(RenderTarget&						   render_target,
-											SharedRenderTargetSpecification const& spec,
-											SwapChain const&					   swap_chain,
-											unsigned							   back_buffer_index) = 0;
+	private:
+		virtual void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) = 0;
 
-	protected:
+		virtual void recreate_platform_render_target(RenderTarget&							render_target,
+													 SharedRenderTargetSpecification const& spec,
+													 SwapChain const&						swap_chain,
+													 unsigned								back_buffer_index) = 0;
+
 		void update_render_target_size(RenderTarget& render_target, unsigned width, unsigned height) const
 		{
 			render_target.set_width(width);

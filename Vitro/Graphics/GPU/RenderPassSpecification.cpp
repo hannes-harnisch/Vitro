@@ -1,5 +1,7 @@
 ﻿module;
+#include <algorithm>
 #include <cstdint>
+#include <stdexcept>
 export module vt.Graphics.RenderPassSpecification;
 
 import vt.Core.Array;
@@ -23,18 +25,12 @@ namespace vt
 		Ignore,
 	};
 
-	export struct AttachmentReference
-	{
-		Explicit<uint8_t>	  index;
-		Explicit<ImageLayout> used_layout;
-	};
-
 	export struct Subpass
 	{
-		using AttachmentRefList = FixedList<AttachmentReference, MAX_COLOR_ATTACHMENTS>;
+		using AttachmentIndexList = FixedList<uint8_t, MAX_COLOR_ATTACHMENTS>;
 
-		// Explicit<AttachmentRefList> input_refs; TODO: integrate this eventually
-		Explicit<AttachmentRefList> output_refs;
+		AttachmentIndexList			  input_attachments;
+		Explicit<AttachmentIndexList> output_attachments;
 	};
 
 	export struct AttachmentSpecification
@@ -55,5 +51,20 @@ namespace vt
 		ImageLoadOp				 stencil_load_op  = ImageLoadOp::Ignore;
 		ImageStoreOp			 stencil_store_op = ImageStoreOp::Ignore;
 		ArrayView<Subpass>		 subpasses;
+
+		bool contains_depth_stencil_attachment() const
+		{
+			auto uses_depth_stencil_layout = [](auto attachment) {
+				return attachment.final_layout == ImageLayout::DepthStencilAttachment ||
+					   attachment.final_layout == ImageLayout::DepthStencilReadOnly;
+			};
+			auto it = std::find_if(attachments.begin(), attachments.end(), uses_depth_stencil_layout);
+
+			auto second = std::find_if(it, attachments.end(), uses_depth_stencil_layout);
+			if(second != attachments.end())
+				throw std::invalid_argument("Multiple depth stencil attachments are not allowed.");
+
+			return it != attachments.end();
+		}
 	};
 }

@@ -18,6 +18,7 @@ namespace vt
 		RwStructuredBuffer,
 		ByteAddressBuffer,
 		RwByteAddressBuffer,
+		InputAttachment,
 	};
 
 	export enum class ShaderStage : uint8_t {

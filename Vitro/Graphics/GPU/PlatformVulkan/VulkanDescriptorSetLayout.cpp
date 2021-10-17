@@ -8,6 +8,7 @@ export module vt.Graphics.Vulkan.DescriptorSetLayout;
 import vt.Core.Array;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Sampler;
 
 namespace vt::vulkan
 {
@@ -16,7 +17,7 @@ namespace vt::vulkan
 		using enum DescriptorType;
 		switch(type)
 		{ // clang-format off
-			case DynamicSampler:	  return VK_DESCRIPTOR_TYPE_SAMPLER;
+			case Sampler:			  return VK_DESCRIPTOR_TYPE_SAMPLER;
 			case Texture:			  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
 			case RwTexture:			  return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 			case Buffer:			  return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
@@ -26,6 +27,7 @@ namespace vt::vulkan
 			case RwStructuredBuffer:
 			case ByteAddressBuffer:
 			case RwByteAddressBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+			case InputAttachment:	  return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 		}
 		VT_UNREACHABLE();
 	}
@@ -59,15 +61,22 @@ namespace vt::vulkan
 			std::vector<VkDescriptorSetLayoutBinding> bindings;
 			bindings.reserve(spec.bindings.size());
 
-			auto stage = convert_shader_stage(spec.visibility);
+			auto visibility = convert_shader_stage(spec.visibility);
 			for(auto& binding : spec.bindings)
+			{
+				VkSampler static_sampler;
+				if(binding.static_sampler_spec)
+					static_sampler = static_samplers.emplace_back(*binding.static_sampler_spec, api).ptr();
+
 				bindings.emplace_back(VkDescriptorSetLayoutBinding {
 					.binding			= binding.shader_register,
 					.descriptorType		= convert_descriptor_type(binding.type),
-					.descriptorCount	= binding.count,
-					.stageFlags			= stage,
-					.pImmutableSamplers = nullptr,
+					.descriptorCount	= binding.static_sampler_spec ? 1u : binding.count.get(),
+					.stageFlags			= binding.static_sampler_spec ? convert_shader_stage(binding.static_sampler_visibility)
+																	  : visibility,
+					.pImmutableSamplers = binding.static_sampler_spec ? &static_sampler : nullptr,
 				});
+			}
 
 			VkDescriptorSetLayoutCreateInfo const layout_info {
 				.sType		  = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -88,5 +97,6 @@ namespace vt::vulkan
 
 	private:
 		UniqueVkDescriptorSetLayout layout;
+		std::vector<VulkanSampler>	static_samplers;
 	};
 }

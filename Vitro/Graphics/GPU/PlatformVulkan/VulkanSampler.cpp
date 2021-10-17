@@ -3,8 +3,8 @@
 #include "VulkanAPI.hpp"
 export module vt.Graphics.Vulkan.Sampler;
 
+import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Vulkan.Driver;
-import vt.Graphics.DescriptorSetLayout;
 
 namespace vt::vulkan
 {

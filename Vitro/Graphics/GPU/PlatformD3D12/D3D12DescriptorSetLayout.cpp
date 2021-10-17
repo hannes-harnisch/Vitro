@@ -26,7 +26,8 @@ namespace vt::d3d12
 			case RwTexture:
 			case RwBuffer:
 			case RwStructuredBuffer:
-			case RwByteAddressBuffer: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+			case RwByteAddressBuffer:
+			case InputAttachment:	  return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 			case UniformBuffer:		  return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 		} // clang-format on
 		VT_UNREACHABLE();
@@ -175,9 +176,9 @@ namespace vt::d3d12
 			if(candidate->count != 1)
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-			using enum DescriptorType;
 			switch(candidate->type)
 			{
+				using enum DescriptorType;
 				case Buffer:
 				case StructuredBuffer:
 				case ByteAddressBuffer: return D3D12_ROOT_PARAMETER_TYPE_SRV;
@@ -185,7 +186,8 @@ namespace vt::d3d12
 				case RwTexture:
 				case RwBuffer:
 				case RwStructuredBuffer:
-				case RwByteAddressBuffer: return D3D12_ROOT_PARAMETER_TYPE_UAV;
+				case RwByteAddressBuffer:
+				case InputAttachment: return D3D12_ROOT_PARAMETER_TYPE_UAV;
 			}
 			return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		}

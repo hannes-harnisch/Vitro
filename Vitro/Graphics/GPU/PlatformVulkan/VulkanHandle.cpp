@@ -9,7 +9,8 @@ namespace vt::vulkan
 
 	export struct VulkanSyncValue
 	{
-		VkFence		fence	  = nullptr;
-		VkSemaphore semaphore = nullptr;
+		VkFence		fence		= nullptr;
+		VkSemaphore semaphore	= nullptr;
+		uint64_t	reset_count = 0;
 	};
 }

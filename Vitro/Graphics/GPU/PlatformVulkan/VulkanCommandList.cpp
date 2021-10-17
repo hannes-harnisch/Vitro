@@ -19,6 +19,7 @@ import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
 import vt.Graphics.RootSignature;
 import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.RootSignature;
 
 namespace vt::vulkan
 {
@@ -256,16 +257,30 @@ namespace vt::vulkan
 		}
 
 		void bind_descriptor_sets(VkPipelineBindPoint		 bind_point,
-								  VulkanRootSignature const& layout,
+								  VulkanRootSignature const& root_signature,
 								  ArrayView<DescriptorSet>	 descriptor_sets) const
 		{
 			std::vector<VkDescriptorSet> sets;
 			sets.reserve(descriptor_sets.size());
-			for(auto& set : descriptor_sets)
-				sets.emplace_back(set.vulkan.ptr());
+			auto layout = root_signature.ptr();
 
-			api->vkCmdBindDescriptorSets(cmd, bind_point, layout.ptr(), first_set, count(descriptor_sets), sets.data(), 0,
-										 nullptr);
+			sets.emplace_back(descriptor_sets.front().vulkan.ptr());
+			unsigned start_index = root_signature.get_layout_index(descriptor_sets.front().vulkan.get_layout());
+			unsigned prev_index	 = start_index;
+
+			for(auto& set : descriptor_sets | std::views::drop(1))
+			{
+				unsigned index = root_signature.get_layout_index(set.vulkan.get_layout());
+				if(index != prev_index + 1)
+				{
+					api->vkCmdBindDescriptorSets(cmd, bind_point, layout, start_index, count(sets), sets.data(), 0, nullptr);
+					sets.clear();
+					start_index = index;
+				}
+				sets.emplace_back(set.vulkan.ptr());
+				++prev_index;
+			}
+			api->vkCmdBindDescriptorSets(cmd, bind_point, layout, start_index, count(sets), sets.data(), 0, nullptr);
 		}
 	};
 }

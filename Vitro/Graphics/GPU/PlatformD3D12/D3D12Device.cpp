@@ -120,12 +120,6 @@ namespace vt::d3d12
 			return D3D12Shader(std::ifstream(path, std::ios::binary));
 		}
 
-		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
-		{
-			render_target.d3d12.recreate(spec);
-			DeviceBase::update_render_target_size(render_target, spec.width, spec.height);
-		}
-
 		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_DIRECT);
@@ -198,15 +192,6 @@ namespace vt::d3d12
 					swap_chain->get_height()};
 		}
 
-		void recreate_render_target(RenderTarget&						   render_target,
-									SharedRenderTargetSpecification const& spec,
-									SwapChain const&					   swap_chain,
-									unsigned							   back_buffer_index) override
-		{
-			render_target.d3d12.recreate(spec, swap_chain, back_buffer_index);
-			DeviceBase::update_render_target_size(render_target, swap_chain->get_width(), swap_chain->get_height());
-		}
-
 	private:
 		ComUnique<ID3D12Device4>	  device;
 		Queue						  render_queue;
@@ -237,6 +222,19 @@ namespace vt::d3d12
 				VT_ASSERT(is_right_type, "The type of this command list does not match the type of queue it was submitted to.");
 			}
 #endif
+		}
+
+		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
+		{
+			render_target.d3d12.recreate(spec);
+		}
+
+		void recreate_platform_render_target(RenderTarget&							render_target,
+											 SharedRenderTargetSpecification const& spec,
+											 SwapChain const&						swap_chain,
+											 unsigned								back_buffer_index) override
+		{
+			render_target.d3d12.recreate(spec, swap_chain, back_buffer_index);
 		}
 	};
 }

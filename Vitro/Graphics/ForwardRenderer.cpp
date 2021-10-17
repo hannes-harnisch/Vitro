@@ -131,12 +131,7 @@ namespace vt
 		RenderPass make_present_pass()
 		{
 			Subpass subpass {
-				.output_refs {
-					AttachmentReference {
-						.index		 = 0,
-						.used_layout = ImageLayout::ColorAttachment,
-					},
-				},
+				.output_attachments = {0},
 			};
 			RenderPassSpecification const spec {
 				.attachments {

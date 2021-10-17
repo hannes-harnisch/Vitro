@@ -242,7 +242,7 @@ namespace vt::d3d12
 			}
 
 			auto ds_desc_ptr = pass.uses_depth_stencil() ? &ds_desc : nullptr;
-			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, D3D12_RENDER_PASS_FLAG_NONE);
+			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, pass.get_flags());
 			this->subpass_index = 1;
 		}
 

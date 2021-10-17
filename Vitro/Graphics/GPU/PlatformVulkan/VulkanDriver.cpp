@@ -357,6 +357,7 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkDeviceWaitIdle)
 		DEVICE_FUNC(vkEndCommandBuffer)
 		DEVICE_FUNC(vkGetDeviceQueue)
+		DEVICE_FUNC(vkGetFenceStatus)
 		DEVICE_FUNC(vkGetSwapchainImagesKHR)
 		DEVICE_FUNC(vkQueuePresentKHR)
 		DEVICE_FUNC(vkQueueSubmit)
