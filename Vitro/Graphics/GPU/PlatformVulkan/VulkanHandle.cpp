@@ -7,10 +7,10 @@ namespace vt::vulkan
 	export using VulkanAdapter			 = VkPhysicalDevice;
 	export using VulkanCommandListHandle = VkCommandBuffer;
 
-	export struct VulkanSyncValue
+	export struct VulkanSyncToken
 	{
-		VkFence		fence		= nullptr;
-		VkSemaphore semaphore	= nullptr;
-		uint64_t	reset_count = 0;
+		VkFence		fence	  = nullptr;
+		VkSemaphore semaphore = nullptr;
+		uint64_t	resets	  = 0;
 	};
 }

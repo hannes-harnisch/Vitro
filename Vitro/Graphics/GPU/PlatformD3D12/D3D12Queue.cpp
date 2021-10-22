@@ -45,11 +45,11 @@ namespace vt::d3d12
 			wait_for_fence_value(fence.get(), signal());
 		}
 
-		void submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncValue> gpu_syncs)
+		void submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncToken> gpu_wait_tokens)
 		{
-			for(auto sync : gpu_syncs)
+			for(auto token : gpu_wait_tokens)
 			{
-				auto result = queue->Wait(sync.d3d12.wait_fence, sync.d3d12.wait_fence_value);
+				auto result = queue->Wait(token.d3d12.fence, token.d3d12.fence_value);
 				VT_ASSERT_RESULT(result, "Failed to insert queue wait for workload.");
 			}
 

@@ -105,6 +105,15 @@ namespace vt::d3d12
 			return {D3D12RenderTarget(descriptor_pool, spec), spec.width, spec.height};
 		}
 
+		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
+										SwapChain const&					   swap_chain,
+										unsigned							   back_buffer_index) override
+		{
+			validate_shared_target_spec(spec, swap_chain, back_buffer_index);
+			return {D3D12RenderTarget(descriptor_pool, spec, swap_chain, back_buffer_index), swap_chain->get_width(),
+					swap_chain->get_height()};
+		}
+
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
 			return D3D12RootSignature(device.get(), spec);
@@ -120,40 +129,48 @@ namespace vt::d3d12
 			return D3D12Shader(std::ifstream(path, std::ios::binary));
 		}
 
-		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
+		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
+		{
+			return {render_queue.ptr(), driver, window, buffer_count};
+		}
+
+		SyncToken submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_DIRECT);
-			render_queue.submit(cmds, gpu_syncs);
+			render_queue.submit(cmds, gpu_wait_tokens);
 			return {render_queue.get_fence(), render_queue.signal()};
 		}
 
-		SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
+		SyncToken submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_COMPUTE);
-			compute_queue.submit(cmds, gpu_syncs);
+			compute_queue.submit(cmds, gpu_wait_tokens);
 			return {compute_queue.get_fence(), compute_queue.signal()};
 		}
 
-		SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
+		SyncToken submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_COPY);
-			copy_queue.submit(cmds, gpu_syncs);
+			copy_queue.submit(cmds, gpu_wait_tokens);
 			return {copy_queue.get_fence(), copy_queue.signal()};
 		}
 
-		SyncValue submit_for_present(ArrayView<CommandListHandle> cmds,
+		SyncToken submit_for_present(ArrayView<CommandListHandle> cmds,
 									 SwapChain&					  swap_chain,
-									 ConstSpan<SyncValue>		  gpu_syncs = {}) override
+									 ConstSpan<SyncToken>		  gpu_wait_tokens = {}) override
 		{
 			validate_command_lists(cmds, D3D12_COMMAND_LIST_TYPE_DIRECT);
-			render_queue.submit(cmds, gpu_syncs);
+			render_queue.submit(cmds, gpu_wait_tokens);
 			swap_chain.d3d12.present();
-			return {render_queue.get_fence(), render_queue.signal()};
+			return {
+				render_queue.get_fence(),
+				render_queue.signal(),
+			};
 		}
 
-		void wait_for_workload(SyncValue cpu_sync) override
+		void wait_for_workload(SyncToken cpu_wait_token) override
 		{
-			wait_for_fence_value(cpu_sync.d3d12.wait_fence, cpu_sync.d3d12.wait_fence_value);
+			wait_for_fence_value(cpu_wait_token.d3d12.fence, cpu_wait_token.d3d12.fence_value);
 		}
 
 		void flush_render_queue() override
@@ -176,20 +193,6 @@ namespace vt::d3d12
 			render_queue.wait_for_idle();
 			compute_queue.wait_for_idle();
 			copy_queue.wait_for_idle();
-		}
-
-		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
-		{
-			return {render_queue.ptr(), driver, window, buffer_count};
-		}
-
-		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
-										SwapChain const&					   swap_chain,
-										unsigned							   back_buffer_index) override
-		{
-			validate_shared_target_spec(spec, swap_chain, back_buffer_index);
-			return {D3D12RenderTarget(descriptor_pool, spec, swap_chain, back_buffer_index), swap_chain->get_width(),
-					swap_chain->get_height()};
 		}
 
 	private:

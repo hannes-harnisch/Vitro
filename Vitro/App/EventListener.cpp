@@ -24,19 +24,19 @@ namespace vt
 
 		~EventListener()
 		{
-			unregister_event_handlers();
+			unregister_all_event_handlers();
 		}
 
 		EventListener& operator=(EventListener const& that)
 		{
-			unregister_event_handlers();
+			unregister_all_event_handlers();
 			EventSystem::get().duplicate_handlers_with_listener(*this, that);
 			return *this;
 		}
 
 		EventListener& operator=(EventListener&& that) noexcept
 		{
-			unregister_event_handlers();
+			unregister_all_event_handlers();
 			EventSystem::get().replace_listener(*this, that);
 			return *this;
 		}
@@ -46,7 +46,7 @@ namespace vt
 			(register_handler<HANDLERS>(), ...);
 		}
 
-		void unregister_event_handlers()
+		void unregister_all_event_handlers()
 		{
 			EventSystem::get().remove_handlers_with_listener(*this);
 		}

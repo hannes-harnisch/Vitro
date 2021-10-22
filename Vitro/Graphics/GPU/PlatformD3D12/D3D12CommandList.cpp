@@ -163,19 +163,21 @@ namespace vt::d3d12
 
 			auto& pass	 = *this->bound_render_pass;
 			auto& target = *this->bound_render_target;
-			insert_render_pass_barriers(pass.get_subpass_transitions(0));
+
+			auto& subpass = pass.get_subpass(0);
+			insert_render_pass_barriers(subpass.transitions);
 
 			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs;
 
 			unsigned index = 0;
-			for(auto attachment : pass.get_render_target_attachments())
+			for(auto access : pass.get_render_target_accesses())
 			{
 				D3D12_CLEAR_VALUE color_clear;
 				if(clear_values.empty())
 					color_clear = {};
 				else
 					color_clear = {
-						.Format = attachment.format,
+						.Format = access.format,
 						.Color {
 							clear_values[index].color.r,
 							clear_values[index].color.g,
@@ -187,11 +189,11 @@ namespace vt::d3d12
 				rt_descs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
 					.cpuDescriptor = target.get_view(index),
 					.BeginningAccess {
-						.Type  = attachment.begin_access,
+						.Type  = access.begin_access,
 						.Clear = {color_clear},
 					},
 					.EndingAccess {
-						.Type = attachment.end_access,
+						.Type = access.end_access,
 					},
 				});
 				++index;
@@ -242,17 +244,29 @@ namespace vt::d3d12
 			}
 
 			auto ds_desc_ptr = pass.uses_depth_stencil() ? &ds_desc : nullptr;
-			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, pass.get_flags());
+			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
 			this->subpass_index = 1;
 		}
 
 		void transition_subpass()
 		{
-			VT_ASSERT(this->subpass_index < this->bound_render_pass->subpass_count() - 1,
+			auto& pass = *this->bound_render_pass;
+			VT_ASSERT(this->subpass_index < pass.subpass_count() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
 
-			auto& subpass_transitions = this->bound_render_pass->get_subpass_transitions(this->subpass_index++);
-			insert_render_pass_barriers(subpass_transitions);
+			cmd->EndRenderPass();
+
+			auto& subpass = pass.get_subpass(this->subpass_index);
+			insert_render_pass_barriers(subpass.transitions);
+
+			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs;
+			// TODO: finish logic on this
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds_desc;
+
+			auto ds_desc_ptr = pass.uses_depth_stencil() ? &ds_desc : nullptr;
+			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
+
+			this->subpass_index++;
 		}
 
 		void end_render_pass()

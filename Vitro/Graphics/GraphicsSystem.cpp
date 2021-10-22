@@ -50,7 +50,7 @@ namespace vt
 		{
 			struct FrameResources
 			{
-				SyncValue present_sync;
+				SyncToken present_token;
 			};
 			RingBuffer<FrameResources>	  buffered;
 			SwapChain					  swap_chain;
@@ -87,21 +87,21 @@ namespace vt
 				std::lock_guard lock(mutex);
 				for(auto& [window, context] : window_contexts)
 				{
-					auto& swap_chain   = context.swap_chain;
-					auto& present_sync = context.buffered->present_sync;
+					auto& swap_chain	= context.swap_chain;
+					auto& present_token = context.buffered->present_token;
 
 					if(!context.size_to_update.load().zero())
 					{
-						device->wait_for_workload(context.buffered.get_previous().present_sync);
+						device->wait_for_workload(context.buffered.get_previous().present_token);
 						swap_chain->resize(context.size_to_update);
 						context.renderer->recreate_shared_render_targets(swap_chain);
 						context.size_to_update.store({0, 0});
 					}
 					else
-						device->wait_for_workload(present_sync);
+						device->wait_for_workload(present_token);
 
 					auto commands = context.renderer->render(swap_chain);
-					present_sync  = device->submit_for_present(commands, swap_chain);
+					present_token = device->submit_for_present(commands, swap_chain);
 					context.buffered.move_to_next_frame();
 				}
 			}

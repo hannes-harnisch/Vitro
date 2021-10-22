@@ -14,104 +14,138 @@ import vt.Graphics.Handle;
 import vt.Graphics.RingBuffer;
 import vt.Graphics.Vulkan.DescriptorPool;
 import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
-	class SyncObjectPool
+	struct UniqueSyncToken
+	{
+		UniqueVkFence	  fence;
+		UniqueVkSemaphore semaphore;
+		uint64_t		  resets = 0;
+
+		UniqueSyncToken(DeviceApiTable const& api)
+		{
+			VkFenceCreateInfo const fence_info {
+				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+				.flags = VK_FENCE_CREATE_SIGNALED_BIT,
+			};
+			VkFence unowned_fence;
+
+			auto result = api.vkCreateFence(api.device, &fence_info, nullptr, &unowned_fence);
+			fence.reset(unowned_fence, api);
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan fence for queue.");
+
+			VkSemaphoreCreateInfo const semaphore_info {
+				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			};
+			VkSemaphore unowned_semaphore;
+			result = api.vkCreateSemaphore(api.device, &semaphore_info, nullptr, &unowned_semaphore);
+			semaphore.reset(unowned_semaphore, api);
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan semaphore for queue.");
+		}
+
+		SyncToken get_unowned() const
+		{
+			return {
+				fence.get(),
+				semaphore.get(),
+				resets,
+			};
+		}
+	};
+
+	class SyncTokenPool
 	{
 	public:
-	private:
-		struct SyncObject
+		SyncTokenPool(DeviceApiTable const& api)
 		{
-			UniqueVkFence	  fence;
-			UniqueVkSemaphore semaphore;
-			uint64_t		  reset_value = 0;
-		};
+			for(int i = 0; i != INITIAL_COUNT; ++i)
+				tokens.emplace_back(api);
+		}
+
+		SyncToken acquire_token(DeviceApiTable const& api)
+		{
+			size_t size = tokens.size();
+			size_t i	= current_index;
+			do
+			{
+				auto& current_token = tokens[i];
+
+				auto status = api.vkGetFenceStatus(api.device, current_token.fence.get());
+				if(status == VK_SUCCESS)
+				{
+					auto acquired_token = current_token.get_unowned();
+
+					auto result = api.vkResetFences(api.device, 1, &acquired_token.vulkan.fence);
+					VT_ASSERT_RESULT(result, "Failed to reset Vulkan fence.");
+					current_token.resets++;
+
+					advance_index();
+					return acquired_token;
+				}
+
+				if(i == size - 1)
+					i = 0;
+				else
+					++i;
+			} while(i != current_index);
+
+			// All existing tokens are somehow still not ready, so grow the pool and return the new one.
+			auto new_token = tokens.emplace(tokens.begin() + current_index, api);
+			advance_index();
+			return new_token->get_unowned();
+		}
+
+		uint64_t get_current_resets(SyncToken const& token) const
+		{
+			auto it = std::find_if(tokens.begin(), tokens.end(), [&](UniqueSyncToken const& unique_token) {
+				return unique_token.fence.get() == token.vulkan.fence;
+			});
+			return it->resets;
+		}
+
+	private:
+		static constexpr size_t INITIAL_COUNT = 30;
+
+		std::vector<UniqueSyncToken> tokens;
+		size_t						 current_index = 0;
+
+		void advance_index()
+		{
+			current_index = (current_index + 1) % tokens.size();
+		}
 	};
 
 	export class VulkanDevice final : public DeviceBase
 	{
 	public:
-		VulkanDevice(Adapter in_adapter) : adapter(in_adapter.vulkan)
+		VulkanDevice(Adapter in_adapter) :
+			adapter(in_adapter.vulkan),
+			queue_families(query_queue_families()),
+			device(make_device()),
+			api(std::make_unique<DeviceApiTable>(device.get())),
+			sync_tokens(*api),
+			descriptor_pool(*api)
 		{
-			ensure_device_extensions_exist();
-			auto instance_api = VulkanDriver::get_api();
-
-			unsigned family_count;
-			instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, nullptr);
-			std::vector<VkQueueFamilyProperties> queue_families(family_count);
-			instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, queue_families.data());
-
-			unsigned index = 0;
-			for(auto const& family : queue_families)
-			{
-				auto flags = family.queueFlags;
-				if(check_queue_flags(flags, VK_QUEUE_GRAPHICS_BIT, 0))
-					render_queue_family = index;
-
-				if(check_queue_flags(flags, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT))
-					compute_queue_family = index;
-
-				if(check_queue_flags(flags, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
-					copy_queue_family = index;
-
-				++index;
-			}
-			VT_ENSURE(render_queue_family != ~0u, "Vulkan device has no dedicated render queue.");
-			VT_ENSURE(compute_queue_family != ~0u, "Vulkan device has no dedicated compute queue.");
-			VT_ENSURE(copy_queue_family != ~0u, "Vulkan device has no dedicated copy queue.");
-
-			float const priorities[] {1.0f};
-
-			VkDeviceQueueCreateInfo const queue_info {
-				.sType			  = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-				.queueCount		  = 1,
-				.pQueuePriorities = priorities,
-			};
-			std::array queue_infos {queue_info, queue_info, queue_info};
-			queue_infos[0].queueFamilyIndex = render_queue_family;
-			queue_infos[1].queueFamilyIndex = compute_queue_family;
-			queue_infos[2].queueFamilyIndex = copy_queue_family;
-
-			VkDeviceCreateInfo const device_info {
-				.sType					 = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.queueCreateInfoCount	 = count(queue_infos),
-				.pQueueCreateInfos		 = queue_infos.data(),
-				.enabledLayerCount		 = count(VulkanDriver::REQUIRED_LAYERS),
-				.ppEnabledLayerNames	 = VulkanDriver::REQUIRED_LAYERS.data(),
-				.enabledExtensionCount	 = count(REQUIRED_DEVICE_EXTENSIONS),
-				.ppEnabledExtensionNames = REQUIRED_DEVICE_EXTENSIONS.data(),
-				.pEnabledFeatures		 = &REQUIRED_FEATURES,
-			};
-			VkDevice unowned_device;
-
-			auto result = instance_api->vkCreateDevice(adapter, &device_info, nullptr, &unowned_device);
-			device.reset(unowned_device);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan device.");
-			api = std::make_unique<DeviceApiTable>(device.get());
-
-			api->vkGetDeviceQueue(device.get(), render_queue_family, 0, &render_queue);
-			api->vkGetDeviceQueue(device.get(), compute_queue_family, 0, &compute_queue);
-			api->vkGetDeviceQueue(device.get(), copy_queue_family, 0, &copy_queue);
-
-			initialize_queue_sync_objects(render_queue_fence, render_queue_semaphore);
-			initialize_queue_sync_objects(compute_queue_fence, compute_queue_semaphore);
-			initialize_queue_sync_objects(copy_queue_fence, copy_queue_semaphore);
+			api->vkGetDeviceQueue(device.get(), queue_families.render, 0, &render_queue);
+			api->vkGetDeviceQueue(device.get(), queue_families.compute, 0, &compute_queue);
+			api->vkGetDeviceQueue(device.get(), queue_families.copy, 0, &copy_queue);
 		}
 
 		CopyCommandList make_copy_command_list() override
 		{
-			return VulkanCommandList<CommandType::Copy>(copy_queue_family, *api);
+			return VulkanCommandList<CommandType::Copy>(queue_families.copy, *api);
 		}
 
 		ComputeCommandList make_compute_command_list() override
 		{
-			return VulkanCommandList<CommandType::Compute>(compute_queue_family, *api);
+			return VulkanCommandList<CommandType::Compute>(queue_families.compute, *api);
 		}
 
 		RenderCommandList make_render_command_list() override
 		{
-			return VulkanCommandList<CommandType::Render>(render_queue_family, *api);
+			return VulkanCommandList<CommandType::Render>(queue_families.render, *api);
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
@@ -211,6 +245,11 @@ namespace vt::vulkan
 			return VulkanRenderTarget(spec, *api);
 		}
 
+		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
+										SwapChain const&					   swap_chain,
+										unsigned							   back_buffer_index) override
+		{}
+
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
 			return VulkanRootSignature(spec, *api);
@@ -226,27 +265,36 @@ namespace vt::vulkan
 			return VulkanShader(path, *api);
 		}
 
-		SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
+		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
 		{}
 
-		SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
-		{}
-
-		SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) override
-		{}
-
-		SyncValue submit_for_present(ArrayView<CommandListHandle> cmds,
-									 SwapChain&					  swap_chain,
-									 ConstSpan<SyncValue>		  gpu_syncs = {}) override
-		{}
-
-		void wait_for_workload(SyncValue cpu_sync) override
+		SyncToken submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
 		{
-			auto result = api->vkWaitForFences(device.get(), 1, &cpu_sync.vulkan.fence, true, UINT64_MAX);
-			VT_ASSERT_RESULT(result, "Failed to wait for Vulkan fence.");
+			return submit(render_queue, cmds, gpu_wait_tokens);
+		}
 
-			result = api->vkResetFences(device.get(), 1, &cpu_sync.vulkan.fence);
-			VT_ASSERT_RESULT(result, "Failed to reset Vulkan fence.");
+		SyncToken submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
+		{
+			return submit(compute_queue, cmds, gpu_wait_tokens);
+		}
+
+		SyncToken submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
+		{
+			return submit(copy_queue, cmds, gpu_wait_tokens);
+		}
+
+		SyncToken submit_for_present(ArrayView<CommandListHandle> cmds,
+									 SwapChain&					  swap_chain,
+									 ConstSpan<SyncToken>		  gpu_wait_tokens = {}) override
+		{}
+
+		void wait_for_workload(SyncToken cpu_wait_token) override
+		{
+			if(sync_tokens.get_current_resets(cpu_wait_token) > cpu_wait_token.vulkan.resets)
+				return;
+
+			auto result = api->vkWaitForFences(device.get(), 1, &cpu_wait_token.vulkan.fence, false, ~0ull);
+			VT_ASSERT_RESULT(result, "Failed to wait for Vulkan fence.");
 		}
 
 		void flush_render_queue() override
@@ -269,14 +317,6 @@ namespace vt::vulkan
 			api->vkDeviceWaitIdle(device.get());
 		}
 
-		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
-		{}
-
-		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
-										SwapChain const&					   swap_chain,
-										unsigned							   back_buffer_index) override
-		{}
-
 	private:
 		static constexpr std::array REQUIRED_DEVICE_EXTENSIONS = {
 			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -294,28 +334,103 @@ namespace vt::vulkan
 		};
 		using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
 
+		VkPhysicalDevice adapter;
+		struct QueueFamilies
+		{
+			unsigned render	 = ~0u;
+			unsigned compute = ~0u;
+			unsigned copy	 = ~0u;
+		} queue_families;
+		UniqueVkDevice						  device;
 		std::unique_ptr<DeviceApiTable const> api;
-
-		VkPhysicalDevice	  adapter;
-		UniqueVkDevice		  device;
-		unsigned			  render_queue_family  = ~0u;
-		unsigned			  compute_queue_family = ~0u;
-		unsigned			  copy_queue_family	   = ~0u;
-		VkQueue				  render_queue;
-		UniqueVkFence		  render_queue_fence;
-		UniqueVkSemaphore	  render_queue_semaphore;
-		VkQueue				  compute_queue;
-		UniqueVkFence		  compute_queue_fence;
-		UniqueVkSemaphore	  compute_queue_semaphore;
-		VkQueue				  copy_queue;
-		UniqueVkFence		  copy_queue_fence;
-		UniqueVkSemaphore	  copy_queue_semaphore;
-		DescriptorPool		  descriptor_pool;
-		UniqueVkPipelineCache pipeline_cache;
+		SyncTokenPool						  sync_tokens;
+		DescriptorPool						  descriptor_pool;
+		UniqueVkPipelineCache				  pipeline_cache;
+		VkQueue								  render_queue;
+		VkQueue								  compute_queue;
+		VkQueue								  copy_queue;
 
 		static bool check_queue_flags(VkQueueFlags flags, VkQueueFlags wanted, VkQueueFlags unwanted)
 		{
 			return flags & wanted && !(flags & unwanted);
+		}
+
+		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
+		{}
+
+		void recreate_platform_render_target(RenderTarget&							render_target,
+											 SharedRenderTargetSpecification const& spec,
+											 SwapChain const&						swap_chain,
+											 unsigned								back_buffer_index) override
+		{}
+
+		QueueFamilies query_queue_families() const
+		{
+			auto instance_api = VulkanDriver::get_api();
+
+			unsigned family_count;
+			instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, nullptr);
+			std::vector<VkQueueFamilyProperties> queue_family_properties(family_count);
+			instance_api->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, queue_family_properties.data());
+
+			QueueFamilies families;
+
+			unsigned index = 0;
+			for(auto const& family : queue_family_properties)
+			{
+				auto flags = family.queueFlags;
+				if(check_queue_flags(flags, VK_QUEUE_GRAPHICS_BIT, 0))
+					families.render = index;
+
+				if(check_queue_flags(flags, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_GRAPHICS_BIT))
+					families.compute = index;
+
+				if(check_queue_flags(flags, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+					families.copy = index;
+
+				++index;
+			}
+			VT_ENSURE(families.render != ~0u, "Vulkan device has no dedicated render queue.");
+			VT_ENSURE(families.compute != ~0u, "Vulkan device has no dedicated compute queue.");
+			VT_ENSURE(families.copy != ~0u, "Vulkan device has no dedicated copy queue.");
+
+			return families;
+		}
+
+		UniqueVkDevice make_device() const
+		{
+			ensure_device_extensions_exist();
+
+			float const priorities[] {1.0f};
+
+			VkDeviceQueueCreateInfo const queue_info {
+				.sType			  = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueCount		  = 1,
+				.pQueuePriorities = priorities,
+			};
+			std::array queue_infos {queue_info, queue_info, queue_info};
+			queue_infos[0].queueFamilyIndex = queue_families.render;
+			queue_infos[1].queueFamilyIndex = queue_families.compute;
+			queue_infos[2].queueFamilyIndex = queue_families.copy;
+
+			VkDeviceCreateInfo const device_info {
+				.sType					 = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+				.queueCreateInfoCount	 = count(queue_infos),
+				.pQueueCreateInfos		 = queue_infos.data(),
+				.enabledLayerCount		 = count(VulkanDriver::REQUIRED_LAYERS),
+				.ppEnabledLayerNames	 = VulkanDriver::REQUIRED_LAYERS.data(),
+				.enabledExtensionCount	 = count(REQUIRED_DEVICE_EXTENSIONS),
+				.ppEnabledExtensionNames = REQUIRED_DEVICE_EXTENSIONS.data(),
+				.pEnabledFeatures		 = &REQUIRED_FEATURES,
+			};
+			VkDevice unowned_device;
+
+			auto instance_api = VulkanDriver::get_api();
+			auto result		  = instance_api->vkCreateDevice(adapter, &device_info, nullptr, &unowned_device);
+
+			UniqueVkDevice fresh_device(unowned_device);
+			VT_ENSURE_RESULT(result, "Failed to create Vulkan device.");
+			return fresh_device;
 		}
 
 		void ensure_device_extensions_exist() const
@@ -364,33 +479,30 @@ namespace vt::vulkan
 			}
 		}
 
-		void initialize_queue_sync_objects(UniqueVkFence& fence, UniqueVkSemaphore& semaphore) const
+		SyncToken submit(VkQueue queue, ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens)
 		{
-			VkFenceCreateInfo const fence_info {
-				.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-			};
-			VkFence unowned_fence;
+			std::vector<VkSemaphore> wait_semaphores;
+			wait_semaphores.reserve(gpu_wait_tokens.size());
+			for(auto& token : gpu_wait_tokens)
+				wait_semaphores.emplace_back(token.vulkan.semaphore);
 
-			auto result = api->vkCreateFence(device.get(), &fence_info, nullptr, &unowned_fence);
-			fence.reset(unowned_fence, *api);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan fence for queue.");
+			auto token = sync_tokens.acquire_token(*api);
 
-			VkSemaphoreCreateInfo const semaphore_info {
-				.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+			VkPipelineStageFlags stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+			VkSubmitInfo const submit {
+				.sType				  = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+				.waitSemaphoreCount	  = count(wait_semaphores),
+				.pWaitSemaphores	  = wait_semaphores.data(),
+				.pWaitDstStageMask	  = &stages,
+				.commandBufferCount	  = count(cmds),
+				.pCommandBuffers	  = reinterpret_cast<VkCommandBuffer const*>(cmds.data()),
+				.signalSemaphoreCount = 1,
+				.pSignalSemaphores	  = &token.vulkan.semaphore,
 			};
-			VkSemaphore unowned_semaphore;
-			result = api->vkCreateSemaphore(device.get(), &semaphore_info, nullptr, &unowned_semaphore);
-			semaphore.reset(unowned_semaphore, *api);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan semaphore for queue.");
+			auto result = api->vkQueueSubmit(queue, 1, &submit, token.vulkan.fence);
+			VT_ENSURE_RESULT(result, "Failed to submit to Vulkan queue.");
+			return token;
 		}
-
-		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
-		{}
-
-		void recreate_platform_render_target(RenderTarget&							render_target,
-											 SharedRenderTargetSpecification const& spec,
-											 SwapChain const&						swap_chain,
-											 unsigned								back_buffer_index) override
-		{}
 	};
 }

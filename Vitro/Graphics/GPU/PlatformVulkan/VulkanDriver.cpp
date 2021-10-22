@@ -206,8 +206,8 @@ namespace vt::vulkan
 			using pointer = VkDebugUtilsMessengerEXT;
 			void operator()(VkDebugUtilsMessengerEXT messenger) const
 			{
-				auto api = VulkanDriver::get_api();
-				api->vkDestroyDebugUtilsMessengerEXT(api->instance, messenger, nullptr);
+				auto inst_api = VulkanDriver::get_api();
+				inst_api->vkDestroyDebugUtilsMessengerEXT(inst_api->instance, messenger, nullptr);
 			}
 		};
 
@@ -308,8 +308,11 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkCmdBindPipeline)
 		DEVICE_FUNC(vkCmdBindVertexBuffers)
 		DEVICE_FUNC(vkCmdDispatch)
+		DEVICE_FUNC(vkCmdDispatchIndirect)
 		DEVICE_FUNC(vkCmdDraw)
 		DEVICE_FUNC(vkCmdDrawIndexed)
+		DEVICE_FUNC(vkCmdDrawIndexedIndirect)
+		DEVICE_FUNC(vkCmdDrawIndirect)
 		DEVICE_FUNC(vkCmdEndRenderPass)
 		DEVICE_FUNC(vkCmdNextSubpass)
 		DEVICE_FUNC(vkCmdPipelineBarrier)

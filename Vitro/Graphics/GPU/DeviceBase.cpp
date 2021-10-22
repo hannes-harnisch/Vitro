@@ -47,19 +47,21 @@ namespace vt
 										  Window& window,
 										  uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) = 0;
 
-		virtual SyncValue submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})  = 0;
-		virtual SyncValue submit_compute_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {}) = 0;
-		virtual SyncValue submit_copy_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncValue> gpu_syncs = {})	  = 0;
-
-		virtual SyncValue submit_for_present(ArrayView<CommandListHandle> cmds,
+		virtual SyncToken submit_render_commands(ArrayView<CommandListHandle> cmds,
+												 ConstSpan<SyncToken>		  gpu_wait_tokens = {})	 = 0;
+		virtual SyncToken submit_compute_commands(ArrayView<CommandListHandle> cmds,
+												  ConstSpan<SyncToken>		   gpu_wait_tokens = {}) = 0;
+		virtual SyncToken submit_copy_commands(ArrayView<CommandListHandle> cmds,
+											   ConstSpan<SyncToken>			gpu_wait_tokens = {})	 = 0;
+		virtual SyncToken submit_for_present(ArrayView<CommandListHandle> cmds,
 											 SwapChain&					  swap_chain,
-											 ConstSpan<SyncValue>		  gpu_syncs = {}) = 0;
+											 ConstSpan<SyncToken>		  gpu_wait_tokens = {})		 = 0;
 
-		virtual void wait_for_workload(SyncValue cpu_sync) = 0;
-		virtual void flush_render_queue()				   = 0;
-		virtual void flush_compute_queue()				   = 0;
-		virtual void flush_copy_queue()					   = 0;
-		virtual void wait_for_idle()					   = 0;
+		virtual void wait_for_workload(SyncToken cpu_wait_token) = 0;
+		virtual void flush_render_queue()						 = 0;
+		virtual void flush_compute_queue()						 = 0;
+		virtual void flush_copy_queue()							 = 0;
+		virtual void wait_for_idle()							 = 0;
 
 		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec)
 		{

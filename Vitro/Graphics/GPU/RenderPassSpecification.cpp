@@ -52,7 +52,7 @@ namespace vt
 		ImageStoreOp			 stencil_store_op = ImageStoreOp::Ignore;
 		ArrayView<Subpass>		 subpasses;
 
-		bool contains_depth_stencil_attachment() const
+		bool uses_depth_stencil_attachment() const
 		{
 			auto uses_depth_stencil_layout = [](auto attachment) {
 				return attachment.final_layout == ImageLayout::DepthStencilAttachment ||

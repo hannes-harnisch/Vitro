@@ -3,9 +3,9 @@
 #include "VulkanAPI.hpp"
 
 #include <fstream>
-#include <vector>
 export module vt.Graphics.Vulkan.Shader;
 
+import vt.Core.Array;
 import vt.Graphics.Vulkan.Driver;
 
 namespace vt::vulkan
@@ -15,8 +15,11 @@ namespace vt::vulkan
 	public:
 		VulkanShader(char const path[], DeviceApiTable const& api)
 		{
-			std::ifstream	  file(path, std::ios::binary);
-			std::vector<char> bytecode(std::istreambuf_iterator<char>(file), {});
+			std::ifstream file(path, std::ios::binary);
+			file.seekg(0, std::ios::end);
+			Array<char> bytecode(file.tellg());
+			file.seekg(0);
+			file.read(bytecode.data(), bytecode.size());
 
 			VkShaderModuleCreateInfo const shader_info {
 				.sType	  = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,

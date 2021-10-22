@@ -48,20 +48,26 @@ namespace vt::d3d12
 		{}
 	};
 
-	export struct AttachmentTransition
+	struct AttachmentTransition
 	{
 		unsigned			  index;
 		D3D12_RESOURCE_STATES old_layout;
 		D3D12_RESOURCE_STATES new_layout;
 	};
+
 	export using TransitionList = FixedList<AttachmentTransition, MAX_ATTACHMENTS>;
+	struct Subpass
+	{
+		D3D12_RENDER_PASS_FLAGS flags;
+		TransitionList			transitions;
+	};
 
 	export class D3D12RenderPass
 	{
 	public:
 		D3D12RenderPass(RenderPassSpecification const& spec) :
 			attachments(spec.attachments.begin(), spec.attachments.end()),
-			is_using_depth_stencil(spec.contains_depth_stencil_attachment()),
+			is_using_depth_stencil(spec.uses_depth_stencil_attachment()),
 			stencil_begin_access(convert_image_load_op(spec.stencil_load_op)),
 			stencil_end_access(convert_image_store_op(spec.stencil_store_op))
 		{
@@ -76,12 +82,14 @@ namespace vt::d3d12
 					bool for_input	= false;
 					bool for_output = false;
 				};
-				FixedList<AttachmentUse, MAX_ATTACHMENTS> uses(subpass.input_attachments.size() +
-															   subpass.output_attachments.size());
+				FixedList<AttachmentUse, 2 * MAX_ATTACHMENTS> uses(subpass.input_attachments.size() +
+																   subpass.output_attachments.size());
 				for(uint8_t index : subpass.input_attachments)
 					uses[index].for_input = true;
 				for(uint8_t index : subpass.output_attachments)
 					uses[index].for_output = true;
+
+				D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
 
 				TransitionList transitions;
 				unsigned	   index = 0;
@@ -115,7 +123,7 @@ namespace vt::d3d12
 					current_layouts[index] = new_layout;
 					++index;
 				}
-				subpass_transition_lists.emplace_back(transitions);
+				subpasses.emplace_back(flags, transitions);
 			}
 
 			for(int i = 0; i != spec.attachments.size(); ++i)
@@ -129,7 +137,7 @@ namespace vt::d3d12
 			}
 		}
 
-		ArrayView<AttachmentAccess> get_render_target_attachments() const
+		ArrayView<AttachmentAccess> get_render_target_accesses() const
 		{
 			return {attachments.begin(), attachments.end() - is_using_depth_stencil};
 		}
@@ -169,14 +177,9 @@ namespace vt::d3d12
 			return stencil_end_access;
 		}
 
-		D3D12_RENDER_PASS_FLAGS get_flags() const
+		Subpass const& get_subpass(size_t index) const
 		{
-			return flags;
-		}
-
-		TransitionList const& get_subpass_transitions(size_t index) const
-		{
-			return subpass_transition_lists[index];
+			return subpasses[index];
 		}
 
 		TransitionList const& get_final_transitions() const
@@ -186,7 +189,7 @@ namespace vt::d3d12
 
 		size_t subpass_count() const
 		{
-			return subpass_transition_lists.size();
+			return subpasses.size();
 		}
 
 	private:
@@ -194,8 +197,7 @@ namespace vt::d3d12
 		bool										 is_using_depth_stencil;
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE		 stencil_begin_access;
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE		 stencil_end_access;
-		D3D12_RENDER_PASS_FLAGS						 flags = D3D12_RENDER_PASS_FLAG_NONE;
-		std::vector<TransitionList>					 subpass_transition_lists;
+		std::vector<Subpass>						 subpasses;
 		TransitionList								 final_transitions;
 	};
 }

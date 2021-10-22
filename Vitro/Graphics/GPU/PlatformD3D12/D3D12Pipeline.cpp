@@ -478,8 +478,8 @@ namespace vt::d3d12
 				stream.blend_desc.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
 
 			i = 0;
-			for(auto attachment : pass.get_render_target_attachments())
-				stream.render_target_formats.RTFormats[i++] = attachment.format;
+			for(auto access : pass.get_render_target_accesses())
+				stream.render_target_formats.RTFormats[i++] = access.format;
 
 			D3D12_PIPELINE_STATE_STREAM_DESC const desc {
 				.SizeInBytes				   = sizeof stream,
