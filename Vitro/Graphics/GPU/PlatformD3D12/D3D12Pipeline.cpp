@@ -384,12 +384,12 @@ namespace vt::d3d12
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES> input_element_descs;
 
-			unsigned index = 0;
+			UINT index = 0;
 			for(auto& buffer_binding : spec.vertex_buffer_bindings)
 			{
-				auto	 input_rate = convert_input_rate(buffer_binding.input_rate);
-				unsigned step_rate	= buffer_binding.input_rate == VertexBufferInputRate::PerInstance ? 1u : 0u;
-				size_t	 offset		= 0;
+				auto   input_rate = convert_input_rate(buffer_binding.input_rate);
+				UINT   step_rate  = buffer_binding.input_rate == VertexBufferInputRate::PerInstance ? 1u : 0u;
+				size_t offset	  = 0;
 				for(auto attribute : buffer_binding.attributes)
 				{
 					input_element_descs.emplace_back(D3D12_INPUT_ELEMENT_DESC {
@@ -473,7 +473,7 @@ namespace vt::d3d12
 					.DepthBoundsTestEnable = spec.depth_stencil.enable_depth_bounds_test,
 				},
 			};
-			unsigned i = 0;
+			size_t i = 0;
 			for(auto state : spec.blend.attachment_states)
 				stream.blend_desc.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
 
@@ -485,11 +485,8 @@ namespace vt::d3d12
 				.SizeInBytes				   = sizeof stream,
 				.pPipelineStateSubobjectStream = &stream,
 			};
-			ID3D12PipelineState* unowned_pipeline;
-
-			auto result = device->CreatePipelineState(&desc, IID_PPV_ARGS(&unowned_pipeline));
-			pipeline.reset(unowned_pipeline);
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 render pipeline.");
+			auto result = device->CreatePipelineState(&desc, VT_COM_OUT(pipeline));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 render pipeline.");
 		}
 
 		D3D_PRIMITIVE_TOPOLOGY get_topology() const
@@ -510,11 +507,8 @@ namespace vt::d3d12
 				.pRootSignature = spec.root_signature.d3d12.ptr(),
 				.CS				= spec.compute_shader.d3d12.get_bytecode(),
 			};
-			ID3D12PipelineState* unowned_pipeline;
-
-			auto result = device->CreateComputePipelineState(&desc, IID_PPV_ARGS(&unowned_pipeline));
-			pipeline.reset(unowned_pipeline);
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 compute pipeline.");
+			auto result = device->CreateComputePipelineState(&desc, VT_COM_OUT(pipeline));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 compute pipeline.");
 		}
 	};
 }

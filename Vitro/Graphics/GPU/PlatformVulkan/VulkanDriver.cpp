@@ -2,7 +2,6 @@
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
 
-#include <array>
 #include <memory>
 #include <ranges>
 #include <string_view>
@@ -11,6 +10,7 @@
 export module vt.Graphics.Vulkan.Driver;
 
 import vt.Core.Array;
+import vt.Core.Scope;
 import vt.Core.SharedLibrary;
 import vt.Core.Singleton;
 import vt.Core.Version;
@@ -20,11 +20,11 @@ import vt.Trace.Log;
 
 namespace vt::vulkan
 {
-	struct InstanceApiTable
+	export struct InstanceApiTable : NoCopyNoMove
 	{
 		VkInstance instance;
 
-#define INSTANCE_FUNC(func) PFN_##func func = reinterpret_cast<PFN_##func>(vkGetInstanceProcAddr(instance, #func));
+#define INSTANCE_FUNC(FUNC) PFN_##FUNC FUNC = reinterpret_cast<PFN_##FUNC>(vkGetInstanceProcAddr(instance, #FUNC));
 
 		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
 		INSTANCE_FUNC(vkCreateDebugUtilsMessengerEXT)
@@ -58,22 +58,18 @@ namespace vt::vulkan
 	export class VulkanDriver final : public Singleton<VulkanDriver>, public DriverBase
 	{
 	public:
-		static constexpr std::array REQUIRED_LAYERS =
-#if VT_DEBUG
-			{"VK_LAYER_KHRONOS_validation"};
-#else
-			std::array<char const*, 0> {};
-#endif
-
+		// Returns a pointer (never null) to the device-independent table of Vulkan functions.
 		static InstanceApiTable const* get_api()
 		{
 			return get().api.get();
 		}
 
-		VulkanDriver(std::string const& app_name, Version app_version, Version engine_version)
+		VulkanDriver(bool enable_debug_layer, std::string const& app_name, Version app_version, Version engine_version) :
+			driver_dylib("vulkan-1")
 		{
 			ensure_instance_extensions_exist();
-			ensure_layers_exist();
+			if(enable_debug_layer)
+				ensure_layers_exist();
 
 			VkDebugUtilsMessengerCreateInfoEXT const messenger_info {
 				.sType			 = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -84,19 +80,12 @@ namespace vt::vulkan
 							   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 				.pfnUserCallback = log_vulkan_validation,
 			};
-			auto const validation_feature = VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT;
-
 			VkValidationFeaturesEXT const validation_features {
 				.sType						   = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
 				.pNext						   = &messenger_info,
-				.enabledValidationFeatureCount = 1,
-				.pEnabledValidationFeatures	   = &validation_feature,
+				.enabledValidationFeatureCount = count(VALIDATION_FEATURES),
+				.pEnabledValidationFeatures	   = VALIDATION_FEATURES,
 			};
-#if VT_DEBUG
-			void const* instance_info_next = &validation_features;
-#else
-			void const* instance_info_next = nullptr;
-#endif
 			VkApplicationInfo const app_info {
 				.sType				= VK_STRUCTURE_TYPE_APPLICATION_INFO,
 				.pApplicationName	= app_name.data(),
@@ -105,41 +94,41 @@ namespace vt::vulkan
 				.engineVersion		= VK_MAKE_VERSION(engine_version.major, engine_version.minor, engine_version.patch),
 				.apiVersion			= VK_API_VERSION_1_0,
 			};
+
+			// Debug layer is last in list. Include only if debug is specified.
+			uint32_t extension_count = count(REQUIRED_INSTANCE_EXTENSIONS) - !enable_debug_layer;
+
 			VkInstanceCreateInfo const instance_info {
 				.sType					 = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				.pNext					 = instance_info_next,
+				.pNext					 = enable_debug_layer ? &validation_features : nullptr,
 				.pApplicationInfo		 = &app_info,
-				.enabledLayerCount		 = count(REQUIRED_LAYERS),
-				.ppEnabledLayerNames	 = REQUIRED_LAYERS.data(),
-				.enabledExtensionCount	 = count(REQUIRED_INSTANCE_EXTENSIONS),
-				.ppEnabledExtensionNames = REQUIRED_INSTANCE_EXTENSIONS.data(),
+				.enabledLayerCount		 = enable_debug_layer ? count(LAYERS) : 0,
+				.ppEnabledLayerNames	 = enable_debug_layer ? LAYERS : nullptr,
+				.enabledExtensionCount	 = extension_count,
+				.ppEnabledExtensionNames = REQUIRED_INSTANCE_EXTENSIONS,
 			};
-			VkInstance unowned_instance;
+			auto result = vkCreateInstance(&instance_info, nullptr, std::out_ptr(instance));
+			api			= std::make_unique<InstanceApiTable>(instance.get(), vkGetInstanceProcAddr);
+			VT_CHECK_RESULT(result, "Failed to create Vulkan instance.");
 
-			auto result = vkCreateInstance(&instance_info, nullptr, &unowned_instance);
-			instance.reset(unowned_instance);
-			api = std::make_unique<InstanceApiTable>(instance.get(), vkGetInstanceProcAddr);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan instance.");
-
-#if VT_DEBUG
-			VkDebugUtilsMessengerEXT unowned_messenger;
-			result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, &unowned_messenger);
-			debug_messenger.reset(unowned_messenger);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan debug utils messenger.");
-#endif
+			if(enable_debug_layer)
+			{
+				result = api->vkCreateDebugUtilsMessengerEXT(instance.get(), &messenger_info, nullptr, std::out_ptr(messenger));
+				VT_CHECK_RESULT(result, "Failed to create Vulkan debug utils messenger.");
+			}
 		}
 
-		std::vector<Adapter> enumerate_adapters() const override
+		SmallList<Adapter> enumerate_adapters() const override
 		{
-			unsigned device_count;
+			uint32_t device_count;
 			auto	 result = api->vkEnumeratePhysicalDevices(instance.get(), &device_count, nullptr);
-			VT_ENSURE_RESULT(result, "Failed to query Vulkan physical device count.");
+			VT_CHECK_RESULT(result, "Failed to query Vulkan physical device count.");
 
-			std::vector<VkPhysicalDevice> physical_devices(device_count);
+			SmallList<VkPhysicalDevice> physical_devices(device_count);
 			result = api->vkEnumeratePhysicalDevices(instance.get(), &device_count, physical_devices.data());
-			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
+			VT_CHECK_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
-			std::vector<Adapter> adapters;
+			SmallList<Adapter> adapters;
 			for(auto physical_device : physical_devices)
 			{
 				VkPhysicalDeviceProperties device_prop;
@@ -179,18 +168,27 @@ namespace vt::vulkan
 		}
 
 	private:
-		static constexpr std::array REQUIRED_INSTANCE_EXTENSIONS = {
-#if VT_DEBUG
-			VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
-#endif
+		static constexpr char const* LAYERS[] = {
+			"VK_LAYER_KHRONOS_validation",
+		};
 
-			VK_KHR_SURFACE_EXTENSION_NAME,
+		static constexpr VkValidationFeatureEnableEXT VALIDATION_FEATURES[] = {
+			VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+			VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+		};
 
+		static constexpr char const* REQUIRED_INSTANCE_EXTENSIONS[] = {
 #if VT_SYSTEM_WINDOWS
 			VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #elif VT_SYSTEM_LINUX
 			VK_KHR_XCB_SURFACE_EXTENSION_NAME,
 #endif
+
+			VK_KHR_SURFACE_EXTENSION_NAME,
+
+			// Will not actually get submitted unless debug features are requested during driver creation. This should always be
+			// the last extension.
+			VK_EXT_DEBUG_UTILS_EXTENSION_NAME,
 		};
 
 		struct InstanceDeleter
@@ -201,55 +199,56 @@ namespace vt::vulkan
 				VulkanDriver::get_api()->vkDestroyInstance(instance, nullptr);
 			}
 		};
+		using UniqueVkInstance = std::unique_ptr<VkInstance, InstanceDeleter>;
+
 		struct MessengerDeleter
 		{
 			using pointer = VkDebugUtilsMessengerEXT;
 			void operator()(VkDebugUtilsMessengerEXT messenger) const
 			{
-				auto inst_api = VulkanDriver::get_api();
-				inst_api->vkDestroyDebugUtilsMessengerEXT(inst_api->instance, messenger, nullptr);
+				auto driver = VulkanDriver::get_api();
+				driver->vkDestroyDebugUtilsMessengerEXT(driver->instance, messenger, nullptr);
 			}
 		};
+		using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter>;
 
-		SharedLibrary driver = "vulkan-1";
+#define INSTANCE_NULL_FUNC(FUNC) PFN_##FUNC FUNC = reinterpret_cast<PFN_##FUNC>(vkGetInstanceProcAddr(nullptr, #FUNC));
 
-		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = driver.load_symbol<decltype(::vkGetInstanceProcAddr)>(
+		SharedLibrary			  driver_dylib;
+		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = driver_dylib.load_symbol<decltype(::vkGetInstanceProcAddr)>(
 			"vkGetInstanceProcAddr");
 		std::unique_ptr<InstanceApiTable const> api;
-
-#define INSTANCE_NULL_FUNC(func) PFN_##func func = reinterpret_cast<PFN_##func>(vkGetInstanceProcAddr(nullptr, #func));
-
 		INSTANCE_NULL_FUNC(vkCreateInstance)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceExtensionProperties)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceLayerProperties)
-		std::unique_ptr<VkInstance, InstanceDeleter>				instance;
-		std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter> debug_messenger;
-		std::unordered_map<void*, DeviceApiTable const*>			resource_owners;
+		UniqueVkInstance								 instance;
+		UniqueVkDebugUtilsMessengerEXT					 messenger;
+		std::unordered_map<void*, DeviceApiTable const*> resource_owners;
 
 		static VKAPI_ATTR VkBool32 VKAPI_CALL log_vulkan_validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 																	VkDebugUtilsMessageTypeFlagsEXT,
 																	VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
 																	void*)
 		{
+			auto msg = callback_data->pMessage;
 			switch(severity)
 			{
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: Log().verbose(callback_data->pMessage); break;
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: Log().info(callback_data->pMessage); break;
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: Log().warn(callback_data->pMessage); break;
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: Log().error(callback_data->pMessage); break;
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: Log().info(msg, "\n"); break;
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: Log().warn(msg, "\n"); break;
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: Log().error(msg, "\n"); break;
 			}
 			return false;
 		}
 
 		void ensure_instance_extensions_exist() const
 		{
-			unsigned extension_count;
+			uint32_t extension_count;
 			auto	 result = vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
-			VT_ENSURE_RESULT(result, "Failed to query Vulkan instance extension count.");
+			VT_CHECK_RESULT(result, "Failed to query Vulkan instance extension count.");
 
 			std::vector<VkExtensionProperties> extensions(extension_count);
 			result = vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, extensions.data());
-			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
+			VT_CHECK_RESULT(result, "Failed to enumerate Vulkan instance extensions.");
 
 			for(std::string_view required_ext : REQUIRED_INSTANCE_EXTENSIONS)
 			{
@@ -268,15 +267,15 @@ namespace vt::vulkan
 
 		void ensure_layers_exist() const
 		{
-			unsigned layer_count;
+			uint32_t layer_count;
 			auto	 result = vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
-			VT_ENSURE_RESULT(result, "Failed to query Vulkan instance layer count.");
+			VT_CHECK_RESULT(result, "Failed to query Vulkan instance layer count.");
 
 			std::vector<VkLayerProperties> layers(layer_count);
 			result = vkEnumerateInstanceLayerProperties(&layer_count, layers.data());
-			VT_ENSURE_RESULT(result, "Failed to enumerate Vulkan layers.");
+			VT_CHECK_RESULT(result, "Failed to enumerate Vulkan layers.");
 
-			for(std::string_view required_layer : REQUIRED_LAYERS)
+			for(std::string_view required_layer : LAYERS)
 			{
 				bool found = false;
 				for(auto& layer : layers)
@@ -292,21 +291,26 @@ namespace vt::vulkan
 		}
 	};
 
-	export struct DeviceApiTable
+	export struct DeviceApiTable : NoCopyNoMove
 	{
-		VkDevice device;
+		VkPhysicalDevice adapter;
+		VkDevice		 device;
 
-#define DEVICE_FUNC(func) PFN_##func func = VulkanDriver::get().load_device_func<PFN_##func>(device, #func);
+#define DEVICE_FUNC(FUNC) PFN_##FUNC FUNC = VulkanDriver::get().load_device_func<PFN_##FUNC>(device, #FUNC);
 
 		DEVICE_FUNC(vkAcquireNextImageKHR)
 		DEVICE_FUNC(vkAllocateCommandBuffers)
 		DEVICE_FUNC(vkAllocateDescriptorSets)
+		DEVICE_FUNC(vkAllocateMemory)
 		DEVICE_FUNC(vkBeginCommandBuffer)
+		DEVICE_FUNC(vkBindBufferMemory)
+		DEVICE_FUNC(vkBindImageMemory)
 		DEVICE_FUNC(vkCmdBeginRenderPass)
 		DEVICE_FUNC(vkCmdBindDescriptorSets)
 		DEVICE_FUNC(vkCmdBindIndexBuffer)
 		DEVICE_FUNC(vkCmdBindPipeline)
 		DEVICE_FUNC(vkCmdBindVertexBuffers)
+		DEVICE_FUNC(vkCmdCopyBuffer)
 		DEVICE_FUNC(vkCmdDispatch)
 		DEVICE_FUNC(vkCmdDispatchIndirect)
 		DEVICE_FUNC(vkCmdDraw)
@@ -359,19 +363,26 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkDestroySwapchainKHR)
 		DEVICE_FUNC(vkDeviceWaitIdle)
 		DEVICE_FUNC(vkEndCommandBuffer)
+		DEVICE_FUNC(vkFlushMappedMemoryRanges)
+		DEVICE_FUNC(vkFreeMemory)
+		DEVICE_FUNC(vkGetBufferMemoryRequirements)
 		DEVICE_FUNC(vkGetDeviceQueue)
 		DEVICE_FUNC(vkGetFenceStatus)
+		DEVICE_FUNC(vkGetImageMemoryRequirements)
 		DEVICE_FUNC(vkGetSwapchainImagesKHR)
+		DEVICE_FUNC(vkInvalidateMappedMemoryRanges)
+		DEVICE_FUNC(vkMapMemory)
 		DEVICE_FUNC(vkQueuePresentKHR)
 		DEVICE_FUNC(vkQueueSubmit)
 		DEVICE_FUNC(vkQueueWaitIdle)
 		DEVICE_FUNC(vkResetCommandPool)
 		DEVICE_FUNC(vkResetDescriptorPool)
 		DEVICE_FUNC(vkResetFences)
+		DEVICE_FUNC(vkUnmapMemory)
 		DEVICE_FUNC(vkUpdateDescriptorSets)
 		DEVICE_FUNC(vkWaitForFences)
 
-		DeviceApiTable(VkDevice device) : device(device)
+		DeviceApiTable(VkPhysicalDevice adapter, VkDevice device) : adapter(adapter), device(device)
 		{}
 	};
 
@@ -408,8 +419,8 @@ namespace vt::vulkan
 		}
 	};
 
-#define EXPORT_UNIQUE_DEVICE_RESOURCE(resource)                                                                                \
-	export using UniqueVk##resource = UniqueDeviceResource<Vk##resource, &DeviceApiTable::vkDestroy##resource>;
+#define EXPORT_UNIQUE_DEVICE_RESOURCE(RESOURCE)                                                                                \
+	export using UniqueVk##RESOURCE = UniqueDeviceResource<Vk##RESOURCE, &DeviceApiTable::vkDestroy##RESOURCE>;
 
 	EXPORT_UNIQUE_DEVICE_RESOURCE(Buffer)
 	EXPORT_UNIQUE_DEVICE_RESOURCE(CommandPool)

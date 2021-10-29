@@ -194,7 +194,6 @@ namespace vt::vulkan
 			VK_DYNAMIC_STATE_DEPTH_BOUNDS, VK_DYNAMIC_STATE_STENCIL_REFERENCE,
 		};
 
-		FixedList<UniqueVkShaderModule, MAX_SHADER_STAGES>					  shader_modules;
 		FixedList<VkPipelineShaderStageCreateInfo, MAX_SHADER_STAGES>		  shader_stages;
 		FixedList<VkVertexInputBindingDescription, MAX_VERTEX_BUFFERS>		  vertex_bindings;
 		FixedList<VkVertexInputAttributeDescription, MAX_TOTAL_ATTRIBUTES>	  vertex_attributes;
@@ -211,7 +210,7 @@ namespace vt::vulkan
 		VkPipelineDynamicStateCreateInfo									  dynamic_state;
 		VkPipelineLayout													  pipeline_layout;
 		VkRenderPass														  render_pass;
-		unsigned															  subpass_index;
+		uint32_t															  subpass_index;
 
 		GraphicsPipelineInfoState(RenderPipelineSpecification const& spec)
 		{
@@ -242,6 +241,29 @@ namespace vt::vulkan
 			pipeline_layout = spec.root_signature.vulkan.ptr();
 			render_pass		= spec.render_pass.vulkan.ptr();
 			subpass_index	= spec.subpass_index;
+		}
+
+		VkGraphicsPipelineCreateInfo convert() const
+		{
+			return {
+				.sType				 = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+				.stageCount			 = count(shader_stages),
+				.pStages			 = shader_stages.data(),
+				.pVertexInputState	 = &vertex_input,
+				.pInputAssemblyState = &input_assembly,
+				.pTessellationState	 = &tessellation,
+				.pViewportState		 = &viewport,
+				.pRasterizationState = &rasterization,
+				.pMultisampleState	 = &multisample,
+				.pDepthStencilState	 = &depth_stencil,
+				.pColorBlendState	 = &color_blend,
+				.pDynamicState		 = &dynamic_state,
+				.layout				 = pipeline_layout,
+				.renderPass			 = render_pass,
+				.subpass			 = subpass_index,
+				.basePipelineHandle	 = nullptr,
+				.basePipelineIndex	 = 0,
+			};
 		}
 
 	private:
@@ -277,11 +299,11 @@ namespace vt::vulkan
 
 		void initialize_vertex_input(RenderPipelineSpecification const& spec)
 		{
-			unsigned binding = 0;
+			uint32_t binding = 0;
 			for(auto& buffer_binding : spec.vertex_buffer_bindings)
 			{
-				unsigned location = 0;
-				unsigned size	  = 0;
+				uint32_t location = 0;
+				uint32_t size	  = 0;
 				for(auto attribute : buffer_binding.attributes)
 				{
 					vertex_attributes.emplace_back(VkVertexInputAttributeDescription {
@@ -290,7 +312,7 @@ namespace vt::vulkan
 						.format	  = convert_vertex_data_type(attribute.type),
 						.offset	  = size,
 					});
-					size += static_cast<unsigned>(get_vertex_data_type_size(attribute.type));
+					size += static_cast<uint32_t>(get_vertex_data_type_size(attribute.type));
 				}
 
 				vertex_bindings.emplace_back(VkVertexInputBindingDescription {
@@ -311,7 +333,7 @@ namespace vt::vulkan
 
 		void initialize_viewport(RenderPipelineSpecification const& spec)
 		{
-			unsigned viewport_count = count(spec.blend.attachment_states);
+			uint32_t viewport_count = count(spec.blend.attachment_states);
 
 			viewport = VkPipelineViewportStateCreateInfo {
 				.sType		   = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -330,7 +352,7 @@ namespace vt::vulkan
 				.polygonMode			 = convert_fill_mode(spec.rasterizer.fill_mode),
 				.cullMode				 = convert_cull_mode(spec.rasterizer.cull_mode),
 				.frontFace				 = convert_front_face(spec.rasterizer.front_face),
-				.depthBiasEnable		 = true,
+				.depthBiasEnable		 = spec.rasterizer.depth_bias != 0,
 				.depthBiasConstantFactor = static_cast<float>(spec.rasterizer.depth_bias),
 				.depthBiasClamp			 = spec.rasterizer.depth_bias_clamp,
 				.depthBiasSlopeFactor	 = spec.rasterizer.depth_bias_slope,
@@ -395,6 +417,23 @@ namespace vt::vulkan
 			};
 		}
 	};
+
+	export VkComputePipelineCreateInfo convert_compute_pipeline_spec(ComputePipelineSpecification const& spec)
+	{
+		return {
+			.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+			.stage {
+				.sType				 = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+				.stage				 = VK_SHADER_STAGE_COMPUTE_BIT,
+				.module				 = spec.compute_shader.vulkan.ptr(),
+				.pName				 = "main",
+				.pSpecializationInfo = nullptr,
+			},
+			.layout				= spec.root_signature.vulkan.ptr(),
+			.basePipelineHandle = nullptr,
+			.basePipelineIndex	= 0,
+		};
+	}
 
 	class Pipeline
 	{

@@ -3,13 +3,13 @@
 
 #include <atomic>
 #include <unordered_map>
-#include <vector>
 export module vt.App.AppContext;
 
 import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.App.Window;
 import vt.App.VT_SYSTEM_MODULE.AppContext;
+import vt.Core.SmallList;
 
 namespace vt
 {
@@ -31,8 +31,8 @@ namespace vt
 		}
 
 	private:
-		std::atomic_bool&	 engine_running_status;
-		std::vector<Window*> open_windows;
+		std::atomic_bool&  engine_running_status;
+		SmallList<Window*> open_windows;
 
 		void on_window_open(WindowOpenEvent& event)
 		{

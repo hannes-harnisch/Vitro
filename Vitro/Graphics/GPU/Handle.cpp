@@ -37,5 +37,7 @@ namespace vt
 	};
 
 	export using CommandListHandle = HandleVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
-	export using SyncToken		   = HandleVariant<VT_GPU_API_VARIANT_ARGS(SyncToken)>;
+
+	export struct [[nodiscard]] SyncToken : HandleVariant<VT_GPU_API_VARIANT_ARGS(SyncToken)>
+	{};
 }

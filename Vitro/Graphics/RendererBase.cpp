@@ -5,6 +5,7 @@ export module vt.Graphics.RendererBase;
 
 import vt.Core.FixedList;
 import vt.Core.Rectangle;
+import vt.Core.SmallList;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
@@ -19,7 +20,7 @@ namespace vt
 	public:
 		virtual ~RendererBase() = default;
 
-		std::vector<CommandListHandle> render(SwapChain& swap_chain)
+		SmallList<CommandListHandle> render(SwapChain& swap_chain)
 		{
 			if(shared_targets.empty())
 			{
@@ -59,7 +60,7 @@ namespace vt
 		RendererBase(Device& device) : device(device)
 		{}
 
-		virtual std::vector<CommandListHandle>	render(RenderTarget const& render_target)				 = 0;
+		virtual SmallList<CommandListHandle>	render(RenderTarget const& render_target)				 = 0;
 		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const			 = 0;
 		virtual void							on_render_target_resize(unsigned width, unsigned height) = 0;
 

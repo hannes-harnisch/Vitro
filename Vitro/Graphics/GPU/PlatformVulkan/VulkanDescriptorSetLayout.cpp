@@ -2,10 +2,12 @@
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
 
+#include <memory>
 #include <vector>
 export module vt.Graphics.Vulkan.DescriptorSetLayout;
 
 import vt.Core.Array;
+import vt.Core.SmallList;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Vulkan.Driver;
 import vt.Graphics.Vulkan.Sampler;
@@ -58,7 +60,7 @@ namespace vt::vulkan
 	public:
 		VulkanDescriptorSetLayout(DescriptorSetLayoutSpecification const& spec, DeviceApiTable const& api)
 		{
-			std::vector<VkDescriptorSetLayoutBinding> bindings;
+			SmallList<VkDescriptorSetLayoutBinding> bindings;
 			bindings.reserve(spec.bindings.size());
 
 			auto visibility = convert_shader_stage(spec.visibility);
@@ -83,11 +85,8 @@ namespace vt::vulkan
 				.bindingCount = count(bindings),
 				.pBindings	  = bindings.data(),
 			};
-			VkDescriptorSetLayout unowned_layout;
-
-			auto result = api.vkCreateDescriptorSetLayout(api.device, &layout_info, nullptr, &unowned_layout);
-			layout.reset(unowned_layout, api);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan descriptor set layout.");
+			auto result = api.vkCreateDescriptorSetLayout(api.device, &layout_info, nullptr, std::out_ptr(layout, api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan descriptor set layout.");
 		}
 
 		VkDescriptorSetLayout ptr() const

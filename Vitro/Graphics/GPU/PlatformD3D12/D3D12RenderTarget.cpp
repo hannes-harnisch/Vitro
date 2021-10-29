@@ -159,6 +159,4 @@ namespace vt::d3d12
 				resources.emplace_back(nullptr); // Insert nullptr so that asking for a depth stencil from outside returns null
 		}
 	};
-
-	static_assert(std::is_move_constructible_v<D3D12RenderTarget>);
 }

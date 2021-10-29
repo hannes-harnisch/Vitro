@@ -4,8 +4,16 @@
 #include <vector>
 export module vt.Core.Algorithm;
 
+import vt.Core.ContainerTraits;
+
 namespace vt
 {
+	export template<typename Container>
+	constexpr bool contains(Container const& container, typename ContainerTraits<Container>::const_reference value)
+	{
+		return std::find(std::begin(container), std::end(container), value) != std::end(container);
+	}
+
 	export void remove_first_of(std::string& str, std::string_view pattern)
 	{
 		size_t i = str.find(pattern);

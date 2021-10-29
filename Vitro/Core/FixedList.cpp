@@ -4,7 +4,7 @@
 #if VT_DEBUG
 	#define DEBUG 1
 #endif
-#define HH_ASSERT(condition, message) VT_ASSERT_PURE(condition, message)
+#define HH_ASSERT(CONDITION, MESSAGE) VT_ASSERT_PURE(CONDITION, MESSAGE)
 #include <FixedList/Include/FixedList.hpp>
 export module vt.Core.FixedList;
 

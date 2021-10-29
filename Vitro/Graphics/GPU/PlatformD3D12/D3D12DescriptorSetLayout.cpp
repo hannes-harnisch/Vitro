@@ -65,7 +65,7 @@ namespace vt::d3d12
 			}
 			else
 			{
-				auto binding = spec.bindings.front();
+				auto binding = spec.bindings[0];
 
 				D3D12_ROOT_DESCRIPTOR1 descriptor {
 					.ShaderRegister = binding.shader_register,

@@ -51,6 +51,7 @@ namespace vt
 		virtual void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)				= 0;
 		virtual void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data) = 0;
 		virtual void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)					= 0;
+		virtual void dispatch_indirect(Buffer const& buffer, size_t offset)							= 0;
 	};
 
 	export class RenderCommandListBase : public ComputeCommandListBase
@@ -78,6 +79,8 @@ namespace vt
 								  unsigned first_index,
 								  int	   vertex_offset,
 								  unsigned first_instance)																   = 0;
+		virtual void draw_indirect(Buffer const& buffer, size_t offset, unsigned draws)									   = 0;
+		virtual void draw_indexed_indirect(Buffer const& buffer, size_t offset, unsigned draws)							   = 0;
 	};
 
 	export template<CommandType TYPE>

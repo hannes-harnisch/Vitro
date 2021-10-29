@@ -1,7 +1,11 @@
-﻿export module vt.Graphics.SwapChainBase;
+﻿module;
+#include <optional>
+export module vt.Graphics.SwapChainBase;
 
 import vt.App.WindowEvent;
 import vt.Core.Rectangle;
+import vt.Graphics.Handle;
+import vt.Graphics.TextureSpecification;
 
 namespace vt
 {
@@ -12,13 +16,19 @@ namespace vt
 
 		virtual ~SwapChainBase() = default;
 
-		virtual unsigned get_current_image_index() const = 0;
-		virtual unsigned get_buffer_count() const		 = 0;
-		virtual unsigned get_width() const				 = 0;
-		virtual unsigned get_height() const				 = 0;
-		virtual void	 resize(Extent size)			 = 0;
-		virtual void	 enable_vsync()					 = 0;
-		virtual void	 disable_vsync()				 = 0;
+		virtual ImageFormat get_format() const				= 0;
+		virtual unsigned	get_current_image_index() const = 0;
+		virtual unsigned	get_present_count() const		= 0;
+		virtual unsigned	get_buffer_count() const		= 0;
+		virtual unsigned	get_width() const				= 0;
+		virtual unsigned	get_height() const				= 0;
+		virtual void		resize(Extent size)				= 0;
+		virtual void		enable_vsync()					= 0;
+		virtual void		disable_vsync()					= 0;
+
+		// To be called when rendering of a frame begins for a specific swap chain. Returns a token that indicates when the next
+		// back buffer is ready or nullopt if the operation failed and the swap chain must be resized.
+		virtual std::optional<SyncToken> request_frame() = 0;
 
 		bool vsync_enabled() const
 		{

@@ -1,7 +1,4 @@
-﻿cbuffer PushConstants : register(b0)
-{
-	float4 triangle_color;
-};
+﻿#include "Vitro.hlsli"
 
 struct VertexOut
 {

@@ -191,6 +191,9 @@ namespace vt
 		{
 			while(is_accepting_logs)
 				flush_queue();
+
+			// Reset color sequence back to black background + white text.
+			std::printf("\x1b[97;40m");
 		}
 
 		void flush_queue()

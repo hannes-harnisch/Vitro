@@ -2,10 +2,12 @@
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
 
+#include <memory>
 #include <vector>
 export module vt.Graphics.Vulkan.RenderPass;
 
 import vt.Core.FixedList;
+import vt.Core.SmallList;
 import vt.Graphics.RenderPassSpecification;
 import vt.Graphics.Vulkan.Driver;
 import vt.Graphics.Vulkan.Texture;
@@ -69,14 +71,13 @@ namespace vt::vulkan
 					.finalLayout	= convert_image_layout(attachment.final_layout),
 				});
 
-			std::vector<VkSubpassDescription>  subpasses;
-			std::vector<VkSubpassDependency>   dependencies;
-			std::vector<VkAttachmentReference> refs;
+			SmallList<VkSubpassDescription> subpasses;
 			subpasses.reserve(spec.subpasses.size());
-			dependencies.reserve(spec.subpasses.size() + 1);
+			SmallList<VkAttachmentReference> refs;
 			refs.reserve(count_attachment_refs(spec)); // This reserve is crucial, because pointers to VkAttachmentReferences
 													   // must remain valid throughout the whole preparation of the create info.
-
+			SmallList<VkSubpassDependency> dependencies;
+			dependencies.reserve(spec.subpasses.size() + 1);
 			dependencies.emplace_back(VkSubpassDependency {
 				.srcSubpass		 = VK_SUBPASS_EXTERNAL,
 				.dstSubpass		 = 0,
@@ -86,8 +87,7 @@ namespace vt::vulkan
 				.dstAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
 			});
-
-			unsigned subpass_index = 0;
+			uint32_t subpass_index = 0;
 			for(auto& subpass : spec.subpasses)
 			{
 				struct AttachmentUse
@@ -108,7 +108,7 @@ namespace vt::vulkan
 						requires_self_dependency = true;
 				}
 
-				unsigned input_refs_begin = count(refs);
+				uint32_t input_refs_begin = count(refs);
 				for(uint8_t index : subpass.input_attachments)
 				{
 					VkImageLayout layout;
@@ -123,7 +123,7 @@ namespace vt::vulkan
 				}
 
 				bool	 subpass_has_depth_stencil_output = false;
-				unsigned output_refs_begin				  = count(refs);
+				uint32_t output_refs_begin				  = count(refs);
 				for(uint8_t index : subpass.output_attachments)
 				{
 					if(uses_depth_stencil && index == spec.attachments.size() - 1)
@@ -175,7 +175,7 @@ namespace vt::vulkan
 						.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
 					});
 
-				if(subpass_index++) // Skip adding dependency on the first iteration.
+				if(subpass_index) // Skip adding dependency on the first iteration.
 					dependencies.emplace_back(VkSubpassDependency {
 						.srcSubpass		 = subpass_index - 1,
 						.dstSubpass		 = subpass_index,
@@ -185,9 +185,11 @@ namespace vt::vulkan
 						.dstAccessMask	 = VK_ACCESS_SHADER_READ_BIT,
 						.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
 					});
+				++subpass_index;
 			}
+
 			dependencies.emplace_back(VkSubpassDependency {
-				.srcSubpass		 = subpass_index,
+				.srcSubpass		 = subpass_index - 1,
 				.dstSubpass		 = VK_SUBPASS_EXTERNAL,
 				.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 				.dstStageMask	 = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
@@ -195,7 +197,6 @@ namespace vt::vulkan
 				.dstAccessMask	 = VK_ACCESS_MEMORY_READ_BIT,
 				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
 			});
-
 			VkRenderPassCreateInfo const render_pass_info {
 				.sType			 = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 				.attachmentCount = count(attachments),
@@ -205,11 +206,8 @@ namespace vt::vulkan
 				.dependencyCount = count(dependencies),
 				.pDependencies	 = dependencies.data(),
 			};
-			VkRenderPass unowned_render_pass;
-
-			auto result = api.vkCreateRenderPass(api.device, &render_pass_info, nullptr, &unowned_render_pass);
-			render_pass.reset(unowned_render_pass, api);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan render pass.");
+			auto result = api.vkCreateRenderPass(api.device, &render_pass_info, nullptr, std::out_ptr(render_pass, api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan render pass.");
 		}
 
 		VkRenderPass ptr() const

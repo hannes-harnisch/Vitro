@@ -12,9 +12,9 @@ namespace vt
 	export class AppContextBase : public Singleton<AppContextBase>
 	{
 	public:
-		SystemWindowOwnerHandle get_system_window_owner() const
+		static SystemWindowOwnerHandle get_system_window_owner()
 		{
-			return window_owner_handle;
+			return get().window_owner_handle;
 		}
 
 	protected:

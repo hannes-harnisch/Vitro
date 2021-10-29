@@ -1,7 +1,11 @@
-﻿cbuffer PushConstants : register(b0)
+﻿#include "Vitro.hlsli"
+
+struct PushConstants
 {
 	float4 triangle_color;
 };
+
+PushConstants(PushConstants, constants);
 
 struct VertexOut
 {
@@ -10,5 +14,5 @@ struct VertexOut
 
 float4 main(VertexOut position) : SV_TARGET
 {
-	return triangle_color;
+	return constants.triangle_color;
 }

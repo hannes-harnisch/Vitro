@@ -25,17 +25,8 @@ namespace vt::windows
 		  };
 
 	protected:
-		WindowsWindow(std::string_view title, Rectangle rect)
-		{
-			auto widened_title = widen_string(title);
-			auto instance	   = AppContextBase::get().get_system_window_owner();
-
-			HWND unowned_window = ::CreateWindowEx(WS_EX_APPWINDOW, WINDOW_CLASS_NAME, widened_title.data(),
-												   WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width, rect.height, nullptr,
-												   nullptr, instance, nullptr);
-			window.reset(unowned_window);
-			VT_ENSURE(window != nullptr, "Failed to create window.");
-		}
+		WindowsWindow(std::string_view title, Rectangle rect) : window(make_window(title, rect))
+		{}
 
 		void open()
 		{
@@ -62,8 +53,7 @@ namespace vt::windows
 			while(::ShowCursor(true) < 0)
 			{}
 
-			BOOL succeeded = ::ClipCursor(nullptr);
-			VT_ASSERT(succeeded, "Failed to clip cursor.");
+			call_win32<::ClipCursor>("Failed to clip cursor.", nullptr);
 		}
 
 		void disable_cursor()
@@ -72,22 +62,28 @@ namespace vt::windows
 			{}
 
 			RECT rect;
-			BOOL succeeded = ::GetClientRect(window.get(), &rect);
-			VT_ASSERT(succeeded, "Failed to get window client rect.");
+			call_win32<::GetClientRect>("Failed to get window client rect.", window.get(), &rect);
 
-			debug_clear_error();
-			::MapWindowPoints(window.get(), nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
-			VT_ASSERT(::GetLastError() == ERROR_SUCCESS, "Failed to map window points.");
+			call_win32<::MapWindowPoints>("Failed to map window points.", window.get(), nullptr,
+										  reinterpret_cast<POINT*>(&rect), static_cast<UINT>(sizeof(RECT) / sizeof(POINT)));
 
-			succeeded = ::ClipCursor(&rect);
-			VT_ASSERT(succeeded, "Failed to clip cursor.");
+			call_win32<::ClipCursor>("Failed to clip cursor.", &rect);
+		}
+
+		void enable_resize()
+		{
+			make_resizable(true);
+		}
+
+		void disable_resize()
+		{
+			make_resizable(false);
 		}
 
 		Extent get_size() const
 		{
 			RECT rect;
-			BOOL succeeded = ::GetWindowRect(window.get(), &rect);
-			VT_ASSERT(succeeded, "Failed to get window rect.");
+			call_win32<::GetWindowRect>("Failed to get window rect.", window.get(), &rect);
 			return {
 				.width	= static_cast<unsigned>(rect.right - rect.left),
 				.height = static_cast<unsigned>(rect.bottom - rect.top),
@@ -96,15 +92,14 @@ namespace vt::windows
 
 		void set_size(Extent size)
 		{
-			BOOL succeeded = ::SetWindowPos(window.get(), nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
-			VT_ASSERT(succeeded, "Failed to set window position.");
+			call_win32<::SetWindowPos>("Failed to set window position.", window.get(), nullptr, 0, 0, size.width, size.height,
+									   SWP_NOMOVE | SWP_NOZORDER);
 		}
 
 		Int2 get_position() const
 		{
 			RECT rect;
-			BOOL succeeded = ::GetWindowRect(window.get(), &rect);
-			VT_ASSERT(succeeded, "Failed to get window rect.");
+			call_win32<::GetWindowRect>("Failed to get window rect.", window.get(), &rect);
 			return {
 				.x = rect.left,
 				.y = rect.top,
@@ -113,19 +108,16 @@ namespace vt::windows
 
 		void set_position(Int2 position)
 		{
-			BOOL succeeded = ::SetWindowPos(window.get(), nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-			VT_ASSERT(succeeded, "Failed to set window position.");
+			call_win32<::SetWindowPos>("Failed to set window position.", window.get(), nullptr, position.x, position.y, 0, 0,
+									   SWP_NOSIZE | SWP_NOZORDER);
 		}
 
 		std::string get_title() const
 		{
-			debug_clear_error();
-			int length = ::GetWindowTextLength(window.get());
-			VT_ASSERT_PURE(::GetLastError() == ERROR_SUCCESS, "Failed to get window title length.");
+			int length = call_win32<::GetWindowTextLength>("Failed to get window title length.", window.get());
 
 			std::wstring title(length, L'\0');
-			::GetWindowText(window.get(), title.data(), length + 1);
-			VT_ASSERT_PURE(::GetLastError() == ERROR_SUCCESS, "Failed to get window title.");
+			call_win32<::GetWindowText>("Failed to get window title.", window.get(), title.data(), length + 1);
 
 			return narrow_string(title);
 		}
@@ -133,16 +125,13 @@ namespace vt::windows
 		void set_title(std::string_view title)
 		{
 			auto widened_title = widen_string(title);
-
-			BOOL succeeded = ::SetWindowText(window.get(), widened_title.data());
-			VT_ASSERT(succeeded, "Failed to set window title.");
+			call_win32<::SetWindowText>("Failed to set window title.", window.get(), widened_title.data());
 		}
 
 		Rectangle client_area() const
 		{
 			RECT rect;
-			BOOL succeeded = ::GetClientRect(window.get(), &rect);
-			VT_ASSERT(succeeded, "Failed to get window client rect.");
+			call_win32<::GetClientRect>("Failed to get window client rect.", window.get(), &rect);
 			return {
 				.x		= rect.left,
 				.y		= rect.top,
@@ -162,17 +151,33 @@ namespace vt::windows
 			using pointer = HWND;
 			void operator()(HWND hwnd) const
 			{
-				BOOL succeeded = ::DestroyWindow(hwnd);
-				VT_ASSERT(succeeded, "Failed to destroy window.");
+				call_win32<::DestroyWindow>("Failed to destroy window.", hwnd);
 			}
 		};
 		std::unique_ptr<HWND, WindowDeleter> window;
 
-		static void debug_clear_error()
+		static HWND make_window(std::string_view title, Rectangle rect)
 		{
-#if VT_DEBUG
-			::SetLastError(0);
-#endif
+			auto widened_title = widen_string(title);
+			auto instance	   = AppContextBase::get_system_window_owner();
+
+			return call_win32<::CreateWindowEx>("Failed to create window.", WS_EX_APPWINDOW, WINDOW_CLASS_NAME,
+												widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width,
+												rect.height, nullptr, nullptr, instance, nullptr);
+		}
+
+		void make_resizable(bool enable) const
+		{
+			auto old_style = call_win32<::GetWindowLongPtr>("Failed to get Windows window attributes.", window.get(),
+															GWL_STYLE);
+
+			LONG_PTR new_style;
+			if(enable)
+				new_style = old_style | WS_THICKFRAME;
+			else
+				new_style = old_style ^ WS_THICKFRAME;
+
+			call_win32<::SetWindowLongPtr>("Failed to set Windows window attributes.", window.get(), GWL_STYLE, new_style);
 		}
 	};
 }

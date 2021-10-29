@@ -35,11 +35,8 @@ namespace vt::d3d12
 				.NumDescriptors = descriptor_count,
 				.Flags			= shader_visible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 			};
-			ID3D12DescriptorHeap* unowned_heap;
-
-			auto result = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&unowned_heap));
-			heap.reset(unowned_heap);
-			VT_ENSURE_RESULT(result, "Failed to create D3D12 descriptor heap.");
+			auto result = device->CreateDescriptorHeap(&desc, VT_COM_OUT(heap));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 descriptor heap.");
 
 			free_blocks.emplace_back(get_cpu_heap_start(), descriptor_count);
 		}

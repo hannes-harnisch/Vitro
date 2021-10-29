@@ -30,8 +30,8 @@ namespace vt::windows
 
 		void try_reload()
 		{
-			library.reset(::LoadLibrary(path.data()));
-			VT_ENSURE(library, "Failed to find shared library '{}'.", narrow_string(path));
+			auto module = call_win32<::LoadLibrary>("Failed to find shared library.", path.data());
+			library.reset(module);
 		}
 
 		HMODULE native_handle()
@@ -47,8 +47,7 @@ namespace vt::windows
 			using pointer = HMODULE;
 			void operator()(HMODULE module) const
 			{
-				BOOL succeeded = ::FreeLibrary(module);
-				VT_ASSERT(succeeded, "Failed to free shared library.");
+				call_win32<::FreeLibrary>("Failed to free shared library.", module);
 			}
 		};
 		std::unique_ptr<HMODULE, LibraryDeleter> library;

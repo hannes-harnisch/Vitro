@@ -2,11 +2,13 @@
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
 
+#include <memory>
 #include <unordered_map>
 #include <vector>
 export module vt.Graphics.Vulkan.RootSignature;
 
 import vt.Core.Array;
+import vt.Core.SmallList;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Vulkan.DescriptorSetLayout;
 import vt.Graphics.Vulkan.Driver;
@@ -18,7 +20,7 @@ namespace vt::vulkan
 	public:
 		VulkanRootSignature(RootSignatureSpecification const& spec, DeviceApiTable const& api)
 		{
-			std::vector<VkDescriptorSetLayout> set_layouts;
+			SmallList<VkDescriptorSetLayout> set_layouts;
 			set_layouts.reserve(spec.layouts.size());
 
 			unsigned index = 0;
@@ -41,11 +43,8 @@ namespace vt::vulkan
 				.pushConstantRangeCount = 1,
 				.pPushConstantRanges	= &push_constants,
 			};
-			VkPipelineLayout unowned_layout;
-
-			auto result = api.vkCreatePipelineLayout(api.device, &layout_info, nullptr, &unowned_layout);
-			pipeline_layout.reset(unowned_layout, api);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan pipeline layout.");
+			auto result = api.vkCreatePipelineLayout(api.device, &layout_info, nullptr, std::out_ptr(pipeline_layout, api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan pipeline layout.");
 		}
 
 		unsigned get_layout_index(VkDescriptorSetLayout layout) const

@@ -92,7 +92,8 @@ namespace vt::d3d12
 				D3D12_RENDER_PASS_FLAGS flags = D3D12_RENDER_PASS_FLAG_NONE;
 
 				TransitionList transitions;
-				unsigned	   index = 0;
+
+				unsigned index = 0;
 				for(auto [for_input, for_output] : uses)
 				{
 					D3D12_RESOURCE_STATES new_depth_layout, new_color_layout;

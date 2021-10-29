@@ -5,6 +5,7 @@
 #include <csignal>
 export module vt.Trace.Windows.TraceContext;
 
+import vt.Core.Windows.Utils;
 import vt.Trace.CrashHandler;
 
 namespace vt::windows
@@ -14,19 +15,8 @@ namespace vt::windows
 	public:
 		WindowsTraceContext()
 		{
-			auto result = ::AddVectoredExceptionHandler(true, forward_to_standard_signal_handlers);
-			VT_ASSERT(result, "Failed to set vectored exception handler.");
-
-			auto std_out = ::GetStdHandle(STD_OUTPUT_HANDLE);
-			VT_ASSERT(std_out != INVALID_HANDLE_VALUE, "Failed to get standard output handle.");
-
-			DWORD mode;
-			BOOL  succeeded = ::GetConsoleMode(std_out, &mode);
-			VT_ASSERT(succeeded, "Failed to query current console mode.");
-
-			mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-			succeeded = ::SetConsoleMode(std_out, mode);
-			VT_ASSERT(succeeded, "Failed to enable virtual terminal processing.");
+			set_exception_handler();
+			enable_ansi_color_sequences();
 		}
 
 	private:
@@ -39,6 +29,25 @@ namespace vt::windows
 				case STATUS_INTEGER_DIVIDE_BY_ZERO: handle_arithmetic_signal(SIGFPE); break;
 			}
 			return EXCEPTION_CONTINUE_SEARCH;
+		}
+
+		static void set_exception_handler()
+		{
+			auto handle = ::AddVectoredExceptionHandler(true, forward_to_standard_signal_handlers);
+			VT_ENSURE(handle, "Failed to set vectored exception handler.");
+		}
+
+		static void enable_ansi_color_sequences()
+		{
+			auto std_out = call_win32<::GetStdHandle>("Failed to get standard output handle.", STD_OUTPUT_HANDLE);
+			if(!std_out)
+				return; // Will be null if there is no console attached, such as in release mode.
+
+			DWORD mode;
+			call_win32<::GetConsoleMode>("Failed to query current console mode.", std_out, &mode);
+
+			mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+			call_win32<::SetConsoleMode>("Failed to enable virtual terminal processing.", std_out, mode);
 		}
 	};
 }

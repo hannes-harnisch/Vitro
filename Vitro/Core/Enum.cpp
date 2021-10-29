@@ -13,15 +13,6 @@
 #include <magic_enum/include/magic_enum.hpp>
 export module vt.Core.Enum;
 
-// TODO: remove when this is supported in preview
-namespace std
-{
-	template<typename T> [[nodiscard]] constexpr underlying_type_t<T> to_underlying(T val) noexcept
-	{
-		return static_cast<underlying_type_t<T>>(val);
-	}
-}
-
 namespace vt
 {
 	export using magic_enum::enum_cast;

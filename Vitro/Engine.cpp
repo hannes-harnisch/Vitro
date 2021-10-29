@@ -8,6 +8,7 @@
 export module vt.Engine;
 
 import vt.App.AppSystem;
+import vt.Core.Algorithm;
 import vt.Core.Tick;
 import vt.Core.Version;
 import vt.Editor.Editor;
@@ -20,9 +21,12 @@ namespace vt
 	class Engine
 	{
 	public:
-		Engine(std::vector<std::string_view> command_line_args)
-		try : command_line_args(std::move(command_line_args)), app_system(is_running),
-			graphics_system(app_system.get_current_app_name(), app_system.get_current_app_version(), ENGINE_VERSION)
+		Engine(int argc, char* argv[])
+		try : command_line_args(argv, argv + argc), app_system(is_running),
+			graphics_system(contains(command_line_args, CVAR_DEBUG_GPU_API),
+							app_system.get_current_app_name(),
+							app_system.get_current_app_version(),
+							ENGINE_VERSION)
 		{}
 		catch(std::exception const& e)
 		{
@@ -51,7 +55,8 @@ namespace vt
 		}
 
 	private:
-		static constexpr Version ENGINE_VERSION = {0, 0, 1};
+		static constexpr Version	 ENGINE_VERSION		= {0, 0, 1};
+		static constexpr char const* CVAR_DEBUG_GPU_API = "-debug-gpu-api";
 
 		std::atomic_bool			  is_running = true;
 		std::vector<std::string_view> command_line_args;
@@ -70,6 +75,6 @@ namespace vt
 
 export int main(int argc, char* argv[])
 {
-	static vt::Engine engine({argv, argv + argc});
+	static vt::Engine engine(argc, argv);
 	return engine.run();
 }

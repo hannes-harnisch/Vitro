@@ -26,11 +26,8 @@ namespace vt::vulkan
 				.codeSize = bytecode.size(),
 				.pCode	  = reinterpret_cast<uint32_t const*>(bytecode.data()),
 			};
-			VkShaderModule unowned_shader;
-
-			auto result = api.vkCreateShaderModule(api.device, &shader_info, nullptr, &unowned_shader);
-			shader.reset(unowned_shader, api);
-			VT_ENSURE_RESULT(result, "Failed to create Vulkan shader module.");
+			auto result = api.vkCreateShaderModule(api.device, &shader_info, nullptr, std::out_ptr(shader, api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan shader module.");
 		}
 
 		VkShaderModule ptr() const

@@ -2,6 +2,7 @@
 #include <vector>
 export module vt.Graphics.DriverBase;
 
+import vt.Core.SmallList;
 import vt.Graphics.Handle;
 
 namespace vt
@@ -11,6 +12,6 @@ namespace vt
 	public:
 		virtual ~DriverBase() = default;
 
-		virtual std::vector<Adapter> enumerate_adapters() const = 0;
+		virtual SmallList<Adapter> enumerate_adapters() const = 0;
 	};
 }

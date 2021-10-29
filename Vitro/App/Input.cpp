@@ -1,5 +1,9 @@
 ﻿module;
 #include <new>
+#define MAGIC_ENUM_USING_ALIAS_STRING_VIEW using string_view = std::string_view;
+#define MAGIC_ENUM_RANGE_MIN			   (INT16_MIN + 1)
+#define MAGIC_ENUM_RANGE_MAX			   (INT16_MAX - 1)
+#include <magic_enum/include/magic_enum.hpp>
 export module vt.App.Input;
 
 import vt.App.EventListener;

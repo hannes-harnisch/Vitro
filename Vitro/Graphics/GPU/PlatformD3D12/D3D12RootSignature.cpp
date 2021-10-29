@@ -10,6 +10,7 @@ export module vt.Graphics.D3D12.RootSignature;
 
 import vt.Core.Array;
 import vt.Core.Enum;
+import vt.Core.SmallList;
 import vt.Graphics.D3D12.DescriptorSetLayout;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Sampler;
@@ -43,7 +44,7 @@ namespace vt::d3d12
 			if(spec.push_constants_byte_size % sizeof(DWORD) != 0)
 				throw std::invalid_argument(std::format("Push constants byte size must be divisible by {}.", sizeof(DWORD)));
 
-			std::vector<D3D12_ROOT_PARAMETER1> parameters;
+			SmallList<D3D12_ROOT_PARAMETER1> parameters;
 			parameters.reserve(D3D12_MAX_ROOT_COST);
 			parameters.emplace_back(D3D12_ROOT_PARAMETER1 {
 				.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
@@ -55,8 +56,8 @@ namespace vt::d3d12
 				.ShaderVisibility = convert_shader_stage(spec.push_constants_visibility),
 			});
 
-			std::vector<D3D12_DESCRIPTOR_RANGE1>   descriptor_ranges;
-			std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
+			SmallList<D3D12_DESCRIPTOR_RANGE1>	 descriptor_ranges;
+			SmallList<D3D12_STATIC_SAMPLER_DESC> static_samplers;
 
 			uint8_t index = 0;
 			for(auto& layout : spec.layouts)
@@ -102,18 +103,13 @@ namespace vt::d3d12
 					.Flags			   = D3D12_ROOT_SIGNATURE_FLAG_NONE,
 				},
 			};
-			ID3DBlob *unowned_blob, *unowned_error;
+			ComUnique<ID3DBlob> blob, error_blob;
+			auto result = D3D12SerializeVersionedRootSignature(&desc, std::out_ptr(blob), std::out_ptr(error_blob));
+			VT_CHECK_RESULT(result, "Failed to serialize D3D12 root signature.");
 
-			auto result = D3D12SerializeVersionedRootSignature(&desc, &unowned_blob, &unowned_error);
-
-			ComUnique<ID3DBlob> blob(unowned_blob), error(unowned_error);
-			VT_ASSERT_RESULT(result, "Failed to serialize D3D12 root signature.");
-
-			ID3D12RootSignature* unowned_root_signature;
 			result = device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
-												 IID_PPV_ARGS(&unowned_root_signature));
-			root_signature.reset(unowned_root_signature);
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 root signature.");
+												 VT_COM_OUT(root_signature));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 root signature.");
 		}
 
 		RootSignatureParameterMap const& get_parameter_map() const

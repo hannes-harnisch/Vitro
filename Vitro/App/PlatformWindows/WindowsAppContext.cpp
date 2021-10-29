@@ -26,18 +26,25 @@ namespace vt::windows
 			WNDCLASS const window_class {
 				.style		   = CS_DBLCLKS,
 				.lpfnWndProc   = forward_messages,
+				.cbClsExtra	   = 0,
+				.cbWndExtra	   = 0,
 				.hInstance	   = get_system_window_owner(),
+				.hIcon		   = nullptr,
+				.hCursor	   = nullptr,
+				.hbrBackground = nullptr,
+				.lpszMenuName  = nullptr,
 				.lpszClassName = WindowsWindow::WINDOW_CLASS_NAME,
 			};
-			ATOM registered = ::RegisterClass(&window_class);
-			VT_ENSURE(registered, "Failed to register window class.");
+			call_win32<::RegisterClass>("Failed to register window class.", &window_class);
 
 			RAWINPUTDEVICE const raw_input_device {
 				.usUsagePage = 0x01, // Usage page constant for generic desktop controls
 				.usUsage	 = 0x02, // Usage constant for a generic mouse
+				.dwFlags	 = 0,
+				.hwndTarget	 = nullptr,
 			};
-			BOOL succeeded = ::RegisterRawInputDevices(&raw_input_device, 1, sizeof(RAWINPUTDEVICE));
-			VT_ENSURE(succeeded, "Failed to register raw input device.");
+			call_win32<::RegisterRawInputDevices>("Failed to register raw input device.", &raw_input_device, 1,
+												  static_cast<UINT>(sizeof(RAWINPUTDEVICE)));
 		}
 
 		void poll_events()
@@ -266,15 +273,16 @@ namespace vt::windows
 
 		void on_window_size(HWND hwnd, LPARAM l_param) const
 		{
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
-
 			Extent size {
 				.width	= LOWORD(l_param),
 				.height = HIWORD(l_param),
 			};
-			EventSystem::notify<WindowSizeEvent>(*window, size);
+			if(size.zero())
+				return;
+
+			auto window = find_window(hwnd);
+			if(window)
+				EventSystem::notify<WindowSizeEvent>(*window, size);
 		}
 
 		void restore_window_cursor_state(HWND hwnd, WPARAM w_param) const
@@ -319,11 +327,11 @@ namespace vt::windows
 			UINT size;
 
 			UINT result = ::GetRawInputData(input_handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
-			VT_ASSERT(result != -1, "Failed to query raw input data size.");
+			VT_ENSURE(result != -1, "Failed to query raw input data size.");
 
 			Array<BYTE> bytes(size);
 			result = ::GetRawInputData(input_handle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
-			VT_ASSERT(result != -1, "Failed to read raw input data.");
+			VT_ENSURE(result != -1, "Failed to read raw input data.");
 
 			auto input = new(bytes.data()) RAWINPUT;
 			Int2 direction {

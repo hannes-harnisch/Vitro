@@ -23,15 +23,16 @@ namespace vt
 	export class ForwardRenderer : public RendererBase
 	{
 	public:
-		ForwardRenderer(Device& device) : RendererBase(device), present_pass(make_present_pass()), context(device)
+		ForwardRenderer(Device& device, ImageFormat swap_chain_format) :
+			RendererBase(device), present_pass(make_present_pass(swap_chain_format)), context(device)
 		{
 			RootSignatureSpecification const root_sig_spec {
 				.push_constants_byte_size = sizeof(Float4),
 			};
 			auto& sig = root_signatures.emplace_back(device->make_root_signature(root_sig_spec));
 
-			auto vertex_shader	 = device->make_shader("Triangle.vert.cso");
-			auto fragment_shader = device->make_shader("Triangle.frag.cso");
+			auto vertex_shader	 = device->make_shader("Triangle.vert." VT_SHADER_EXTENSION);
+			auto fragment_shader = device->make_shader("Triangle.frag." VT_SHADER_EXTENSION);
 
 			RenderPipelineSpecification const pipe_spec {
 				.root_signature		= sig,
@@ -56,7 +57,7 @@ namespace vt
 		}
 
 	protected:
-		std::vector<CommandListHandle> render(RenderTarget const& render_target) override
+		SmallList<CommandListHandle> render(RenderTarget const& render_target) override
 		{
 			context->deletion_queue.delete_all();
 
@@ -71,8 +72,8 @@ namespace vt
 				.color = clear_color,
 			};
 			cmd->begin_render_pass(present_pass, render_target, clear_value);
-			cmd->bind_render_root_signature(root_signatures.front());
-			cmd->bind_render_pipeline(render_pipelines.front());
+			cmd->bind_render_root_signature(root_signatures[0]);
+			cmd->bind_render_pipeline(render_pipelines[0]);
 
 			Viewport viewport {
 				.width	= static_cast<float>(render_target.get_width()),
@@ -128,7 +129,7 @@ namespace vt
 		};
 		RingBuffer<FrameResources> context;
 
-		RenderPass make_present_pass()
+		RenderPass make_present_pass(ImageFormat swap_chain_format)
 		{
 			Subpass subpass {
 				.output_attachments = {0},
@@ -136,7 +137,7 @@ namespace vt
 			RenderPassSpecification const spec {
 				.attachments {
 					AttachmentSpecification {
-						.format			= ImageFormat::R8_G8_B8_A8_UNorm,
+						.format			= swap_chain_format,
 						.load_op		= ImageLoadOp::Clear,
 						.store_op		= ImageStoreOp::Store,
 						.initial_layout = ImageLayout::Undefined,

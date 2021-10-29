@@ -35,7 +35,6 @@
 
 #endif
 
-#include <format>
 #include <stdexcept>
 
 #if VT_DEBUG
@@ -43,69 +42,70 @@
 	#include <cstdlib>
 
 	#define VT_UNREACHABLE()                                                                                                   \
+		do                                                                                                                     \
 		{                                                                                                                      \
 			VT_DEBUG_BREAK();                                                                                                  \
 			std::abort();                                                                                                      \
-		}
+		} while(false)
 
-	#define VT_ASSERT(condition, message)                                                                                      \
+	#define VT_ASSERT(CONDITION, MESSAGE)                                                                                      \
+		do                                                                                                                     \
 		{                                                                                                                      \
-			if(!(condition))                                                                                                   \
+			if(!(CONDITION))                                                                                                   \
 			{                                                                                                                  \
 				VT_DEBUG_BREAK();                                                                                              \
 				std::abort();                                                                                                  \
 			}                                                                                                                  \
-		}
+		} while(false)
 
-	#define VT_ASSERT_PURE(condition, message)	 VT_ASSERT(condition, message)
-	#define VT_ASSERT_RESULT(condition, message) VT_ASSERT((condition) >= 0, message)
+	#define VT_ASSERT_PURE(CONDITION, MESSAGE) VT_ASSERT(CONDITION, MESSAGE)
 
-	#define VT_ENSURE(condition, message, ...)                                                                                 \
+	#define VT_ENSURE(CONDITION, MESSAGE)                                                                                      \
+		do                                                                                                                     \
 		{                                                                                                                      \
-			if(!(condition))                                                                                                   \
+			if(!(CONDITION))                                                                                                   \
 			{                                                                                                                  \
 				VT_DEBUG_BREAK();                                                                                              \
-				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
+				throw std::runtime_error(MESSAGE);                                                                             \
 			}                                                                                                                  \
-		}
-
-	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE((condition) >= 0, message)
+		} while(false)
 
 #else
 
 	#define VT_UNREACHABLE() VT_ASSUME_UNREACHABLE()
 
-	#define VT_ASSERT_PURE(condition, message)
-	#define VT_ASSERT(condition, message)		 static_cast<void>(condition)
-	#define VT_ASSERT_RESULT(condition, message) static_cast<void>(condition)
+	#define VT_ASSERT_PURE(CONDITION, MESSAGE)
+	#define VT_ASSERT(CONDITION, MESSAGE) static_cast<void>(CONDITION)
 
-	#define VT_ENSURE(condition, message, ...)                                                                                 \
+	#define VT_ENSURE(CONDITION, MESSAGE)                                                                                      \
+		do                                                                                                                     \
 		{                                                                                                                      \
-			if(!(condition))                                                                                                   \
-				throw std::runtime_error(std::format(message, __VA_ARGS__));                                                   \
-		}
-
-	#define VT_ENSURE_RESULT(condition, message) VT_ENSURE((condition) >= 0, message)
+			if(!(CONDITION))                                                                                                   \
+				throw std::runtime_error(MESSAGE);                                                                             \
+		} while(false)
 
 #endif
 
-#define VT_PASTE_IMPL(first, second) first##second
-#define VT_PASTE(first, second)		 VT_PASTE_IMPL(first, second)
+// Use for checking result enum types from APIs where only negative values indicate failure.
+#define VT_CHECK_RESULT(CONDITION, MESSAGE) VT_ENSURE((CONDITION) >= 0, MESSAGE)
 
-#define VT_STRINGIFY_IMPL(token) #token
-#define VT_STRINGIFY(token)		 VT_STRINGIFY_IMPL(token)
+#define VT_PASTE_IMPL(FIRST, SECOND) FIRST##SECOND
+#define VT_PASTE(FIRST, SECOND)		 VT_PASTE_IMPL(FIRST, SECOND)
 
-#define VT_EXPAND_MACRO(macro) macro
+#define VT_STRINGIFY_IMPL(TOKEN) #TOKEN
+#define VT_STRINGIFY(TOKEN)		 VT_STRINGIFY_IMPL(TOKEN)
+
+#define VT_EXPAND_MACRO(MACRO) MACRO
 #define VT_SYSTEM_HEADER	   <Core/VT_PASTE(Platform, VT_SYSTEM_MODULE)/##VT_EXPAND_MACRO(VT_SYSTEM_MODULE)##API.hpp>
 
 #if VT_DYNAMIC_GPU_API
 
-	#define VT_GPU_API_VARIANT_ARGS(object)                                                                                    \
-		VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, object),                                                                  \
-			VT_GPU_API_NAME_SECONDARY::VT_PASTE(VT_GPU_API_MODULE_SECONDARY, object)
+	#define VT_GPU_API_VARIANT_ARGS(OBJECT)                                                                                    \
+		VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, OBJECT),                                                                  \
+			VT_GPU_API_NAME_SECONDARY::VT_PASTE(VT_GPU_API_MODULE_SECONDARY, OBJECT)
 
 #else
 
-	#define VT_GPU_API_VARIANT_ARGS(object) VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, object)
+	#define VT_GPU_API_VARIANT_ARGS(OBJECT) VT_GPU_API_NAME::VT_PASTE(VT_GPU_API_MODULE, OBJECT)
 
 #endif

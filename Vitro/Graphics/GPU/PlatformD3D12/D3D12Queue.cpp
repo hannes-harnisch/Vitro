@@ -15,7 +15,7 @@ namespace vt::d3d12
 			return;
 
 		auto result = fence->SetEventOnCompletion(value_to_await, nullptr);
-		VT_ASSERT_RESULT(result, "Failed to wait for queue workload completion.");
+		VT_CHECK_RESULT(result, "Failed to wait for queue workload completion.");
 	}
 
 	export class Queue
@@ -28,19 +28,14 @@ namespace vt::d3d12
 				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
 			};
-			ID3D12CommandQueue* unowned_queue;
+			auto result = device->CreateCommandQueue(&desc, VT_COM_OUT(queue));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 command queue.");
 
-			auto result = device->CreateCommandQueue(&desc, IID_PPV_ARGS(&unowned_queue));
-			queue.reset(unowned_queue);
-			VT_ENSURE_RESULT(result, "Failed to create D3D12 command queue.");
-
-			ID3D12Fence* unowned_fence;
-			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&unowned_fence));
-			fence.reset(unowned_fence);
-			VT_ENSURE_RESULT(result, "Failed to create D3D12 fence.");
+			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, VT_COM_OUT(fence));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 fence.");
 		}
 
-		void wait_for_idle()
+		void flush()
 		{
 			wait_for_fence_value(fence.get(), signal());
 		}
@@ -50,7 +45,7 @@ namespace vt::d3d12
 			for(auto token : gpu_wait_tokens)
 			{
 				auto result = queue->Wait(token.d3d12.fence, token.d3d12.fence_value);
-				VT_ASSERT_RESULT(result, "Failed to insert queue wait for workload.");
+				VT_CHECK_RESULT(result, "Failed to insert queue wait for workload.");
 			}
 
 			auto lists = reinterpret_cast<ID3D12CommandList* const*>(cmd_lists.data());
@@ -60,7 +55,7 @@ namespace vt::d3d12
 		uint64_t signal()
 		{
 			auto result = queue->Signal(fence.get(), ++fence_value);
-			VT_ASSERT_RESULT(result, "Failed to signal command queue.");
+			VT_CHECK_RESULT(result, "Failed to signal command queue.");
 
 			return fence_value;
 		}

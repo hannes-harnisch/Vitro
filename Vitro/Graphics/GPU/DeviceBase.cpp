@@ -34,14 +34,9 @@ namespace vt
 		virtual std::vector<DescriptorSet>	 make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts)		  = 0;
 		virtual DescriptorSetLayout			 make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) = 0;
 		virtual RenderPass					 make_render_pass(RenderPassSpecification const& spec)					  = 0;
-		virtual RenderTarget				 make_render_target(RenderTargetSpecification const& spec)				  = 0;
 		virtual RootSignature				 make_root_signature(RootSignatureSpecification const& spec)			  = 0;
 		virtual Sampler						 make_sampler(SamplerSpecification const& spec)							  = 0;
 		virtual Shader						 make_shader(char const path[])											  = 0;
-
-		virtual RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
-												SwapChain const&					   swap_chain,
-												unsigned							   back_buffer_index) = 0;
 
 		virtual SwapChain make_swap_chain(Driver& driver,
 										  Window& window,
@@ -61,7 +56,21 @@ namespace vt
 		virtual void flush_render_queue()						 = 0;
 		virtual void flush_compute_queue()						 = 0;
 		virtual void flush_copy_queue()							 = 0;
-		virtual void wait_for_idle()							 = 0;
+		virtual void flush()									 = 0;
+
+		RenderTarget make_render_target(RenderTargetSpecification const& spec)
+		{
+			validate_render_target_spec(spec);
+			return make_platform_render_target(spec);
+		}
+
+		RenderTarget make_render_target(SharedRenderTargetSpecification const& spec,
+										SwapChain const&					   swap_chain,
+										unsigned							   back_buffer_index)
+		{
+			validate_shared_target_spec(spec, swap_chain, back_buffer_index);
+			return make_platform_render_target(spec, swap_chain, back_buffer_index);
+		}
 
 		void recreate_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec)
 		{
@@ -79,6 +88,12 @@ namespace vt
 		}
 
 	private:
+		virtual RenderTarget make_platform_render_target(RenderTargetSpecification const& spec) = 0;
+
+		virtual RenderTarget make_platform_render_target(SharedRenderTargetSpecification const& spec,
+														 SwapChain const&						swap_chain,
+														 unsigned								back_buffer_index) = 0;
+
 		virtual void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) = 0;
 
 		virtual void recreate_platform_render_target(RenderTarget&							render_target,

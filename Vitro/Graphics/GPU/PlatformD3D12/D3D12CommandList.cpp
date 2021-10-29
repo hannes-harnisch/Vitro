@@ -47,11 +47,14 @@ namespace vt::d3d12
 	{
 	protected:
 		RootSignatureParameterMap const* bound_compute_root_indices = nullptr;
+		ID3D12CommandSignature*			 dispatch_signature;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
+		ID3D12CommandSignature*			 draw_signature;
+		ID3D12CommandSignature*			 draw_indexed_signature;
 		RootSignatureParameterMap const* bound_render_root_indices = nullptr;
 		D3D12RenderPass const*			 bound_render_pass		   = nullptr;
 		D3D12RenderTarget const*		 bound_render_target	   = nullptr;
@@ -62,18 +65,26 @@ namespace vt::d3d12
 	export template<CommandType TYPE> class D3D12CommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
 	{
 	public:
-		D3D12CommandList(ID3D12Device4* device, DescriptorPool& pool) : descriptor_pool(&pool)
+		D3D12CommandList(ID3D12Device4*			 device,
+						 DescriptorPool&		 pool,
+						 ID3D12CommandSignature* dispatch_signature,
+						 ID3D12CommandSignature* draw_signature,
+						 ID3D12CommandSignature* draw_indexed_signature) :
+			descriptor_pool(&pool)
 		{
-			ID3D12CommandAllocator* unowned_allocator;
+			if constexpr(TYPE != CommandType::Copy)
+				this->dispatch_signature = dispatch_signature;
+			if constexpr(TYPE == CommandType::Render)
+			{
+				this->draw_signature		 = draw_signature;
+				this->draw_indexed_signature = draw_indexed_signature;
+			}
 
-			auto result = device->CreateCommandAllocator(COMMAND_LIST_TYPE, IID_PPV_ARGS(&unowned_allocator));
-			allocator.reset(unowned_allocator);
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 command allocator.");
+			auto result = device->CreateCommandAllocator(COMMAND_LIST_TYPE, VT_COM_OUT(allocator));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 command allocator.");
 
-			ID3D12GraphicsCommandList4* unowned_cmd;
-			result = device->CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, IID_PPV_ARGS(&unowned_cmd));
-			cmd.reset(unowned_cmd);
-			VT_ASSERT_RESULT(result, "Failed to create D3D12 command list.");
+			result = device->CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, VT_COM_OUT(cmd));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 command list.");
 		}
 
 		CommandListHandle handle()
@@ -84,13 +95,13 @@ namespace vt::d3d12
 		void reset()
 		{
 			auto result = allocator->Reset();
-			VT_ASSERT_RESULT(result, "Failed to reset D3D12 command allocator.");
+			VT_CHECK_RESULT(result, "Failed to reset D3D12 command allocator.");
 		}
 
 		void begin()
 		{
 			auto result = cmd->Reset(allocator.get(), nullptr);
-			VT_ASSERT_RESULT(result, "Failed to reset D3D12 command list.");
+			VT_CHECK_RESULT(result, "Failed to reset D3D12 command list.");
 
 			auto heaps = descriptor_pool->get_shader_visible_heaps();
 			cmd->SetDescriptorHeaps(2, heaps.data());
@@ -99,7 +110,7 @@ namespace vt::d3d12
 		void end()
 		{
 			auto result = cmd->Close();
-			VT_ASSERT_RESULT(result, "Failed to end D3D12 command list.");
+			VT_CHECK_RESULT(result, "Failed to end D3D12 command list.");
 
 			if constexpr(TYPE == CommandType::Render)
 				this->bound_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
@@ -120,7 +131,7 @@ namespace vt::d3d12
 		{
 			for(auto& set : descriptor_sets)
 			{
-				unsigned index = this->bound_compute_root_indices->find(set.d3d12.get_layout_id());
+				UINT index = this->bound_compute_root_indices->find(set.d3d12.get_layout_id());
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
@@ -154,6 +165,11 @@ namespace vt::d3d12
 			cmd->Dispatch(x_count, y_count, z_count);
 		}
 
+		void dispatch_indirect(Buffer const& buffer, size_t offset)
+		{
+			cmd->ExecuteIndirect(this->dispatch_signature, 1, buffer.d3d12.get_resource(), offset, nullptr, 0);
+		}
+
 		void begin_render_pass(RenderPass const&	 render_pass,
 							   RenderTarget const&	 render_target,
 							   ConstSpan<ClearValue> clear_values = {})
@@ -169,7 +185,7 @@ namespace vt::d3d12
 
 			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs;
 
-			unsigned index = 0;
+			size_t index = 0;
 			for(auto access : pass.get_render_target_accesses())
 			{
 				D3D12_CLEAR_VALUE color_clear;
@@ -267,6 +283,7 @@ namespace vt::d3d12
 			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
 
 			this->subpass_index++;
+			throw "Not implemented.";
 		}
 
 		void end_render_pass()
@@ -299,7 +316,7 @@ namespace vt::d3d12
 		{
 			for(auto& set : descriptor_sets)
 			{
-				unsigned index = this->bound_render_root_indices->find(set.d3d12.get_layout_id());
+				UINT index = this->bound_render_root_indices->find(set.d3d12.get_layout_id());
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
@@ -408,6 +425,16 @@ namespace vt::d3d12
 						  unsigned first_instance)
 		{
 			cmd->DrawIndexedInstanced(index_count, instance_count, first_index, vertex_offset, first_instance);
+		}
+
+		void draw_indirect(Buffer const& buffer, size_t offset, unsigned draws)
+		{
+			cmd->ExecuteIndirect(this->draw_signature, draws, buffer.d3d12.get_resource(), offset, nullptr, 0);
+		}
+
+		void draw_indexed_indirect(Buffer const& buffer, size_t offset, unsigned draws)
+		{
+			cmd->ExecuteIndirect(this->draw_indexed_signature, draws, buffer.d3d12.get_resource(), offset, nullptr, 0);
 		}
 
 	private:

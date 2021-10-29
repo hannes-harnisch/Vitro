@@ -56,6 +56,23 @@ namespace vt
 			return is_cursor_enabled;
 		}
 
+		void enable_resize()
+		{
+			is_resize_enabled = true;
+			SystemWindow::enable_resize();
+		}
+
+		void disable_resize()
+		{
+			is_resize_enabled = false;
+			SystemWindow::disable_resize();
+		}
+
+		bool resize_enabled() const
+		{
+			return is_resize_enabled;
+		}
+
 		Extent get_size() const
 		{
 			return SystemWindow::get_size();
@@ -101,6 +118,7 @@ namespace vt
 
 	private:
 		bool is_cursor_enabled = true;
+		bool is_resize_enabled = true;
 	};
 
 	export class Window : public WindowImpl, public ObjectEventSentinel<Window>

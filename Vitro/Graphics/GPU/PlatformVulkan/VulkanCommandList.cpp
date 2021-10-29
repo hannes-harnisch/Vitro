@@ -2,6 +2,7 @@
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
 
+#include <memory>
 #include <ranges>
 #include <type_traits>
 #include <vector>
@@ -44,17 +45,14 @@ namespace vt::vulkan
 	class VulkanCommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
 	{
 	public:
-		VulkanCommandList(unsigned queue_family, DeviceApiTable const& api) : api(&api)
+		VulkanCommandList(uint32_t queue_family, DeviceApiTable const& in_api) : api(&in_api)
 		{
 			VkCommandPoolCreateInfo const pool_info {
 				.sType			  = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 				.queueFamilyIndex = queue_family,
 			};
-			VkCommandPool unowned_pool;
-
-			auto result = api.vkCreateCommandPool(api.device, &pool_info, nullptr, &unowned_pool);
-			pool.reset(unowned_pool, api);
-			VT_ASSERT_RESULT(result, "Failed to create Vulkan command pool.");
+			auto result = api->vkCreateCommandPool(api->device, &pool_info, nullptr, std::out_ptr(pool, *api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan command pool.");
 
 			VkCommandBufferAllocateInfo const alloc_info {
 				.sType				= VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -62,8 +60,8 @@ namespace vt::vulkan
 				.level				= VK_COMMAND_BUFFER_LEVEL_PRIMARY,
 				.commandBufferCount = 1,
 			};
-			result = api.vkAllocateCommandBuffers(api.device, &alloc_info, &cmd);
-			VT_ASSERT_RESULT(result, "Failed to allocate Vulkan command buffer.");
+			result = api->vkAllocateCommandBuffers(api->device, &alloc_info, &cmd);
+			VT_CHECK_RESULT(result, "Failed to allocate Vulkan command buffer.");
 		}
 
 		CommandListHandle handle()
@@ -74,7 +72,7 @@ namespace vt::vulkan
 		void reset()
 		{
 			auto result = api->vkResetCommandPool(api->device, pool.get(), 0);
-			VT_ASSERT_RESULT(result, "Failed to reset Vulkan command pool.");
+			VT_CHECK_RESULT(result, "Failed to reset Vulkan command pool.");
 		}
 
 		void begin()
@@ -85,13 +83,13 @@ namespace vt::vulkan
 				.pInheritanceInfo = nullptr,
 			};
 			auto result = api->vkBeginCommandBuffer(cmd, &begin_info);
-			VT_ASSERT_RESULT(result, "Failed to begin Vulkan command buffer.");
+			VT_CHECK_RESULT(result, "Failed to begin Vulkan command buffer.");
 		}
 
 		void end()
 		{
 			auto result = api->vkEndCommandBuffer(cmd);
-			VT_ASSERT_RESULT(result, "Failed to end Vulkan command buffer.");
+			VT_CHECK_RESULT(result, "Failed to end Vulkan command buffer.");
 		}
 
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
@@ -112,12 +110,17 @@ namespace vt::vulkan
 		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
 			api->vkCmdPushConstants(cmd, this->bound_compute_layout->ptr(), VK_SHADER_STAGE_COMPUTE_BIT,
-									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
+									static_cast<uint32_t>(byte_offset), static_cast<uint32_t>(byte_size), data);
 		}
 
 		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
 		{
 			api->vkCmdDispatch(cmd, x_count, y_count, z_count);
+		}
+
+		void dispatch_indirect(Buffer const& buffer, size_t offset)
+		{
+			api->vkCmdDispatchIndirect(cmd, buffer.vulkan.ptr(), offset);
 		}
 
 		void begin_render_pass(RenderPass const&	 render_pass,
@@ -171,8 +174,8 @@ namespace vt::vulkan
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_render_layout->ptr(), VK_SHADER_STAGE_ALL_GRAPHICS,
-									static_cast<unsigned>(byte_offset), static_cast<unsigned>(byte_size), data);
+			api->vkCmdPushConstants(cmd, this->bound_render_layout->ptr(), VK_SHADER_STAGE_ALL,
+									static_cast<uint32_t>(byte_offset), static_cast<uint32_t>(byte_size), data);
 		}
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
@@ -241,6 +244,16 @@ namespace vt::vulkan
 			api->vkCmdDrawIndexed(cmd, index_count, instance_count, first_index, vertex_offset, first_instance);
 		}
 
+		void draw_indirect(Buffer const& buffer, size_t offset, unsigned draws)
+		{
+			api->vkCmdDrawIndirect(cmd, buffer.vulkan.ptr(), offset, draws, sizeof(VkDrawIndirectCommand));
+		}
+
+		void draw_indexed_indirect(Buffer const& buffer, size_t offset, unsigned draws)
+		{
+			api->vkCmdDrawIndexedIndirect(cmd, buffer.vulkan.ptr(), offset, draws, sizeof(VkDrawIndexedIndirectCommand));
+		}
+
 	private:
 		DeviceApiTable const* api;
 		UniqueVkCommandPool	  pool;
@@ -260,17 +273,17 @@ namespace vt::vulkan
 								  VulkanRootSignature const& root_signature,
 								  ArrayView<DescriptorSet>	 descriptor_sets) const
 		{
-			std::vector<VkDescriptorSet> sets;
+			SmallList<VkDescriptorSet> sets;
 			sets.reserve(descriptor_sets.size());
 			auto layout = root_signature.ptr();
 
-			sets.emplace_back(descriptor_sets.front().vulkan.ptr());
-			unsigned start_index = root_signature.get_layout_index(descriptor_sets.front().vulkan.get_layout());
-			unsigned prev_index	 = start_index;
+			sets.emplace_back(descriptor_sets[0].vulkan.ptr());
+			uint32_t start_index = root_signature.get_layout_index(descriptor_sets[0].vulkan.get_layout());
+			uint32_t prev_index	 = start_index;
 
 			for(auto& set : descriptor_sets | std::views::drop(1))
 			{
-				unsigned index = root_signature.get_layout_index(set.vulkan.get_layout());
+				uint32_t index = root_signature.get_layout_index(set.vulkan.get_layout());
 				if(index != prev_index + 1)
 				{
 					api->vkCmdBindDescriptorSets(cmd, bind_point, layout, start_index, count(sets), sets.data(), 0, nullptr);

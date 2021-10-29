@@ -10,7 +10,7 @@ namespace vt::vulkan
 	export class DescriptorPool
 	{
 	public:
-		DescriptorPool(DeviceApiTable const& api)
+		DescriptorPool(DeviceApiTable const&)
 		{}
 
 	private:

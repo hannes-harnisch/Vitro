@@ -12,6 +12,11 @@ namespace vt::d3d12
 		D3D12Buffer(D3D12MA::Allocator*)
 		{}
 
+		ID3D12Resource* get_resource() const
+		{
+			return buffer.get();
+		}
+
 		D3D12_GPU_VIRTUAL_ADDRESS get_gpu_address() const
 		{
 			return buffer->GetGPUVirtualAddress();

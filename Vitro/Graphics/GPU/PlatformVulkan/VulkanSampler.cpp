@@ -1,6 +1,8 @@
 ﻿module;
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
+
+#include <memory>
 export module vt.Graphics.Vulkan.Sampler;
 
 import vt.Graphics.DescriptorBinding;
@@ -112,11 +114,8 @@ namespace vt::vulkan
 				.borderColor			 = convert_border_color(spec.border_color),
 				.unnormalizedCoordinates = false,
 			};
-			VkSampler unowned_sampler;
-
-			auto result = api.vkCreateSampler(api.device, &sampler_info, nullptr, &unowned_sampler);
-			sampler.reset(unowned_sampler, api);
-			VT_ASSERT_RESULT(result, "Failed to create Vulkan sampler.");
+			auto result = api.vkCreateSampler(api.device, &sampler_info, nullptr, std::out_ptr(sampler, api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan sampler.");
 		}
 
 		VkSampler ptr() const
