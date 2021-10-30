@@ -20,8 +20,8 @@ namespace vt
 	export class RenderTarget : public PlatformRenderTarget
 	{
 	public:
-		// Only intended to be called internally.
-		RenderTarget(PlatformRenderTarget platform_render_target, unsigned width, unsigned height) :
+		// This constructor is for internal use only.
+		RenderTarget(PlatformRenderTarget&& platform_render_target, unsigned width, unsigned height) :
 			PlatformRenderTarget(std::move(platform_render_target)), width(width), height(height)
 		{}
 

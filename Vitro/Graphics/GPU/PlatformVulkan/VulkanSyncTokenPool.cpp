@@ -10,7 +10,7 @@ export module vt.Graphics.Vulkan.SyncTokenPool;
 import vt.Core.Array;
 import vt.Core.SmallList;
 import vt.Graphics.Handle;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 import vt.Trace.Log;
 
 namespace vt::vulkan
@@ -51,25 +51,13 @@ namespace vt::vulkan
 	export class SyncTokenPool
 	{
 	public:
-		SyncTokenPool(DeviceApiTable const& api) : api(&api)
+		SyncTokenPool(DeviceApiTable const& api)
 		{
 			for(int i = 0; i != INITIAL_COUNT; ++i)
 				tokens.emplace_back(api, VK_FENCE_CREATE_SIGNALED_BIT);
 		}
 
-		~SyncTokenPool()
-		{
-			SmallList<VkFence> fences;
-			fences.reserve(tokens.size());
-			for(auto& token : tokens)
-				fences.emplace_back(token.fence.get());
-
-			auto result = api->vkWaitForFences(api->device, count(fences), fences.data(), true, UINT64_MAX);
-			if(result != VK_SUCCESS)
-				Log().error("Failed to wait for Vulkan fences before sync token pool destruction.");
-		}
-
-		SyncToken acquire_token()
+		SyncToken acquire_token(DeviceApiTable const& api)
 		{
 			size_t size = tokens.size();
 			size_t i	= current_index;
@@ -77,11 +65,11 @@ namespace vt::vulkan
 			{
 				auto& current_token = tokens[i];
 
-				auto status = api->vkGetFenceStatus(api->device, current_token.fence.get());
+				auto status = api.vkGetFenceStatus(api.device, current_token.fence.get());
 				if(status == VK_SUCCESS)
 				{
 					auto fence	= current_token.fence.get();
-					auto result = api->vkResetFences(api->device, 1, &fence);
+					auto result = api.vkResetFences(api.device, 1, &fence);
 					VT_CHECK_RESULT(result, "Failed to reset Vulkan fence.");
 
 					++current_token.resets;
@@ -96,7 +84,8 @@ namespace vt::vulkan
 			} while(i != current_index);
 
 			// All existing tokens are somehow still in use, so grow the pool with an unsignaled token and return the new one.
-			auto new_token = tokens.emplace(tokens.begin() + current_index, *api, 0);
+
+			auto new_token = tokens.emplace(tokens.begin() + current_index, api, 0);
 			Log().warn("The Vulkan sync token pool was grown. It is possible too much work is being submitted to the GPU.");
 
 			advance_index();
@@ -111,14 +100,25 @@ namespace vt::vulkan
 			return it->resets;
 		}
 
+		void await_all_fences(DeviceApiTable const& api) const
+		{
+			SmallList<VkFence> fences;
+			fences.reserve(tokens.size());
+			for(auto& token : tokens)
+				fences.emplace_back(token.fence.get());
+
+			auto result = api.vkWaitForFences(api.device, count(fences), fences.data(), true, UINT64_MAX);
+			VT_CHECK_RESULT(result, "Failed to wait for Vulkan fences before sync token pool destruction.");
+		}
+
 		// Logs a visualization of the status of all fences in the pool. '_' means signaled, '!' means unsignaled.
-		void log_fence_states() const
+		void log_fence_states(DeviceApiTable const& api) const
 		{
 			std::string states;
 			states.reserve(tokens.size());
 			for(auto& token : tokens)
 			{
-				auto state	= api->vkGetFenceStatus(api->device, token.fence.get());
+				auto state	= api.vkGetFenceStatus(api.device, token.fence.get());
 				char symbol = state == VK_SUCCESS ? '_' : '!';
 				states.push_back(symbol);
 			}
@@ -128,7 +128,6 @@ namespace vt::vulkan
 	private:
 		static constexpr size_t INITIAL_COUNT = 20;
 
-		DeviceApiTable const*		 api;
 		std::vector<UniqueSyncToken> tokens;
 		size_t						 current_index = 0;
 

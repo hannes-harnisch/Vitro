@@ -23,7 +23,7 @@ namespace vt
 	export struct RootSignatureSpecification
 	{
 		Positive<uint8_t>			   push_constants_byte_size;
-		ShaderStage					   push_constants_visibility = ShaderStage::All;
+		Explicit<ShaderStage>		   push_constants_visibility;
 		ConstSpan<DescriptorSetLayout> layouts;
 	};
 }

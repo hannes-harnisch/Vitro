@@ -93,7 +93,7 @@ namespace vt::d3d12
 			case Fragment: return D3D12_SHADER_VISIBILITY_PIXEL;
 			case Task:	   return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
 			case Mesh:	   return D3D12_SHADER_VISIBILITY_MESH;
-			case All:
+			case Render:
 			case Compute:
 			case RayGen:
 			case AnyHit:

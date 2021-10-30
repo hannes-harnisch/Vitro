@@ -17,7 +17,8 @@ namespace vt
 	export class Adapter : public PlatformAdapter
 	{
 	public:
-		Adapter(PlatformAdapter resource, std::string name, size_t vram) :
+		// This constructor is for internal use only.
+		Adapter(PlatformAdapter&& resource, std::string name, size_t vram) :
 			PlatformAdapter(std::move(resource)), name(std::move(name)), vram(vram)
 		{}
 
@@ -38,6 +39,7 @@ namespace vt
 
 	export using CommandListHandle = HandleVariant<VT_GPU_API_VARIANT_ARGS(CommandListHandle)>;
 
-	export struct [[nodiscard]] SyncToken : HandleVariant<VT_GPU_API_VARIANT_ARGS(SyncToken)>
-	{};
+	// Represents an operation happening asynchronously that can be waited on.
+	export struct [[nodiscard("Discarding a sync token may cause errors.")]] SyncToken :
+		HandleVariant<VT_GPU_API_VARIANT_ARGS(SyncToken)> {};
 }

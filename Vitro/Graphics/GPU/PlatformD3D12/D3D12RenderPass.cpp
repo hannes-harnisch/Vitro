@@ -8,7 +8,7 @@ export module vt.Graphics.D3D12.RenderPass;
 import vt.Core.Array;
 import vt.Core.Enum;
 import vt.Core.FixedList;
-import vt.Graphics.D3D12.Texture;
+import vt.Graphics.D3D12.Image;
 import vt.Graphics.RenderPassSpecification;
 
 namespace vt::d3d12
@@ -37,7 +37,7 @@ namespace vt::d3d12
 
 	struct AttachmentAccess
 	{
-		DXGI_FORMAT								format		 : 8; // TODO: Replace with enum reflection
+		DXGI_FORMAT								format		 : 8; // TODO: Replace with enum reflection when possible.
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE begin_access : 3;
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	end_access	 : 3;
 

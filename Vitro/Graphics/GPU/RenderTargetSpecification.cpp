@@ -14,10 +14,10 @@ namespace vt
 {
 	export struct RenderTargetSpecification
 	{
-		using ColorAttachmentList = FixedList<Texture const*, MAX_COLOR_ATTACHMENTS>;
+		using ColorAttachmentList = FixedList<Image const*, MAX_COLOR_ATTACHMENTS>;
 
 		Explicit<ColorAttachmentList> color_attachments;
-		Texture const*				  depth_stencil_attachment = nullptr;
+		Image const*				  depth_stencil_attachment = nullptr;
 		RenderPass const&			  render_pass;
 		Explicit<uint16_t>			  width;
 		Explicit<uint16_t>			  height;
@@ -26,10 +26,10 @@ namespace vt
 	// Specifies render targets shared between renderers.
 	export struct SharedRenderTargetSpecification
 	{
-		using ColorAttachmentList = FixedList<Texture const*, MAX_COLOR_ATTACHMENTS - 1>;
+		using ColorAttachmentList = FixedList<Image const*, MAX_COLOR_ATTACHMENTS - 1>;
 
 		ColorAttachmentList color_attachments;
-		Texture const*		depth_stencil_attachment = nullptr;
+		Image const*		depth_stencil_attachment = nullptr;
 		RenderPass const&	render_pass;
 		Explicit<unsigned>	shared_img_dst_index;
 	};

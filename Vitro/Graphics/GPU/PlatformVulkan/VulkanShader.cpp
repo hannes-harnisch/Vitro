@@ -6,7 +6,7 @@
 export module vt.Graphics.Vulkan.Shader;
 
 import vt.Core.Array;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
@@ -30,7 +30,7 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to create Vulkan shader module.");
 		}
 
-		VkShaderModule ptr() const
+		VkShaderModule get_handle() const
 		{
 			return shader.get();
 		}

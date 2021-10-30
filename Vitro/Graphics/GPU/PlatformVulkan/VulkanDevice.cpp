@@ -3,17 +3,18 @@
 #include "VulkanAPI.hpp"
 
 #include <array>
+#include <bit>
 #include <memory>
 #include <string_view>
 #include <vector>
 export module vt.Graphics.Vulkan.Device;
 
 import vt.Core.Array;
+import vt.Core.SmallList;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.Handle;
 import vt.Graphics.RingBuffer;
 import vt.Graphics.Vulkan.DescriptorPool;
-import vt.Graphics.Vulkan.Driver;
 import vt.Graphics.Vulkan.Handle;
 import vt.Graphics.Vulkan.SyncTokenPool;
 
@@ -22,17 +23,19 @@ namespace vt::vulkan
 	export class VulkanDevice final : public DeviceBase
 	{
 	public:
-		VulkanDevice(Adapter in_adapter) :
+		VulkanDevice(Adapter const& in_adapter) :
 			adapter(in_adapter.vulkan),
 			queue_families(query_queue_families()),
 			device(make_device()),
-			api(std::make_unique<DeviceApiTable>(in_adapter.vulkan, device.get())),
+			api(std::make_unique<DeviceApiTable>(InstanceApiTable::get().vkGetDeviceProcAddr, adapter, device.get())),
 			sync_tokens(*api),
 			descriptor_pool(*api)
 		{
 			api->vkGetDeviceQueue(device.get(), queue_families.render, 0, &render_queue);
 			api->vkGetDeviceQueue(device.get(), queue_families.compute, 0, &compute_queue);
 			api->vkGetDeviceQueue(device.get(), queue_families.copy, 0, &copy_queue);
+
+			initialize_allocator();
 		}
 
 		CopyCommandList make_copy_command_list() override
@@ -50,7 +53,12 @@ namespace vt::vulkan
 			return VulkanCommandList<CommandType::Render>(queue_families.render, *api);
 		}
 
-		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
+		Buffer make_buffer(BufferSpecification const& spec) override
+		{
+			return {VulkanBuffer(spec, *api, allocator.get()), spec};
+		}
+
+		SmallList<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
 		{
 			std::vector<VkComputePipelineCreateInfo> pipeline_infos;
 			pipeline_infos.reserve(specs.size());
@@ -97,9 +105,9 @@ namespace vt::vulkan
 			return render_pipelines;
 		}
 
-		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout>) override
+		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> layouts) override
 		{
-			return {};
+			return descriptor_pool.make_descriptor_sets(layouts, *api);
 		}
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
@@ -127,9 +135,29 @@ namespace vt::vulkan
 			return VulkanShader(path, *api);
 		}
 
-		SwapChain make_swap_chain(Driver&, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
+		SwapChain make_swap_chain(Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
 		{
-			return {queue_families.render, window, buffer_count, sync_tokens, *api};
+			return VulkanSwapChain(queue_families.render, window, buffer_count, sync_tokens, *api);
+		}
+
+		void* map(Buffer const& buffer) override
+		{
+			return map_resource(buffer);
+		}
+
+		void* map(Image const& image) override
+		{
+			return map_resource(image);
+		}
+
+		void unmap(Buffer const& buffer) override
+		{
+			vmaUnmapMemory(allocator.get(), buffer.vulkan.get_allocation());
+		}
+
+		void unmap(Image const& image) override
+		{
+			vmaUnmapMemory(allocator.get(), image.vulkan.get_allocation());
 		}
 
 		SyncToken submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
@@ -188,6 +216,8 @@ namespace vt::vulkan
 		{
 			auto result = api->vkDeviceWaitIdle(device.get());
 			VT_CHECK_RESULT(result, "Failed to flush Vulkan device.");
+
+			sync_tokens.await_all_fences(*api);
 		}
 
 	private:
@@ -197,31 +227,44 @@ namespace vt::vulkan
 
 		static constexpr VkPhysicalDeviceFeatures REQUIRED_FEATURES {};
 
+		struct QueueFamilies
+		{
+			uint32_t render	 = UINT32_MAX;
+			uint32_t compute = UINT32_MAX;
+			uint32_t copy	 = UINT32_MAX;
+		};
+
 		struct DeviceDeleter
 		{
 			using pointer = VkDevice;
 			void operator()(VkDevice device) const
 			{
-				VulkanDriver::get_api()->vkDestroyDevice(device, nullptr);
+				InstanceApiTable::get().vkDestroyDevice(device, nullptr);
 			}
 		};
 		using UniqueVkDevice = std::unique_ptr<VkDevice, DeviceDeleter>;
 
-		VkPhysicalDevice adapter;
-		struct QueueFamilies
+		struct AllocatorDeleter
 		{
-			uint32_t render	 = ~0u;
-			uint32_t compute = ~0u;
-			uint32_t copy	 = ~0u;
-		} queue_families;
-		UniqueVkDevice						  device;
-		std::unique_ptr<DeviceApiTable const> api;
-		SyncTokenPool						  sync_tokens;
-		DescriptorPool						  descriptor_pool;
-		UniqueVkPipelineCache				  pipeline_cache;
-		VkQueue								  render_queue;
-		VkQueue								  compute_queue;
-		VkQueue								  copy_queue;
+			using pointer = VmaAllocator;
+			void operator()(VmaAllocator allocator) const
+			{
+				vmaDestroyAllocator(allocator);
+			}
+		};
+		using UniqueVmaAllocator = std::unique_ptr<VmaAllocator, AllocatorDeleter>;
+
+		VkPhysicalDevice				adapter;
+		QueueFamilies					queue_families;
+		UniqueVkDevice					device;
+		std::unique_ptr<DeviceApiTable> api;
+		SyncTokenPool					sync_tokens;
+		DescriptorPool					descriptor_pool;
+		UniqueVkPipelineCache			pipeline_cache;
+		VkQueue							render_queue;
+		VkQueue							compute_queue;
+		VkQueue							copy_queue;
+		UniqueVmaAllocator				allocator;
 
 		static bool check_queue_flags(VkQueueFlags flags, VkQueueFlags wanted, VkQueueFlags unwanted)
 		{
@@ -258,12 +301,12 @@ namespace vt::vulkan
 
 		QueueFamilies query_queue_families() const
 		{
-			auto driver = VulkanDriver::get_api();
+			auto& driver = InstanceApiTable::get();
 
 			uint32_t family_count;
-			driver->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, nullptr);
+			driver.vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, nullptr);
 			SmallList<VkQueueFamilyProperties> queue_family_properties(family_count);
-			driver->vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, queue_family_properties.data());
+			driver.vkGetPhysicalDeviceQueueFamilyProperties(adapter, &family_count, queue_family_properties.data());
 
 			QueueFamilies families;
 
@@ -282,9 +325,9 @@ namespace vt::vulkan
 
 				++index;
 			}
-			VT_ENSURE(families.render != ~0u, "Vulkan device has no dedicated render queue.");
-			VT_ENSURE(families.compute != ~0u, "Vulkan device has no dedicated compute queue.");
-			VT_ENSURE(families.copy != ~0u, "Vulkan device has no dedicated copy queue.");
+			VT_ENSURE(families.render != UINT32_MAX, "Vulkan device has no dedicated render queue.");
+			VT_ENSURE(families.compute != UINT32_MAX, "Vulkan device has no dedicated compute queue.");
+			VT_ENSURE(families.copy != UINT32_MAX, "Vulkan device has no dedicated copy queue.");
 
 			return families;
 		}
@@ -301,7 +344,7 @@ namespace vt::vulkan
 				.queueCount		  = 1,
 				.pQueuePriorities = priorities,
 			};
-			std::array queue_infos {queue_info, queue_info, queue_info};
+			VkDeviceQueueCreateInfo queue_infos[] {queue_info, queue_info, queue_info};
 			queue_infos[0].queueFamilyIndex = queue_families.render;
 			queue_infos[1].queueFamilyIndex = queue_families.compute;
 			queue_infos[2].queueFamilyIndex = queue_families.copy;
@@ -309,7 +352,7 @@ namespace vt::vulkan
 			VkDeviceCreateInfo const device_info {
 				.sType					 = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 				.queueCreateInfoCount	 = count(queue_infos),
-				.pQueueCreateInfos		 = queue_infos.data(),
+				.pQueueCreateInfos		 = queue_infos,
 				.enabledLayerCount		 = 0,
 				.ppEnabledLayerNames	 = nullptr,
 				.enabledExtensionCount	 = count(REQUIRED_DEVICE_EXTENSIONS),
@@ -318,7 +361,7 @@ namespace vt::vulkan
 			};
 			UniqueVkDevice fresh_device;
 
-			auto result = VulkanDriver::get_api()->vkCreateDevice(adapter, &device_info, nullptr, std::out_ptr(fresh_device));
+			auto result = InstanceApiTable::get().vkCreateDevice(adapter, &device_info, nullptr, std::out_ptr(fresh_device));
 			VT_CHECK_RESULT(result, "Failed to create Vulkan device.");
 
 			return fresh_device;
@@ -326,14 +369,14 @@ namespace vt::vulkan
 
 		void ensure_device_extensions_exist() const
 		{
-			auto driver = VulkanDriver::get_api();
+			auto& driver = InstanceApiTable::get();
 
 			uint32_t extension_count;
-			auto	 result = driver->vkEnumerateDeviceExtensionProperties(adapter, nullptr, &extension_count, nullptr);
+			auto	 result = driver.vkEnumerateDeviceExtensionProperties(adapter, nullptr, &extension_count, nullptr);
 			VT_CHECK_RESULT(result, "Failed to query Vulkan device extension count.");
 
 			Array<VkExtensionProperties> extensions(extension_count);
-			result = driver->vkEnumerateDeviceExtensionProperties(adapter, nullptr, &extension_count, extensions.data());
+			result = driver.vkEnumerateDeviceExtensionProperties(adapter, nullptr, &extension_count, extensions.data());
 			VT_CHECK_RESULT(result, "Failed to enumerate Vulkan device extensions.");
 
 			for(std::string_view required_ext : REQUIRED_DEVICE_EXTENSIONS)
@@ -356,7 +399,7 @@ namespace vt::vulkan
 			using FeatureArray = std::array<VkBool32, sizeof(VkPhysicalDeviceFeatures) / sizeof(VkBool32)>;
 
 			VkPhysicalDeviceFeatures features;
-			VulkanDriver::get_api()->vkGetPhysicalDeviceFeatures(adapter, &features);
+			InstanceApiTable::get().vkGetPhysicalDeviceFeatures(adapter, &features);
 			auto available_features = std::bit_cast<FeatureArray>(features);
 			auto required_features	= std::bit_cast<FeatureArray>(REQUIRED_FEATURES);
 
@@ -370,6 +413,58 @@ namespace vt::vulkan
 			}
 		}
 
+		void initialize_allocator()
+		{
+			auto& driver = InstanceApiTable::get();
+
+			VmaVulkanFunctions const functions {
+				.vkGetPhysicalDeviceProperties		 = driver.vkGetPhysicalDeviceProperties,
+				.vkGetPhysicalDeviceMemoryProperties = driver.vkGetPhysicalDeviceMemoryProperties,
+				.vkAllocateMemory					 = api->vkAllocateMemory,
+				.vkFreeMemory						 = api->vkFreeMemory,
+				.vkMapMemory						 = api->vkMapMemory,
+				.vkUnmapMemory						 = api->vkUnmapMemory,
+				.vkFlushMappedMemoryRanges			 = api->vkFlushMappedMemoryRanges,
+				.vkInvalidateMappedMemoryRanges		 = api->vkInvalidateMappedMemoryRanges,
+				.vkBindBufferMemory					 = api->vkBindBufferMemory,
+				.vkBindImageMemory					 = api->vkBindImageMemory,
+				.vkGetBufferMemoryRequirements		 = api->vkGetBufferMemoryRequirements,
+				.vkGetImageMemoryRequirements		 = api->vkGetImageMemoryRequirements,
+				.vkCreateBuffer						 = api->vkCreateBuffer,
+				.vkDestroyBuffer					 = api->vkDestroyBuffer,
+				.vkCreateImage						 = api->vkCreateImage,
+				.vkDestroyImage						 = api->vkDestroyImage,
+				.vkCmdCopyBuffer					 = api->vkCmdCopyBuffer,
+			};
+			VmaAllocatorCreateInfo const allocator_info {
+				.flags							= VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT,
+				.physicalDevice					= adapter,
+				.device							= device.get(),
+				.preferredLargeHeapBlockSize	= 0, // Uses the default block size.
+				.pAllocationCallbacks			= nullptr,
+				.pDeviceMemoryCallbacks			= nullptr,
+				.frameInUseCount				= 0, // TODO: change this
+				.pHeapSizeLimit					= nullptr,
+				.pVulkanFunctions				= &functions,
+				.pRecordSettings				= nullptr,
+				.instance						= driver.instance,
+				.vulkanApiVersion				= VK_API_VERSION_1_0,
+				.pTypeExternalMemoryHandleTypes = nullptr,
+			};
+			auto result = vmaCreateAllocator(&allocator_info, std::out_ptr(allocator));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan memory allocator.");
+
+			api->allocator = allocator.get();
+		}
+
+		void* map_resource(auto const& resource) const
+		{
+			void* ptr;
+			auto  result = vmaMapMemory(allocator.get(), resource.vulkan.get_allocation(), &ptr);
+			VT_CHECK_RESULT(result, "Failed to map Vulkan resource.");
+			return ptr;
+		}
+
 		SyncToken submit(VkQueue queue, ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens)
 		{
 			SmallList<VkSemaphore> wait_semaphores;
@@ -377,7 +472,7 @@ namespace vt::vulkan
 			for(auto& token : gpu_wait_tokens)
 				wait_semaphores.emplace_back(token.vulkan.semaphore);
 
-			auto token = sync_tokens.acquire_token();
+			auto token = sync_tokens.acquire_token(*api);
 
 			VkPipelineStageFlags stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 

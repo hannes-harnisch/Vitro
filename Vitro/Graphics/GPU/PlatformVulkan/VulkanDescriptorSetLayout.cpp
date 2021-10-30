@@ -9,7 +9,7 @@ export module vt.Graphics.Vulkan.DescriptorSetLayout;
 import vt.Core.Array;
 import vt.Core.SmallList;
 import vt.Graphics.DescriptorBinding;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 import vt.Graphics.Vulkan.Sampler;
 
 namespace vt::vulkan
@@ -39,7 +39,7 @@ namespace vt::vulkan
 		using enum ShaderStage;
 		switch(stage)
 		{
-			case All:		   return VK_SHADER_STAGE_ALL;
+			case Render:	   return VK_SHADER_STAGE_ALL_GRAPHICS;
 			case Vertex:	   return VK_SHADER_STAGE_VERTEX_BIT;
 			case Hull:		   return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 			case Domain:	   return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
@@ -68,7 +68,7 @@ namespace vt::vulkan
 			{
 				VkSampler static_sampler;
 				if(binding.static_sampler_spec)
-					static_sampler = static_samplers.emplace_back(*binding.static_sampler_spec, api).ptr();
+					static_sampler = static_samplers.emplace_back(*binding.static_sampler_spec, api).get_handle();
 
 				bindings.emplace_back(VkDescriptorSetLayoutBinding {
 					.binding			= binding.shader_register,
@@ -89,7 +89,7 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to create Vulkan descriptor set layout.");
 		}
 
-		VkDescriptorSetLayout ptr() const
+		VkDescriptorSetLayout get_handle() const
 		{
 			return layout.get();
 		}

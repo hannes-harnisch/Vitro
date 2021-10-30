@@ -8,7 +8,6 @@ export module vt.Graphics.D3D12.SwapChain;
 
 import vt.App.Window;
 import vt.Core.FixedList;
-import vt.Graphics.Driver;
 import vt.Graphics.SwapChainBase;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Queue;
@@ -18,19 +17,18 @@ namespace vt::d3d12
 	export class D3D12SwapChain final : public SwapChainBase
 	{
 	public:
-		D3D12SwapChain(Queue& render_queue, Driver& driver, Window& window, uint8_t buffer_count) :
+		D3D12SwapChain(Queue& render_queue, IDXGIFactory5& factory, Window& window, uint8_t buffer_count) :
 			buffer_count(buffer_count),
-			tearing_supported(driver.d3d12.swap_chain_tearing_supported()),
+			tearing_supported(check_tearing_support(factory)),
 			present_flags(tearing_supported ? DXGI_PRESENT_ALLOW_TEARING : 0),
 			buffer_size(window.get_size()),
 			render_queue_fence(render_queue.get_fence()),
 			fence_values(buffer_count, 0)
 		{
-			auto factory = driver.d3d12.get_factory();
-			HWND hwnd	 = window.native_handle();
+			HWND hwnd = window.native_handle();
 
 			DXGI_SWAP_CHAIN_DESC1 const desc {
-				.Width	= 0,
+				.Width	= 0, // Zero means the D3D12 runtime deduces the dimensions from the window handle.
 				.Height = 0,
 				.Format = PREFERRED_FORMAT,
 				.Stereo = false,
@@ -47,14 +45,14 @@ namespace vt::d3d12
 			};
 			ComUnique<IDXGISwapChain1> swap_chain_prototype;
 
-			auto result = factory->CreateSwapChainForHwnd(render_queue.ptr(), hwnd, &desc, nullptr, nullptr,
-														  std::out_ptr(swap_chain_prototype));
+			auto result = factory.CreateSwapChainForHwnd(render_queue.get_handle(), hwnd, &desc, nullptr, nullptr,
+														 std::out_ptr(swap_chain_prototype));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 proxy swap chain.");
 
 			result = swap_chain_prototype->QueryInterface(VT_COM_OUT(swap_chain));
 			VT_CHECK_RESULT(result, "Failed to query for D3D12 main swap chain.");
 
-			result = factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
+			result = factory.MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
 			VT_CHECK_RESULT(result, "Failed to disable DXGI auto-fullscreen.");
 
 			acquire_back_buffers();
@@ -153,6 +151,14 @@ namespace vt::d3d12
 
 		FixedList<ComUnique<ID3D12Resource>, MAX_BUFFERS> back_buffers;
 		FixedList<uint64_t, MAX_BUFFERS>				  fence_values;
+
+		static bool check_tearing_support(IDXGIFactory5& factory)
+		{
+			BOOL supported;
+			auto result = factory.CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &supported, sizeof supported);
+			VT_CHECK_RESULT(result, "Failed to check for swap chain tearing support.");
+			return supported;
+		}
 
 		void acquire_back_buffers()
 		{

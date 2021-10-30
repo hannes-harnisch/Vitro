@@ -27,7 +27,8 @@ namespace vt
 			RendererBase(device), present_pass(make_present_pass(swap_chain_format)), context(device)
 		{
 			RootSignatureSpecification const root_sig_spec {
-				.push_constants_byte_size = sizeof(Float4),
+				.push_constants_byte_size  = sizeof(Float4),
+				.push_constants_visibility = ShaderStage::Render,
 			};
 			auto& sig = root_signatures.emplace_back(device->make_root_signature(root_sig_spec));
 
@@ -35,15 +36,24 @@ namespace vt
 			auto fragment_shader = device->make_shader("Triangle.frag." VT_SHADER_EXTENSION);
 
 			RenderPipelineSpecification const pipe_spec {
-				.root_signature		= sig,
-				.render_pass		= present_pass,
-				.vertex_shader		= vertex_shader,
-				.fragment_shader	= &fragment_shader,
+				.root_signature	 = sig,
+				.render_pass	 = present_pass,
+				.vertex_shader	 = vertex_shader,
+				.fragment_shader = &fragment_shader,
+				.vertex_buffer_bindings {
+					VertexBufferBinding {
+						.attributes {
+							VertexAttribute {
+								.type = VertexDataType::Position,
+							},
+						},
+					},
+				},
 				.primitive_topology = PrimitiveTopology::TriangleList,
 				.subpass_index		= 0,
 				.rasterizer {
-					.cull_mode	= CullMode::None,
-					.front_face = FrontFace::CounterClockwise,
+					.cull_mode	   = CullMode::None,
+					.winding_order = WindingOrder::CounterClockwise,
 				},
 				.depth_stencil {
 					.enable_depth_test	 = false,
@@ -54,6 +64,45 @@ namespace vt
 				},
 			};
 			render_pipelines = device->make_render_pipelines(pipe_spec);
+
+			// Testing vertex buffers
+			struct Vertex
+			{
+				Float4 color;
+			};
+			Vertex vertices[] {
+				{0, 0.5, 0.5, 1},
+				{0.5, -0.5, 0.5, 1},
+				{-0.5, -0.5, 0.5, 1},
+			};
+
+			BufferSpecification const staging_buffer_spec {
+				.size	= sizeof vertices,
+				.stride = sizeof(Vertex),
+				.usage	= BufferUsage::CopySrc | BufferUsage::Upload,
+			};
+			auto stage = device->make_buffer(staging_buffer_spec);
+
+			BufferSpecification const vertex_buffer_spec {
+				.size	= sizeof vertices,
+				.stride = sizeof(Vertex),
+				.usage	= BufferUsage::CopyDst | BufferUsage::Vertex,
+			};
+			auto& vertex_buffer = vertex_buffers.emplace_back(device->make_buffer(vertex_buffer_spec));
+
+			auto dst = device->map(stage);
+			std::memcpy(dst, vertices, sizeof vertices);
+			device->unmap(stage);
+
+			auto cmd = device->make_copy_command_list();
+			cmd->reset();
+			cmd->begin();
+			cmd->copy_buffer(stage, vertex_buffer);
+			cmd->end();
+
+			auto list  = cmd->get_handle();
+			auto token = device->submit_copy_commands(list);
+			device->wait_for_workload(token);
 		}
 
 	protected:
@@ -91,11 +140,14 @@ namespace vt
 			triangle_color.a	  = 1;
 			cmd->push_render_constants(0, sizeof triangle_color, &triangle_color);
 
+			size_t offsets[] {0};
+			cmd->bind_vertex_buffers(0, vertex_buffers[0], offsets);
+
 			cmd->draw(3, 1, 0, 0);
 			cmd->end_render_pass();
 			cmd->end();
 
-			auto cmd_list = cmd->handle();
+			auto cmd_list = cmd->get_handle();
 			context.move_to_next_frame();
 			return {cmd_list};
 		}
@@ -118,6 +170,7 @@ namespace vt
 		std::vector<DescriptorSetLayout> descriptor_set_layouts;
 		std::vector<RootSignature>		 root_signatures;
 		std::vector<RenderPipeline>		 render_pipelines;
+		std::vector<Buffer>				 vertex_buffers;
 
 		struct FrameResources
 		{

@@ -39,7 +39,7 @@ namespace vt::d3d12
 	export class D3D12RootSignature
 	{
 	public:
-		D3D12RootSignature(ID3D12Device4* device, RootSignatureSpecification const& spec)
+		D3D12RootSignature(ID3D12Device4& device, RootSignatureSpecification const& spec)
 		{
 			if(spec.push_constants_byte_size % sizeof(DWORD) != 0)
 				throw std::invalid_argument(std::format("Push constants byte size must be divisible by {}.", sizeof(DWORD)));
@@ -100,15 +100,14 @@ namespace vt::d3d12
 					.pParameters	   = parameters.data(),
 					.NumStaticSamplers = count(static_samplers),
 					.pStaticSamplers   = static_samplers.data(),
-					.Flags			   = D3D12_ROOT_SIGNATURE_FLAG_NONE,
+					.Flags			   = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT,
 				},
 			};
 			ComUnique<ID3DBlob> blob, error_blob;
 			auto result = D3D12SerializeVersionedRootSignature(&desc, std::out_ptr(blob), std::out_ptr(error_blob));
 			VT_CHECK_RESULT(result, "Failed to serialize D3D12 root signature.");
 
-			result = device->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
-												 VT_COM_OUT(root_signature));
+			result = device.CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(), VT_COM_OUT(root_signature));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 root signature.");
 		}
 
@@ -117,7 +116,7 @@ namespace vt::d3d12
 			return parameter_indices;
 		}
 
-		ID3D12RootSignature* ptr() const
+		ID3D12RootSignature* get_handle() const
 		{
 			return root_signature.get();
 		}

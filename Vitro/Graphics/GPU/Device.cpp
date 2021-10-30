@@ -17,7 +17,6 @@ namespace vt
 	export class Device : public PlatformDevice
 	{
 	public:
-		Device(Adapter adapter) : PlatformDevice(std::move(adapter))
-		{}
+		using PlatformDevice::PlatformDevice;
 	};
 }

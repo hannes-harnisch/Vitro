@@ -9,8 +9,8 @@ export module vt.Graphics.Vulkan.RenderPass;
 import vt.Core.FixedList;
 import vt.Core.SmallList;
 import vt.Graphics.RenderPassSpecification;
-import vt.Graphics.Vulkan.Driver;
-import vt.Graphics.Vulkan.Texture;
+import vt.Graphics.Vulkan.Handle;
+import vt.Graphics.Vulkan.Image;
 
 namespace vt::vulkan
 {
@@ -210,7 +210,7 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to create Vulkan render pass.");
 		}
 
-		VkRenderPass ptr() const
+		VkRenderPass get_handle() const
 		{
 			return render_pass.get();
 		}

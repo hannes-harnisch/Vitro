@@ -150,9 +150,9 @@ namespace vt::d3d12
 	private:
 		static inline std::atomic_uint id_counter = 0;
 
-		unsigned							   id = id_counter++;
-		D3D12_ROOT_PARAMETER_TYPE			   parameter_type : sizeof(char); // TODO: Replace with enum reflection
-		D3D12_SHADER_VISIBILITY				   visibility : sizeof(char);
+		unsigned				  id = id_counter++;
+		D3D12_ROOT_PARAMETER_TYPE parameter_type : sizeof(char); // TODO: Replace with enum reflection when possible.
+		D3D12_SHADER_VISIBILITY	  visibility : sizeof(char);
 		std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
 		union
 		{
@@ -162,21 +162,22 @@ namespace vt::d3d12
 
 		static D3D12_ROOT_PARAMETER_TYPE determine_parameter_type(ArrayView<DescriptorBinding> bindings)
 		{
-			auto is_resource_binding = [](auto& binding) {
+			// A resource binding is any binding that isn't a sampler.
+			auto is_resource_binding = [](DescriptorBinding const& binding) {
 				return binding.type != DescriptorType::Sampler;
 			};
 			auto candidate = std::find_if(bindings.begin(), bindings.end(), is_resource_binding);
-			if(candidate == bindings.end())
+			if(candidate == bindings.end()) // If there are only sampler bindings, it can't be a root descriptor.
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
 			auto second = std::find_if(candidate, bindings.end(), is_resource_binding);
-			if(second != bindings.end())
+			if(second != bindings.end()) // If there are multiple bindings of any type, it can't be a root descriptor.
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-			if(candidate->count != 1)
+			if(candidate->count != 1) // If a binding specifies multiple descriptors, it can't be a root descriptor.
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-			switch(candidate->type)
+			switch(candidate->type) // It can only be a root descriptor if it is one of these types.
 			{
 				using enum DescriptorType;
 				case Buffer:

@@ -27,7 +27,7 @@ workspace 'Vitro'
 	objdir				('.bin_int/' .. output_dir .. '/%{prj.name}')
 
 	filter 'files:**.cpp'
-		compileas		'Module'
+		compileas		'Module' -- Change to ModulePartition eventually
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
@@ -98,6 +98,7 @@ project 'Vitro'
 						}
 
 	filter 'platforms:Vulkan or D3D12+Vulkan'
+		links			'VulkanMemoryAllocator'
 		files			'%{prj.name}/**/PlatformVulkan/*'
 		includedirs		'C:/VulkanSDK/**/Include'
 
@@ -119,12 +120,36 @@ project 'Vitro'
 
 group 'Dependencies'
 
-	project 'D3D12MemoryAllocator'
-		location		'Dependencies'
-		kind			'StaticLib'
-		files			{
-							'**/%{prj.name}/**/D3D12MemAlloc.cpp',
-							'**/%{prj.name}/**/D3D12MemAlloc.h',
-							'**.natvis',
+project 'tinyobjloader'	
+	location			'Dependencies'
+	warnings			'Off'
+	kind				'StaticLib'
+	files				{
+							'Dependencies/%{prj.name}/tiny_obj_loader.cc',
 						}
-		warnings		'Off'
+
+project 'D3D12MemoryAllocator'
+	location			'Dependencies'
+	warnings			'Off'
+	kind				'None'
+	files				{
+							'Dependencies/%{prj.name}/src/D3D12MemAlloc.cpp',
+							'Dependencies/%{prj.name}/src/D3D12MemAlloc.h',
+							'Dependencies/%{prj.name}/src/D3D12MemAlloc.natvis',
+						}
+
+	filter 'platforms:D3D12 or D3D12+Vulkan'
+		kind			'StaticLib'
+
+project 'VulkanMemoryAllocator'
+	location			'Dependencies'
+	warnings			'Off'
+	kind				'None'
+	files				{
+							'Dependencies/VulkanMemoryAllocator.cpp',
+							'Dependencies/%{prj.name}/src/vk_mem_alloc.natvis',
+						}
+	includedirs			'C:/VulkanSDK/**/Include'
+
+	filter 'platforms:Vulkan or D3D12+Vulkan'
+		kind			'StaticLib'

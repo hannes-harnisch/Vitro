@@ -10,7 +10,7 @@ import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPassSpecification;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 import vt.Graphics.Vulkan.RenderPass;
 import vt.Graphics.Vulkan.Sampler;
 
@@ -82,12 +82,12 @@ namespace vt::vulkan
 		VT_UNREACHABLE();
 	}
 
-	VkFrontFace convert_front_face(FrontFace face)
+	VkFrontFace convert_front_face(WindingOrder order)
 	{
-		switch(face)
+		switch(order)
 		{
-			case FrontFace::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
-			case FrontFace::Clockwise:		  return VK_FRONT_FACE_CLOCKWISE;
+			case WindingOrder::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
+			case WindingOrder::Clockwise:		 return VK_FRONT_FACE_CLOCKWISE;
 		}
 		VT_UNREACHABLE();
 	}
@@ -238,8 +238,8 @@ namespace vt::vulkan
 				.dynamicStateCount = count(DYNAMIC_STATES),
 				.pDynamicStates	   = DYNAMIC_STATES,
 			};
-			pipeline_layout = spec.root_signature.vulkan.ptr();
-			render_pass		= spec.render_pass.vulkan.ptr();
+			pipeline_layout = spec.root_signature.vulkan.get_handle();
+			render_pass		= spec.render_pass.vulkan.get_handle();
 			subpass_index	= spec.subpass_index;
 		}
 
@@ -275,17 +275,17 @@ namespace vt::vulkan
 				VkShaderStageFlagBits stage_flag;
 			};
 			FixedList<ShaderStage, MAX_SHADER_STAGES> stages {
-				ShaderStage {spec.vertex_shader.vulkan.ptr(), VK_SHADER_STAGE_VERTEX_BIT},
+				ShaderStage {spec.vertex_shader.vulkan.get_handle(), VK_SHADER_STAGE_VERTEX_BIT},
 			};
 
 			if(spec.hull_shader)
-				stages.emplace_back(spec.hull_shader->vulkan.ptr(), VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+				stages.emplace_back(spec.hull_shader->vulkan.get_handle(), VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
 
 			if(spec.domain_shader)
-				stages.emplace_back(spec.domain_shader->vulkan.ptr(), VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+				stages.emplace_back(spec.domain_shader->vulkan.get_handle(), VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
 
 			if(spec.fragment_shader)
-				stages.emplace_back(spec.fragment_shader->vulkan.ptr(), VK_SHADER_STAGE_FRAGMENT_BIT);
+				stages.emplace_back(spec.fragment_shader->vulkan.get_handle(), VK_SHADER_STAGE_FRAGMENT_BIT);
 
 			for(auto& stage : stages)
 				shader_stages.emplace_back(VkPipelineShaderStageCreateInfo {
@@ -351,7 +351,7 @@ namespace vt::vulkan
 				.depthClampEnable		 = spec.rasterizer.enable_depth_clip,
 				.polygonMode			 = convert_fill_mode(spec.rasterizer.fill_mode),
 				.cullMode				 = convert_cull_mode(spec.rasterizer.cull_mode),
-				.frontFace				 = convert_front_face(spec.rasterizer.front_face),
+				.frontFace				 = convert_front_face(spec.rasterizer.winding_order),
 				.depthBiasEnable		 = spec.rasterizer.depth_bias != 0,
 				.depthBiasConstantFactor = static_cast<float>(spec.rasterizer.depth_bias),
 				.depthBiasClamp			 = spec.rasterizer.depth_bias_clamp,
@@ -425,11 +425,11 @@ namespace vt::vulkan
 			.stage {
 				.sType				 = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 				.stage				 = VK_SHADER_STAGE_COMPUTE_BIT,
-				.module				 = spec.compute_shader.vulkan.ptr(),
+				.module				 = spec.compute_shader.vulkan.get_handle(),
 				.pName				 = "main",
 				.pSpecializationInfo = nullptr,
 			},
-			.layout				= spec.root_signature.vulkan.ptr(),
+			.layout				= spec.root_signature.vulkan.get_handle(),
 			.basePipelineHandle = nullptr,
 			.basePipelineIndex	= 0,
 		};
@@ -441,7 +441,7 @@ namespace vt::vulkan
 		Pipeline(VkPipeline pipeline, DeviceApiTable const& owner) : pipeline(pipeline, owner)
 		{}
 
-		VkPipeline ptr() const
+		VkPipeline get_handle() const
 		{
 			return pipeline.get();
 		}

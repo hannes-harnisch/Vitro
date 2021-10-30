@@ -19,3 +19,5 @@ typedef struct HMONITOR__*			HMONITOR;
 typedef struct _SECURITY_ATTRIBUTES SECURITY_ATTRIBUTES;
 	#include <vulkan/vulkan_win32.h>
 #endif
+
+#include <VulkanMemoryAllocator/include/vk_mem_alloc.h>

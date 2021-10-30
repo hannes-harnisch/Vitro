@@ -2,7 +2,6 @@
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 
-#include <array>
 #include <string_view>
 #include <type_traits>
 #include <vector>
@@ -10,6 +9,7 @@ export module vt.Graphics.D3D12.Driver;
 
 import vt.Core.Version;
 import vt.Core.Windows.Utils;
+import vt.Graphics.D3D12.Device;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.DriverBase;
 
@@ -18,8 +18,6 @@ namespace vt::d3d12
 	export class D3D12Driver final : public DriverBase
 	{
 	public:
-		static constexpr D3D_FEATURE_LEVEL MIN_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
-
 		// The unused parameters are kept for compatibility with Vulkan, which takes an application name and versions.
 		D3D12Driver(bool enable_debug_layer, std::string const&, Version, Version)
 		{
@@ -55,7 +53,8 @@ namespace vt::d3d12
 				result = adapter->GetDesc1(&desc);
 				VT_CHECK_RESULT(result, "Failed to get D3D12 adapter description.");
 
-				auto can_make_device = D3D12CreateDevice(adapter.get(), MIN_FEATURE_LEVEL, __uuidof(ID3D12Device4), nullptr);
+				auto can_make_device = D3D12CreateDevice(adapter.get(), D3D12Device::MIN_FEATURE_LEVEL, __uuidof(ID3D12Device4),
+														 nullptr);
 				if(FAILED(can_make_device) || desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 					continue;
 
@@ -64,17 +63,9 @@ namespace vt::d3d12
 			return adapters;
 		}
 
-		IDXGIFactory5* get_factory()
+		Device make_device(Adapter const& adapter) const override
 		{
-			return factory.get();
-		}
-
-		bool swap_chain_tearing_supported() const
-		{
-			BOOL supported;
-			auto result = factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &supported, sizeof supported);
-			VT_CHECK_RESULT(result, "Failed to check for swap chain tearing support.");
-			return supported;
+			return D3D12Device(adapter, *factory);
 		}
 
 	private:

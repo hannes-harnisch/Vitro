@@ -21,17 +21,17 @@ namespace vt::d3d12
 	export class Queue
 	{
 	public:
-		Queue(ID3D12Device4* device, D3D12_COMMAND_LIST_TYPE command_type)
+		Queue(ID3D12Device4& device, D3D12_COMMAND_LIST_TYPE command_type)
 		{
 			D3D12_COMMAND_QUEUE_DESC const desc {
 				.Type	  = command_type,
 				.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL,
 				.Flags	  = D3D12_COMMAND_QUEUE_FLAG_NONE,
 			};
-			auto result = device->CreateCommandQueue(&desc, VT_COM_OUT(queue));
+			auto result = device.CreateCommandQueue(&desc, VT_COM_OUT(queue));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 command queue.");
 
-			result = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, VT_COM_OUT(fence));
+			result = device.CreateFence(0, D3D12_FENCE_FLAG_NONE, VT_COM_OUT(fence));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 fence.");
 		}
 
@@ -40,7 +40,7 @@ namespace vt::d3d12
 			wait_for_fence_value(fence.get(), signal());
 		}
 
-		void submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncToken> gpu_wait_tokens)
+		void submit(ArrayView<CommandListHandle> cmd_lists, ConstSpan<SyncToken> gpu_wait_tokens) const
 		{
 			for(auto token : gpu_wait_tokens)
 			{
@@ -60,12 +60,12 @@ namespace vt::d3d12
 			return fence_value;
 		}
 
-		ID3D12Fence* get_fence()
+		ID3D12Fence* get_fence() const
 		{
 			return fence.get();
 		}
 
-		ID3D12CommandQueue* ptr()
+		ID3D12CommandQueue* get_handle() const
 		{
 			return queue.get();
 		}

@@ -8,9 +8,12 @@ namespace vt::vulkan
 	export class VulkanDescriptorSet
 	{
 	public:
-		VkDescriptorSet ptr() const
+		VulkanDescriptorSet(VkDescriptorSet set, VkDescriptorSetLayout layout) : set(set), layout(layout)
+		{}
+
+		VkDescriptorSet get_handle() const
 		{
-			return descriptor_set;
+			return set;
 		}
 
 		VkDescriptorSetLayout get_layout() const
@@ -19,7 +22,7 @@ namespace vt::vulkan
 		}
 
 	private:
-		VkDescriptorSet		  descriptor_set;
+		VkDescriptorSet		  set;
 		VkDescriptorSetLayout layout;
 	};
 }

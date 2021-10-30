@@ -3,7 +3,6 @@
 #include "D3D12API.hpp"
 
 #include <cstdlib>
-#include <ranges>
 #include <type_traits>
 export module vt.Graphics.D3D12.CommandList;
 
@@ -46,6 +45,7 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
+		DescriptorPool*					 descriptor_pool;
 		RootSignatureParameterMap const* bound_compute_root_indices = nullptr;
 		ID3D12CommandSignature*			 dispatch_signature;
 	};
@@ -65,29 +65,31 @@ namespace vt::d3d12
 	export template<CommandType TYPE> class D3D12CommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
 	{
 	public:
-		D3D12CommandList(ID3D12Device4*			 device,
-						 DescriptorPool&		 pool,
+		D3D12CommandList(ID3D12Device4&			 device,
+						 DescriptorPool&		 descriptor_pool,
 						 ID3D12CommandSignature* dispatch_signature,
 						 ID3D12CommandSignature* draw_signature,
-						 ID3D12CommandSignature* draw_indexed_signature) :
-			descriptor_pool(&pool)
+						 ID3D12CommandSignature* draw_indexed_signature)
 		{
 			if constexpr(TYPE != CommandType::Copy)
+			{
+				this->descriptor_pool	 = &descriptor_pool;
 				this->dispatch_signature = dispatch_signature;
+			}
 			if constexpr(TYPE == CommandType::Render)
 			{
 				this->draw_signature		 = draw_signature;
 				this->draw_indexed_signature = draw_indexed_signature;
 			}
 
-			auto result = device->CreateCommandAllocator(COMMAND_LIST_TYPE, VT_COM_OUT(allocator));
+			auto result = device.CreateCommandAllocator(COMMAND_LIST_TYPE, VT_COM_OUT(allocator));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 command allocator.");
 
-			result = device->CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, VT_COM_OUT(cmd));
+			result = device.CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, VT_COM_OUT(cmd));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 command list.");
 		}
 
-		CommandListHandle handle()
+		CommandListHandle get_handle()
 		{
 			return {cmd.get()};
 		}
@@ -103,8 +105,11 @@ namespace vt::d3d12
 			auto result = cmd->Reset(allocator.get(), nullptr);
 			VT_CHECK_RESULT(result, "Failed to reset D3D12 command list.");
 
-			auto heaps = descriptor_pool->get_shader_visible_heaps();
-			cmd->SetDescriptorHeaps(2, heaps.data());
+			if constexpr(TYPE != CommandType::Copy)
+			{
+				auto heaps = this->descriptor_pool->get_shader_visible_heaps();
+				cmd->SetDescriptorHeaps(2, heaps.data());
+			}
 		}
 
 		void end()
@@ -116,14 +121,29 @@ namespace vt::d3d12
 				this->bound_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		}
 
+		void copy_buffer(Buffer const& src, Buffer& dst)
+		{
+			cmd->CopyResource(dst.d3d12.get_resource(), src.d3d12.get_resource());
+		}
+
+		void copy_image(Image const& src, Image& dst)
+		{
+			cmd->CopyResource(dst.d3d12.get_resource(), src.d3d12.get_resource());
+		}
+
+		void copy_buffer_to_image(Buffer const& src, Image& dst)
+		{
+			cmd->CopyResource(dst.d3d12.get_resource(), src.d3d12.get_resource());
+		}
+
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
 		{
-			cmd->SetPipelineState(pipeline.d3d12.ptr());
+			cmd->SetPipelineState(pipeline.d3d12.get_handle());
 		}
 
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
-			cmd->SetComputeRootSignature(root_signature.d3d12.ptr());
+			cmd->SetComputeRootSignature(root_signature.d3d12.get_handle());
 			this->bound_compute_root_indices = &root_signature.d3d12.get_parameter_map();
 		}
 
@@ -296,7 +316,7 @@ namespace vt::d3d12
 
 		void bind_render_pipeline(RenderPipeline const& pipeline)
 		{
-			cmd->SetPipelineState(pipeline.d3d12.ptr());
+			cmd->SetPipelineState(pipeline.d3d12.get_handle());
 
 			auto pipeline_topology = pipeline.d3d12.get_topology();
 			if(this->bound_primitive_topology != pipeline_topology)
@@ -308,7 +328,7 @@ namespace vt::d3d12
 
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
-			cmd->SetGraphicsRootSignature(root_signature.d3d12.ptr());
+			cmd->SetGraphicsRootSignature(root_signature.d3d12.get_handle());
 			this->bound_render_root_indices = &root_signature.d3d12.get_parameter_map();
 		}
 
@@ -347,10 +367,10 @@ namespace vt::d3d12
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<D3D12_VERTEX_BUFFER_VIEW, MAX_VERTEX_BUFFERS> views(first_buffer);
+			FixedList<D3D12_VERTEX_BUFFER_VIEW, MAX_VERTEX_BUFFERS> views;
 
-			auto offset = byte_offsets.begin() + first_buffer;
-			for(auto& buffer : std::views::take(buffers, first_buffer))
+			auto offset = byte_offsets.begin();
+			for(auto& buffer : buffers)
 				views.emplace_back(D3D12_VERTEX_BUFFER_VIEW {
 					.BufferLocation = buffer.d3d12.get_gpu_address() + *offset++,
 					.SizeInBytes	= buffer.get_size(),
@@ -440,7 +460,6 @@ namespace vt::d3d12
 	private:
 		static constexpr D3D12_COMMAND_LIST_TYPE COMMAND_LIST_TYPE = convert_command_type(TYPE);
 
-		DescriptorPool*						  descriptor_pool;
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 

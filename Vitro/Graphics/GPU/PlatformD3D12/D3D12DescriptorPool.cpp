@@ -27,15 +27,15 @@ namespace vt::d3d12
 	class DescriptorHeap
 	{
 	public:
-		DescriptorHeap(ID3D12Device4* device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT descriptor_count, bool shader_visible) :
-			stride(device->GetDescriptorHandleIncrementSize(type))
+		DescriptorHeap(ID3D12Device4& device, D3D12_DESCRIPTOR_HEAP_TYPE type, UINT descriptor_count, bool shader_visible) :
+			stride(device.GetDescriptorHandleIncrementSize(type))
 		{
 			D3D12_DESCRIPTOR_HEAP_DESC const desc {
 				.Type			= type,
 				.NumDescriptors = descriptor_count,
 				.Flags			= shader_visible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 			};
-			auto result = device->CreateDescriptorHeap(&desc, VT_COM_OUT(heap));
+			auto result = device.CreateDescriptorHeap(&desc, VT_COM_OUT(heap));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 descriptor heap.");
 
 			free_blocks.emplace_back(get_cpu_heap_start(), descriptor_count);
@@ -120,7 +120,7 @@ namespace vt::d3d12
 			return heap->GetGPUDescriptorHandleForHeapStart();
 		}
 
-		ID3D12DescriptorHeap* ptr() const
+		ID3D12DescriptorHeap* get_handle() const
 		{
 			return heap.get();
 		}
@@ -134,8 +134,8 @@ namespace vt::d3d12
 	export class DescriptorPool
 	{
 	public:
-		DescriptorPool(ID3D12Device4* in_device) :
-			device(in_device),
+		DescriptorPool(ID3D12Device4& device) :
+			device(&device),
 			rtv_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, MAX_RENDER_TARGET_VIEWS, false),
 			dsv_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, MAX_DEPTH_STENCIL_VIEWS, false),
 			view_staging_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, false),
@@ -174,12 +174,12 @@ namespace vt::d3d12
 			return dsv_heap.get_stride();
 		}
 
-		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_heaps()
+		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_heaps() const
 		{
-			return {gpu_view_heap.ptr(), gpu_sampler_heap.ptr()};
+			return {gpu_view_heap.get_handle(), gpu_sampler_heap.get_handle()};
 		}
 
-		ID3D12Device4* get_device()
+		ID3D12Device4* get_device() const
 		{
 			return device;
 		}

@@ -28,6 +28,7 @@ namespace vt
 		return static_cast<size_t>(max) + 1;
 	}
 
+	// A bit array big enough for the enum T, so that you can set a bit for each numeric value of an enum constant.
 	export template<typename T> class EnumBitArray
 	{
 	public:
@@ -60,6 +61,7 @@ namespace vt
 		std::bitset<size_from_enum_max<T>()> bitset;
 	};
 
+	// Returns a number with the bit set at the given position.
 	export constexpr uint64_t bit(uint64_t position)
 	{
 		return 1ull << position;
@@ -70,6 +72,7 @@ namespace vt
 		return x == 1 ? 0 : 1 + floor_log2(x >> 1);
 	}
 
+	// Returns the size that a bit field must maximally have to be able to hold any named value of a given enum.
 	export template<typename T>
 	requires std::is_enum_v<T>
 	consteval size_t min_bit_field_size()
@@ -83,56 +86,36 @@ namespace vt
 		return floor_log2(max) + sign_bit_space + 1;
 	}
 
+	// Specialize this for a scoped enum type to enable bit operators for it.
 	export template<typename T>
 	requires std::is_enum_v<T>
-	constexpr inline bool ALLOW_BIT_OPERATORS_FOR = false;
+	constexpr inline bool ENABLE_BIT_OPERATORS_FOR = false;
 
 	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
-	constexpr T operator&(T left, T right) noexcept
+	requires ENABLE_BIT_OPERATORS_FOR<T>
+	constexpr auto operator&(T left, T right) noexcept
 	{
-		return static_cast<T>(std::to_underlying(left) & std::to_underlying(right));
+		return std::to_underlying(left) & std::to_underlying(right);
 	}
 
 	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
+	requires ENABLE_BIT_OPERATORS_FOR<T>
 	constexpr T operator|(T left, T right) noexcept
 	{
 		return static_cast<T>(std::to_underlying(left) | std::to_underlying(right));
 	}
 
 	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
-	constexpr T operator^(T left, T right) noexcept
+	requires ENABLE_BIT_OPERATORS_FOR<T>
+	constexpr auto operator^(T left, T right) noexcept
 	{
-		return static_cast<T>(std::to_underlying(left) ^ std::to_underlying(right));
+		return std::to_underlying(left) ^ std::to_underlying(right);
 	}
 
 	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
-	constexpr T operator~(T value) noexcept
+	requires ENABLE_BIT_OPERATORS_FOR<T>
+	constexpr auto operator~(T value) noexcept
 	{
-		return static_cast<T>(~std::to_underlying(value));
-	}
-
-	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
-	constexpr T& operator&=(T& left, T right) noexcept
-	{
-		return left = left & right;
-	}
-
-	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
-	constexpr T& operator|=(T& left, T right) noexcept
-	{
-		return left = left | right;
-	}
-
-	export template<typename T>
-	requires ALLOW_BIT_OPERATORS_FOR<T>
-	constexpr T& operator^=(T& left, T right) noexcept
-	{
-		return left = left ^ right;
+		return ~std::to_underlying(value);
 	}
 }

@@ -2,13 +2,10 @@
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 
-#include <type_traits>
-#include <utility>
+#include <memory>
+#include <ranges>
 export module vt.Graphics.D3D12.RenderTarget;
 
-import vt.Core.Array;
-import vt.Core.FixedList;
-import vt.Core.SwapPtr;
 import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.AssetResource;
@@ -20,11 +17,14 @@ namespace vt::d3d12
 	export class D3D12RenderTarget
 	{
 	public:
-		D3D12RenderTarget(DescriptorPool& descriptor_pool, RenderTargetSpecification const& spec) : pool(&descriptor_pool)
+		D3D12RenderTarget(DescriptorPool& descriptor_pool, RenderTargetSpecification const& spec)
 		{
+			set_pool_for_deleter(descriptor_pool);
 			initialize_resource_ptrs(spec.color_attachments);
+
 			allocate_render_target_views(spec.color_attachments.size());
 			create_render_target_views();
+
 			maybe_allocate_depth_stencil_view(spec.depth_stencil_attachment);
 			maybe_create_depth_stencil_view(spec.depth_stencil_attachment);
 		}
@@ -32,43 +32,44 @@ namespace vt::d3d12
 		D3D12RenderTarget(DescriptorPool&						 descriptor_pool,
 						  SharedRenderTargetSpecification const& spec,
 						  SwapChain const&						 swap_chain,
-						  unsigned								 back_buffer_index) :
-			pool(&descriptor_pool)
+						  unsigned								 back_buffer_index)
 		{
+			set_pool_for_deleter(descriptor_pool);
 			initialize_resource_ptrs(spec.color_attachments);
 			emplace_swap_chain_resource(swap_chain, back_buffer_index, spec.shared_img_dst_index);
+
 			allocate_render_target_views(spec.color_attachments.size() + 1);
 			create_render_target_views();
+
 			maybe_allocate_depth_stencil_view(spec.depth_stencil_attachment);
 			maybe_create_depth_stencil_view(spec.depth_stencil_attachment);
 		}
 
-		~D3D12RenderTarget()
-		{
-			pool->deallocate_render_target_views({rtv_begin.get(), count(resources) - 1});
-			pool->deallocate_depth_stencil_views({dsv.get(), 1});
-		}
-
+		// The existing allocation will be reused here instead of constructing a completely new render target.
 		void recreate(RenderTargetSpecification const& spec)
 		{
-			resources.clear();
+			reset_attachment_count();
 			initialize_resource_ptrs(spec.color_attachments);
+
 			create_render_target_views();
 			maybe_create_depth_stencil_view(spec.depth_stencil_attachment);
 		}
 
+		// The existing allocation will be reused here instead of constructing a completely new render target.
 		void recreate(SharedRenderTargetSpecification const& spec, SwapChain const& swap_chain, unsigned back_buffer_index)
 		{
-			resources.clear();
+			reset_attachment_count();
 			initialize_resource_ptrs(spec.color_attachments);
+
 			emplace_swap_chain_resource(swap_chain, back_buffer_index, spec.shared_img_dst_index);
+
 			create_render_target_views();
 			maybe_create_depth_stencil_view(spec.depth_stencil_attachment);
 		}
 
 		bool has_depth_stencil() const
 		{
-			return dsv.get().ptr != 0;
+			return get_depth_stencil_view().ptr != 0;
 		}
 
 		ID3D12Resource* get_attachment(size_t index) const
@@ -79,60 +80,116 @@ namespace vt::d3d12
 		// Returns nullptr if the render target contains no depth stencil attachment.
 		ID3D12Resource* get_depth_stencil_attachment() const
 		{
-			return resources.back();
+			return resources[get_count() - 1];
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE get_view(size_t index) const
 		{
-			VT_ASSERT(index <= resources.size(), "Index into render target descriptors out of range.");
+			VT_ASSERT(index <= get_count(), "Index into render target descriptors out of range.");
 
-			if(index == resources.size())
-				return dsv.get();
+			if(index == get_count())
+				return get_depth_stencil_view();
 			else
-				return {rtv_begin.get().ptr + index * pool->get_rtv_stride()};
+				return {get_rtv_begin() + index * get_pool().get_rtv_stride()};
 		}
 
 		// Returns a null handle if the render target contains no depth stencil attachment.
 		D3D12_CPU_DESCRIPTOR_HANDLE get_depth_stencil_view() const
 		{
-			return dsv.get();
+			return descriptor_allocation.get_deleter().depth_stencil_view;
 		}
 
-		D3D12RenderTarget(D3D12RenderTarget&&) = default;
-		D3D12RenderTarget& operator=(D3D12RenderTarget&&) = default;
-
 	private:
-		DescriptorPool*								pool;
-		FixedList<ID3D12Resource*, MAX_ATTACHMENTS> resources;
-		SwapPtr<D3D12_CPU_DESCRIPTOR_HANDLE>		rtv_begin;
-		SwapPtr<D3D12_CPU_DESCRIPTOR_HANDLE>		dsv;
+		// This struct is a very big functor acting as the deleter for the descriptor allocations done by this class. This
+		// allows hacking std::unique_ptr a bit to actually account for two allocations at once, getting efficient move
+		// semantics.
+		struct DescriptorDeallocator
+		{
+			DescriptorPool*				pool;
+			D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view = {};
+			unsigned					total_attachments  = 0;
 
-		void initialize_resource_ptrs(ConstSpan<Texture const*> color_attachments)
+			void operator()(void* descriptor_handle_value) const
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle {reinterpret_cast<SIZE_T>(descriptor_handle_value)};
+				pool->deallocate_render_target_views({rtv_handle, total_attachments - 1});
+				pool->deallocate_depth_stencil_views({depth_stencil_view, 1});
+			}
+		};
+		// We have to use void* as the unique pointer type, because it has to be assignable with a nullptr literal.
+		using UniqueDescriptorAllocation = std::unique_ptr<void, DescriptorDeallocator>;
+
+		UniqueDescriptorAllocation descriptor_allocation;
+		ID3D12Resource*			   resources[MAX_ATTACHMENTS];
+
+		SIZE_T get_rtv_begin() const
+		{
+			return reinterpret_cast<SIZE_T>(descriptor_allocation.get());
+		}
+
+		DescriptorPool& get_pool() const
+		{
+			return *descriptor_allocation.get_deleter().pool;
+		}
+
+		unsigned get_count() const
+		{
+			return descriptor_allocation.get_deleter().total_attachments;
+		}
+
+		void set_pool_for_deleter(DescriptorPool& pool)
+		{
+			descriptor_allocation.get_deleter().pool = &pool;
+		}
+
+		unsigned increment()
+		{
+			return descriptor_allocation.get_deleter().total_attachments++;
+		}
+
+		void reset_attachment_count()
+		{
+			descriptor_allocation.get_deleter().total_attachments = 0;
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE& get_dsv()
+		{
+			return descriptor_allocation.get_deleter().depth_stencil_view;
+		}
+
+		void initialize_resource_ptrs(ConstSpan<Image const*> color_attachments)
 		{
 			for(auto attachment : color_attachments)
-				resources.emplace_back(attachment->d3d12.ptr());
+				resources[increment()] = attachment->d3d12.get_resource();
 		}
 
 		void emplace_swap_chain_resource(SwapChain const& swap_chain, unsigned back_buffer_index, unsigned dst_index)
 		{
 			auto back_buffer = swap_chain.d3d12.get_back_buffer_ptr(back_buffer_index);
-			resources.emplace(resources.begin() + dst_index, back_buffer);
+
+			auto range_start = resources + dst_index;
+			std::memmove(range_start + 1, range_start, (get_count() - dst_index) * sizeof(*resources));
+			resources[dst_index] = back_buffer;
+			increment();
 		}
 
 		void allocate_render_target_views(size_t units)
 		{
-			auto rtv_alloc = pool->allocate_render_target_views(units);
-			rtv_begin.set(rtv_alloc.handle);
+			auto rtv_alloc = get_pool().allocate_render_target_views(units);
+
+			auto opaque_ptr = reinterpret_cast<void*>(rtv_alloc.handle.ptr);
+			descriptor_allocation.reset(opaque_ptr);
 		}
 
 		void create_render_target_views()
 		{
-			auto const stride	= pool->get_rtv_stride();
-			auto	   temp_rtv = rtv_begin.get();
-			for(auto resource : resources)
+			auto const stride	= get_pool().get_rtv_stride();
+			auto	   temp_rtv = get_rtv_begin();
+			for(auto resource : resources | std::views::take(get_count()))
 			{
-				pool->get_device()->CreateRenderTargetView(resource, nullptr, temp_rtv);
-				temp_rtv.ptr += stride;
+				auto device = get_pool().get_device();
+				device->CreateRenderTargetView(resource, nullptr, {temp_rtv});
+				temp_rtv += stride;
 			}
 		}
 
@@ -140,23 +197,25 @@ namespace vt::d3d12
 		{
 			if(has_depth_stencil)
 			{
-				auto dsv_alloc = pool->allocate_depth_stencil_view();
-				dsv.set(dsv_alloc.handle);
+				auto dsv_alloc = get_pool().allocate_depth_stencil_view();
+				get_dsv()	   = dsv_alloc.handle;
 			}
 			else
-				dsv = {};
+				get_dsv() = {};
 		}
 
-		void maybe_create_depth_stencil_view(Texture const* depth_stencil_attachment)
+		void maybe_create_depth_stencil_view(Image const* depth_stencil_attachment)
 		{
 			if(depth_stencil_attachment)
 			{
-				auto ds_resource = depth_stencil_attachment->d3d12.ptr();
-				resources.emplace_back(ds_resource);
-				pool->get_device()->CreateDepthStencilView(ds_resource, nullptr, dsv.get());
+				auto depth_stencil_img = depth_stencil_attachment->d3d12.get_resource();
+				resources[increment()] = depth_stencil_img;
+
+				auto device = get_pool().get_device();
+				device->CreateDepthStencilView(depth_stencil_img, nullptr, get_dsv());
 			}
 			else
-				resources.emplace_back(nullptr); // Insert nullptr so that asking for a depth stencil from outside returns null
+				resources[increment()] = nullptr; // Insert nullptr so that asking for the DSV from outside returns null.
 		}
 	};
 }

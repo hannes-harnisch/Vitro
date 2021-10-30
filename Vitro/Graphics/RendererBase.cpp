@@ -20,8 +20,10 @@ namespace vt
 	public:
 		virtual ~RendererBase() = default;
 
+		// For internal use only.
 		SmallList<CommandListHandle> render(SwapChain& swap_chain)
 		{
+			// Create swap chain render targets lazily.
 			if(shared_targets.empty())
 			{
 				auto shared_target_spec = get_shared_render_target_specification();
@@ -36,9 +38,12 @@ namespace vt
 			return render(render_target);
 		}
 
+		// For internal use only.
 		void recreate_shared_render_targets(SwapChain& swap_chain)
 		{
+			// First allow renderer to resize its own render targets.
 			on_render_target_resize(swap_chain->get_width(), swap_chain->get_height());
+
 			auto shared_target_spec = get_shared_render_target_specification();
 
 			size_t const new_count = swap_chain->get_buffer_count();
@@ -60,9 +65,14 @@ namespace vt
 		RendererBase(Device& device) : device(device)
 		{}
 
-		virtual SmallList<CommandListHandle>	render(RenderTarget const& render_target)				 = 0;
-		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const			 = 0;
-		virtual void							on_render_target_resize(unsigned width, unsigned height) = 0;
+		// Does the renderer-specific rendering. The final batch of command lists is returned for submission here.
+		virtual SmallList<CommandListHandle> render(RenderTarget const& render_target) = 0;
+
+		// Gets the specification describing the components of the render target that is last rendered to in this renderer.
+		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const = 0;
+
+		// Allows the renderer to respond to swap chain resizing, such as resizing intermediate render targets.
+		virtual void on_render_target_resize(unsigned width, unsigned height) = 0;
 
 	private:
 		FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS> shared_targets;

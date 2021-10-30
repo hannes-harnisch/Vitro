@@ -1,10 +1,10 @@
 ﻿module;
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
-export module vt.Graphics.D3D12.Texture;
+export module vt.Graphics.D3D12.Image;
 
-import vt.Graphics.D3D12.Handle;
-import vt.Graphics.TextureSpecification;
+import vt.Graphics.AssetResourceSpecification;
+import vt.Graphics.D3D12.Resource;
 
 namespace vt::d3d12
 {
@@ -94,7 +94,7 @@ namespace vt::d3d12
 			case General:
 			case Presentable:				return D3D12_RESOURCE_STATE_COMMON;
 			case CopySource:				return D3D12_RESOURCE_STATE_COPY_SOURCE;
-			case CopyTarget:				return D3D12_RESOURCE_STATE_COPY_DEST;
+			case CopyDestination:			return D3D12_RESOURCE_STATE_COPY_DEST;
 			case ColorAttachment:			return D3D12_RESOURCE_STATE_RENDER_TARGET;
 			case DepthStencilAttachment:	return D3D12_RESOURCE_STATE_DEPTH_WRITE;
 			case DepthStencilReadOnly:		return D3D12_RESOURCE_STATE_DEPTH_READ;
@@ -107,15 +107,10 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
-	export class D3D12Texture
+	export class D3D12Image : public Resource
 	{
 	public:
-		ID3D12Resource* ptr() const
-		{
-			return texture->GetResource();
-		}
-
-	private:
-		ComUnique<D3D12MA::Allocation> texture;
+		D3D12Image(D3D12MA::Allocator*)
+		{}
 	};
 }

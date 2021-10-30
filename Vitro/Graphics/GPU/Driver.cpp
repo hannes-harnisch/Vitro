@@ -19,6 +19,7 @@ namespace vt
 	export class Driver : public PlatformDriver
 	{
 	public:
+		// This constructor is for internal use only.
 		Driver(bool enable_debug_layer, std::string const& app_name, Version app_version, Version engine_version) :
 			PlatformDriver(enable_debug_layer, app_name, app_version, engine_version)
 		{}

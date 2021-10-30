@@ -1,4 +1,5 @@
 ﻿module;
+#include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 
 #include <memory>
@@ -8,9 +9,9 @@ namespace vt::d3d12
 {
 	template<typename T> struct ComDeleter
 	{
-		void operator()(T* ptr) const
+		void operator()(T* com_interface) const
 		{
-			ptr->Release();
+			com_interface->Release();
 		}
 	};
 	export template<typename T> using ComUnique = std::unique_ptr<T, ComDeleter<T>>;

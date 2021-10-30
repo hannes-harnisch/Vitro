@@ -13,11 +13,10 @@ import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.Rectangle;
 import vt.Core.SmallList;
-import vt.Graphics.Driver;
 import vt.Graphics.SwapChainBase;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 import vt.Graphics.Vulkan.SyncTokenPool;
-import vt.Graphics.Vulkan.Texture;
+import vt.Graphics.Vulkan.Image;
 
 bool operator==(VkSurfaceFormatKHR const& left, VkSurfaceFormatKHR const& right)
 {
@@ -31,8 +30,8 @@ namespace vt::vulkan
 		using pointer = VkSurfaceKHR;
 		void operator()(VkSurfaceKHR surface) const
 		{
-			auto driver = VulkanDriver::get_api();
-			driver->vkDestroySurfaceKHR(driver->instance, surface, nullptr);
+			auto& driver = InstanceApiTable::get();
+			driver.vkDestroySurfaceKHR(driver.instance, surface, nullptr);
 		}
 	};
 	using UniqueVkSurfaceKHR = std::unique_ptr<VkSurfaceKHR, SurfaceDeleter>;
@@ -61,8 +60,8 @@ namespace vt::vulkan
 
 		UniqueVkSurfaceKHR surface;
 
-		auto driver = VulkanDriver::get_api();
-		auto result = (driver->*create_surface)(driver->instance, &surface_info, nullptr, std::out_ptr(surface));
+		auto& driver = InstanceApiTable::get();
+		auto  result = (driver.*create_surface)(driver.instance, &surface_info, nullptr, std::out_ptr(surface));
 		VT_CHECK_RESULT(result, "Failed to create Vulkan surface.");
 
 		return surface;
@@ -141,7 +140,7 @@ namespace vt::vulkan
 			if(should_be_resized)
 				return {};
 
-			auto token = sync_token_pool->acquire_token();
+			auto token = sync_token_pool->acquire_token(*api);
 
 			uint32_t image_index;
 			auto	 result = api->vkAcquireNextImageKHR(api->device, swapchain.get(), 0, token.vulkan.semaphore,
@@ -216,25 +215,25 @@ namespace vt::vulkan
 
 		void check_queue_support(uint32_t render_queue_family_index) const
 		{
-			auto driver = VulkanDriver::get_api();
+			auto& driver = InstanceApiTable::get();
 
 			VkBool32 supported;
-			auto result = driver->vkGetPhysicalDeviceSurfaceSupportKHR(api->adapter, render_queue_family_index, surface.get(),
-																	   &supported);
+			auto result = driver.vkGetPhysicalDeviceSurfaceSupportKHR(api->adapter, render_queue_family_index, surface.get(),
+																	  &supported);
 			VT_CHECK_RESULT(result, "Failed to query Vulkan queue support for a surface object.");
 			VT_ENSURE(supported, "A window was created that Vulkan cannot present to.");
 		}
 
 		void initialize_surface_format()
 		{
-			auto driver = VulkanDriver::get_api();
+			auto& driver = InstanceApiTable::get();
 
 			uint32_t count;
-			auto	 result = driver->vkGetPhysicalDeviceSurfaceFormatsKHR(api->adapter, surface.get(), &count, nullptr);
+			auto	 result = driver.vkGetPhysicalDeviceSurfaceFormatsKHR(api->adapter, surface.get(), &count, nullptr);
 			VT_CHECK_RESULT(result, "Failed to query Vulkan surface capability count.");
 
 			SmallList<VkSurfaceFormatKHR> surface_formats(count);
-			result = driver->vkGetPhysicalDeviceSurfaceFormatsKHR(api->adapter, surface.get(), &count, surface_formats.data());
+			result = driver.vkGetPhysicalDeviceSurfaceFormatsKHR(api->adapter, surface.get(), &count, surface_formats.data());
 			VT_CHECK_RESULT(result, "Failed to query Vulkan surface capabilities.");
 
 			constexpr VkSurfaceFormatKHR preferred_format {
@@ -251,14 +250,14 @@ namespace vt::vulkan
 
 		void check_vsync_support()
 		{
-			auto driver = VulkanDriver::get_api();
+			auto& driver = InstanceApiTable::get();
 
 			uint32_t count;
-			auto	 result = driver->vkGetPhysicalDeviceSurfacePresentModesKHR(api->adapter, surface.get(), &count, nullptr);
+			auto	 result = driver.vkGetPhysicalDeviceSurfacePresentModesKHR(api->adapter, surface.get(), &count, nullptr);
 			VT_CHECK_RESULT(result, "Failed to query Vulkan surface present mode count.");
 
 			SmallList<VkPresentModeKHR> modes(count);
-			result = driver->vkGetPhysicalDeviceSurfacePresentModesKHR(api->adapter, surface.get(), &count, modes.data());
+			result = driver.vkGetPhysicalDeviceSurfacePresentModesKHR(api->adapter, surface.get(), &count, modes.data());
 			VT_CHECK_RESULT(result, "Failed to query Vulkan surface present modes.");
 
 			if(contains(modes, VK_PRESENT_MODE_IMMEDIATE_KHR))
@@ -273,10 +272,10 @@ namespace vt::vulkan
 
 		void initialize_swapchain(uint32_t img_count, Window* window, Extent size)
 		{
-			auto driver = VulkanDriver::get_api();
+			auto& driver = InstanceApiTable::get();
 
 			VkSurfaceCapabilitiesKHR capabilities;
-			auto result = driver->vkGetPhysicalDeviceSurfaceCapabilitiesKHR(api->adapter, surface.get(), &capabilities);
+			auto result = driver.vkGetPhysicalDeviceSurfaceCapabilitiesKHR(api->adapter, surface.get(), &capabilities);
 			VT_CHECK_RESULT(result, "Failed to query Vulkan surface capabilities.");
 
 			VkExtent2D extent;

@@ -1,9 +1,12 @@
 ﻿module;
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
-export module vt.Graphics.Vulkan.Texture;
 
-import vt.Graphics.TextureSpecification;
+#include <memory>
+export module vt.Graphics.Vulkan.Image;
+
+import vt.Graphics.AssetResourceSpecification;
+import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
@@ -166,7 +169,7 @@ namespace vt::vulkan
 			case General:
 			case UnorderedAccess:			return VK_IMAGE_LAYOUT_GENERAL;
 			case CopySource:				return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			case CopyTarget:				return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			case CopyDestination:			return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			case ColorAttachment:			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			case DepthStencilAttachment:	return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			case DepthStencilReadOnly:		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
@@ -178,21 +181,41 @@ namespace vt::vulkan
 		VT_UNREACHABLE();
 	}
 
-	export class VulkanTexture
+	export class VulkanImage
 	{
 	public:
-		VkImage get_image() const
+		VkImage get_handle() const
 		{
-			return image;
+			return image.get();
 		}
 
-		VkImageView get_image_view() const
+		VmaAllocation get_allocation() const
 		{
-			return image_view;
+			return image.get_deleter().allocation;
+		}
+
+		VkImageView get_view() const
+		{
+			return image.get_deleter().image_view;
 		}
 
 	private:
-		VkImage		image;
-		VkImageView image_view;
+		struct ImageDeleter
+		{
+			using pointer = VkImage;
+
+			DeviceApiTable const* api;
+			VmaAllocation		  allocation;
+			VkImageView			  image_view;
+
+			void operator()(VkImage image) const
+			{
+				api->vkDestroyImageView(api->device, image_view, nullptr);
+				vmaDestroyImage(api->allocator, image, allocation);
+			}
+		};
+		using UniqueVkImage = std::unique_ptr<VkImage, ImageDeleter>;
+
+		UniqueVkImage image;
 	};
 }

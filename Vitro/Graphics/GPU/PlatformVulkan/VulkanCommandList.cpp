@@ -19,7 +19,6 @@ import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPass;
 import vt.Graphics.RenderTarget;
 import vt.Graphics.RootSignature;
-import vt.Graphics.Vulkan.Driver;
 import vt.Graphics.Vulkan.RootSignature;
 
 namespace vt::vulkan
@@ -64,7 +63,7 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to allocate Vulkan command buffer.");
 		}
 
-		CommandListHandle handle()
+		CommandListHandle get_handle()
 		{
 			return {cmd};
 		}
@@ -92,9 +91,69 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to end Vulkan command buffer.");
 		}
 
+		void copy_buffer(Buffer const& src, Buffer& dst)
+		{
+			VkBufferCopy const region {
+				.srcOffset = 0,
+				.dstOffset = 0,
+				.size	   = src.get_size(),
+			};
+			api->vkCmdCopyBuffer(cmd, src.vulkan.get_handle(), dst.vulkan.get_handle(), 1, &region);
+		}
+
+		void copy_image(Image const& src, Image& dst)
+		{
+			VkImageCopy const region {
+				.srcSubresource {
+					.aspectMask		= extract_image_aspect_flags(src),
+					.mipLevel		= 0,
+					.baseArrayLayer = 0,
+					.layerCount		= 1,
+				},
+				.srcOffset = {0, 0, 0},
+				.dstSubresource {
+					.aspectMask		= extract_image_aspect_flags(dst),
+					.mipLevel		= 0,
+					.baseArrayLayer = 0,
+					.layerCount		= 1,
+				},
+				.dstOffset = {0, 0, 0},
+				.extent {
+					.width	= src.get_width(),
+					.height = src.get_height(),
+					.depth	= src.get_depth(),
+				},
+			};
+			api->vkCmdCopyImage(cmd, src.vulkan.get_handle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst.vulkan.get_handle(),
+								VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		}
+
+		void copy_buffer_to_image(Buffer const& src, Image& dst)
+		{
+			VkBufferImageCopy const region {
+				.bufferOffset	   = 0,
+				.bufferRowLength   = 0, // Zero here means the layout is the same as the destination image extent.
+				.bufferImageHeight = 0,
+				.imageSubresource {
+					.aspectMask		= extract_image_aspect_flags(dst),
+					.mipLevel		= 0,
+					.baseArrayLayer = 0,
+					.layerCount		= 1,
+				},
+				.imageOffset = {0, 0, 0},
+				.imageExtent {
+					.width	= dst.get_width(),
+					.height = dst.get_height(),
+					.depth	= dst.get_depth(),
+				},
+			};
+			api->vkCmdCopyBufferToImage(cmd, src.vulkan.get_handle(), dst.vulkan.get_handle(),
+										VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+		}
+
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
 		{
-			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.vulkan.ptr());
+			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline.vulkan.get_handle());
 		}
 
 		void bind_compute_root_signature(RootSignature const& root_signature)
@@ -109,7 +168,7 @@ namespace vt::vulkan
 
 		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_compute_layout->ptr(), VK_SHADER_STAGE_COMPUTE_BIT,
+			api->vkCmdPushConstants(cmd, this->bound_compute_layout->get_handle(), VK_SHADER_STAGE_COMPUTE_BIT,
 									static_cast<uint32_t>(byte_offset), static_cast<uint32_t>(byte_size), data);
 		}
 
@@ -120,7 +179,7 @@ namespace vt::vulkan
 
 		void dispatch_indirect(Buffer const& buffer, size_t offset)
 		{
-			api->vkCmdDispatchIndirect(cmd, buffer.vulkan.ptr(), offset);
+			api->vkCmdDispatchIndirect(cmd, buffer.vulkan.get_handle(), offset);
 		}
 
 		void begin_render_pass(RenderPass const&	 render_pass,
@@ -129,8 +188,8 @@ namespace vt::vulkan
 		{
 			VkRenderPassBeginInfo const begin_info {
 				.sType		 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-				.renderPass	 = render_pass.vulkan.ptr(),
-				.framebuffer = render_target.vulkan.get_framebuffer(),
+				.renderPass	 = render_pass.vulkan.get_handle(),
+				.framebuffer = render_target.vulkan.get_handle(),
 				.renderArea {
 					.offset {
 						.x = 0,
@@ -159,7 +218,7 @@ namespace vt::vulkan
 
 		void bind_render_pipeline(RenderPipeline const& pipeline)
 		{
-			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.vulkan.ptr());
+			api->vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.vulkan.get_handle());
 		}
 
 		void bind_render_root_signature(RootSignature const& root_signature)
@@ -174,15 +233,17 @@ namespace vt::vulkan
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_render_layout->ptr(), VK_SHADER_STAGE_ALL,
-									static_cast<uint32_t>(byte_offset), static_cast<uint32_t>(byte_size), data);
+			api->vkCmdPushConstants(cmd, this->bound_render_layout->get_handle(),
+									this->bound_render_layout->get_push_constant_stages(), static_cast<uint32_t>(byte_offset),
+									static_cast<uint32_t>(byte_size), data);
 		}
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<VkBuffer, MAX_VERTEX_BUFFERS> handles(first_buffer);
-			for(auto& buffer : std::views::take(buffers, first_buffer))
-				handles.emplace_back(buffer.vulkan.ptr());
+			FixedList<VkBuffer, MAX_VERTEX_BUFFERS> handles;
+
+			for(auto& buffer : buffers)
+				handles.emplace_back(buffer.vulkan.get_handle());
 
 			api->vkCmdBindVertexBuffers(cmd, first_buffer, count(handles), handles.data(), byte_offsets.data());
 		}
@@ -190,7 +251,7 @@ namespace vt::vulkan
 		void bind_index_buffer(Buffer const& buffer, size_t byte_offset)
 		{
 			auto index_type = get_index_type_from_stride(buffer.get_stride());
-			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.ptr(), byte_offset, index_type);
+			api->vkCmdBindIndexBuffer(cmd, buffer.vulkan.get_handle(), byte_offset, index_type);
 		}
 
 		void set_viewports(ArrayView<Viewport> viewports)
@@ -246,18 +307,24 @@ namespace vt::vulkan
 
 		void draw_indirect(Buffer const& buffer, size_t offset, unsigned draws)
 		{
-			api->vkCmdDrawIndirect(cmd, buffer.vulkan.ptr(), offset, draws, sizeof(VkDrawIndirectCommand));
+			api->vkCmdDrawIndirect(cmd, buffer.vulkan.get_handle(), offset, draws, sizeof(VkDrawIndirectCommand));
 		}
 
 		void draw_indexed_indirect(Buffer const& buffer, size_t offset, unsigned draws)
 		{
-			api->vkCmdDrawIndexedIndirect(cmd, buffer.vulkan.ptr(), offset, draws, sizeof(VkDrawIndexedIndirectCommand));
+			api->vkCmdDrawIndexedIndirect(cmd, buffer.vulkan.get_handle(), offset, draws, sizeof(VkDrawIndexedIndirectCommand));
 		}
 
 	private:
 		DeviceApiTable const* api;
 		UniqueVkCommandPool	  pool;
 		VkCommandBuffer		  cmd;
+
+		static VkImageAspectFlags extract_image_aspect_flags(Image const& image)
+		{
+			return image.is_depth_stencil() ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
+											: VK_IMAGE_ASPECT_COLOR_BIT;
+		}
 
 		static VkIndexType get_index_type_from_stride(unsigned stride)
 		{
@@ -275,9 +342,9 @@ namespace vt::vulkan
 		{
 			SmallList<VkDescriptorSet> sets;
 			sets.reserve(descriptor_sets.size());
-			auto layout = root_signature.ptr();
+			auto layout = root_signature.get_handle();
 
-			sets.emplace_back(descriptor_sets[0].vulkan.ptr());
+			sets.emplace_back(descriptor_sets[0].vulkan.get_handle());
 			uint32_t start_index = root_signature.get_layout_index(descriptor_sets[0].vulkan.get_layout());
 			uint32_t prev_index	 = start_index;
 
@@ -290,7 +357,7 @@ namespace vt::vulkan
 					sets.clear();
 					start_index = index;
 				}
-				sets.emplace_back(set.vulkan.ptr());
+				sets.emplace_back(set.vulkan.get_handle());
 				++prev_index;
 			}
 			api->vkCmdBindDescriptorSets(cmd, bind_point, layout, start_index, count(sets), sets.data(), 0, nullptr);

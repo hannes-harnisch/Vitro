@@ -227,7 +227,7 @@ namespace vt::d3d12
 	class Pipeline
 	{
 	public:
-		ID3D12PipelineState* ptr() const
+		ID3D12PipelineState* get_handle() const
 		{
 			return pipeline.get();
 		}
@@ -379,7 +379,7 @@ namespace vt::d3d12
 	export class D3D12RenderPipeline : public Pipeline
 	{
 	public:
-		D3D12RenderPipeline(ID3D12Device4* device, RenderPipelineSpecification const& spec) :
+		D3D12RenderPipeline(ID3D12Device4& device, RenderPipelineSpecification const& spec) :
 			primitive_topology(convert_primitive_topology(spec.primitive_topology, spec.patch_list_control_point_count))
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES> input_element_descs;
@@ -410,7 +410,7 @@ namespace vt::d3d12
 
 			RenderPipelineStream stream {
 				.type_0					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE,
-				.root_signature			  = spec.root_signature.d3d12.ptr(),
+				.root_signature			  = spec.root_signature.d3d12.get_handle(),
 				.type_1					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS,
 				.vertex_shader_bytecode	  = spec.vertex_shader.d3d12.get_bytecode(),
 				.type_2					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS,
@@ -432,7 +432,7 @@ namespace vt::d3d12
 				.rasterizer_desc {
 					.FillMode			   = convert_fill_mode(spec.rasterizer.fill_mode),
 					.CullMode			   = convert_cull_mode(spec.rasterizer.cull_mode),
-					.FrontCounterClockwise = spec.rasterizer.front_face == FrontFace::CounterClockwise,
+					.FrontCounterClockwise = spec.rasterizer.winding_order == WindingOrder::CounterClockwise,
 					.DepthBias			   = spec.rasterizer.depth_bias,
 					.DepthBiasClamp		   = spec.rasterizer.depth_bias_clamp,
 					.SlopeScaledDepthBias  = spec.rasterizer.depth_bias_slope,
@@ -485,7 +485,7 @@ namespace vt::d3d12
 				.SizeInBytes				   = sizeof stream,
 				.pPipelineStateSubobjectStream = &stream,
 			};
-			auto result = device->CreatePipelineState(&desc, VT_COM_OUT(pipeline));
+			auto result = device.CreatePipelineState(&desc, VT_COM_OUT(pipeline));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 render pipeline.");
 		}
 
@@ -501,13 +501,13 @@ namespace vt::d3d12
 	export class D3D12ComputePipeline : public Pipeline
 	{
 	public:
-		D3D12ComputePipeline(ID3D12Device4* device, ComputePipelineSpecification const& spec)
+		D3D12ComputePipeline(ID3D12Device4& device, ComputePipelineSpecification const& spec)
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
-				.pRootSignature = spec.root_signature.d3d12.ptr(),
+				.pRootSignature = spec.root_signature.d3d12.get_handle(),
 				.CS				= spec.compute_shader.d3d12.get_bytecode(),
 			};
-			auto result = device->CreateComputePipelineState(&desc, VT_COM_OUT(pipeline));
+			auto result = device.CreateComputePipelineState(&desc, VT_COM_OUT(pipeline));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 compute pipeline.");
 		}
 	};

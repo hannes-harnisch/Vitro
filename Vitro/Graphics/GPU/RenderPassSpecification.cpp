@@ -7,7 +7,7 @@ export module vt.Graphics.RenderPassSpecification;
 import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.Specification;
-import vt.Graphics.TextureSpecification;
+import vt.Graphics.AssetResourceSpecification;
 
 namespace vt
 {

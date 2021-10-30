@@ -11,14 +11,15 @@ import vt.Core.Array;
 import vt.Core.SmallList;
 import vt.Graphics.DescriptorSetLayout;
 import vt.Graphics.Vulkan.DescriptorSetLayout;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
 	export class VulkanRootSignature
 	{
 	public:
-		VulkanRootSignature(RootSignatureSpecification const& spec, DeviceApiTable const& api)
+		VulkanRootSignature(RootSignatureSpecification const& spec, DeviceApiTable const& api) :
+			push_constant_stages(convert_shader_stage(spec.push_constants_visibility))
 		{
 			SmallList<VkDescriptorSetLayout> set_layouts;
 			set_layouts.reserve(spec.layouts.size());
@@ -26,13 +27,13 @@ namespace vt::vulkan
 			unsigned index = 0;
 			for(auto& layout : spec.layouts)
 			{
-				auto handle = layout.vulkan.ptr();
+				auto handle = layout.vulkan.get_handle();
 				set_layouts.emplace_back(handle);
 				layout_indices.try_emplace(handle, index++);
 			}
 
 			VkPushConstantRange const push_constants {
-				.stageFlags = convert_shader_stage(spec.push_constants_visibility),
+				.stageFlags = push_constant_stages,
 				.offset		= 0,
 				.size		= spec.push_constants_byte_size,
 			};
@@ -52,7 +53,12 @@ namespace vt::vulkan
 			return layout_indices.find(layout)->second;
 		}
 
-		VkPipelineLayout ptr() const
+		VkShaderStageFlags get_push_constant_stages() const
+		{
+			return push_constant_stages;
+		}
+
+		VkPipelineLayout get_handle() const
 		{
 			return pipeline_layout.get();
 		}
@@ -60,5 +66,6 @@ namespace vt::vulkan
 	private:
 		UniqueVkPipelineLayout								pipeline_layout;
 		std::unordered_map<VkDescriptorSetLayout, unsigned> layout_indices;
+		VkShaderStageFlags									push_constant_stages;
 	};
 }

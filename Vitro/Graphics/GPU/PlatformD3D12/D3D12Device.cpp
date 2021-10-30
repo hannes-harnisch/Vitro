@@ -2,7 +2,6 @@
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 
-#include <array>
 #include <fstream>
 #include <ranges>
 #include <span>
@@ -10,11 +9,11 @@
 export module vt.Graphics.D3D12.Device;
 
 import vt.Core.Array;
+import vt.Core.SmallList;
 import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.DescriptorSetLayout;
 import vt.Graphics.D3D12.RootSignature;
 import vt.Graphics.D3D12.SwapChain;
-import vt.Graphics.D3D12.Driver;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Queue;
 import vt.Graphics.DeviceBase;
@@ -25,12 +24,15 @@ namespace vt::d3d12
 	export class D3D12Device final : public DeviceBase
 	{
 	public:
-		D3D12Device(Adapter adapter) :
+		static constexpr D3D_FEATURE_LEVEL MIN_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
+
+		D3D12Device(Adapter const& adapter, IDXGIFactory5& factory) :
+			factory(&factory),
 			device(make_device(adapter)),
-			render_queue(device.get(), D3D12_COMMAND_LIST_TYPE_DIRECT),
-			compute_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COMPUTE),
-			copy_queue(device.get(), D3D12_COMMAND_LIST_TYPE_COPY),
-			descriptor_pool(device.get())
+			render_queue(*device, D3D12_COMMAND_LIST_TYPE_DIRECT),
+			compute_queue(*device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
+			copy_queue(*device, D3D12_COMMAND_LIST_TYPE_COPY),
+			descriptor_pool(*device)
 		{
 			ensure_required_features_exist();
 			initialize_command_signatures();
@@ -39,19 +41,23 @@ namespace vt::d3d12
 
 		CopyCommandList make_copy_command_list() override
 		{
-			return D3D12CommandList<CommandType::Copy>(device.get(), descriptor_pool, nullptr, nullptr, nullptr);
+			return D3D12CommandList<CommandType::Copy>(*device, descriptor_pool, nullptr, nullptr, nullptr);
 		}
 
 		ComputeCommandList make_compute_command_list() override
 		{
-			return D3D12CommandList<CommandType::Compute>(device.get(), descriptor_pool, dispatch_signature.get(), nullptr,
-														  nullptr);
+			return D3D12CommandList<CommandType::Compute>(*device, descriptor_pool, dispatch_signature.get(), nullptr, nullptr);
 		}
 
 		RenderCommandList make_render_command_list() override
 		{
-			return D3D12CommandList<CommandType::Render>(device.get(), descriptor_pool, dispatch_signature.get(),
+			return D3D12CommandList<CommandType::Render>(*device, descriptor_pool, dispatch_signature.get(),
 														 draw_signature.get(), draw_indexed_signature.get());
+		}
+
+		Buffer make_buffer(BufferSpecification const& spec) override
+		{
+			return {D3D12Buffer(spec, *allocator), spec};
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
@@ -59,7 +65,7 @@ namespace vt::d3d12
 			std::vector<ComputePipeline> pipelines;
 			pipelines.reserve(specs.size());
 			for(auto& spec : specs)
-				pipelines.emplace_back(D3D12ComputePipeline(device.get(), spec));
+				pipelines.emplace_back(D3D12ComputePipeline(*device, spec));
 			return pipelines;
 		}
 
@@ -68,11 +74,11 @@ namespace vt::d3d12
 			std::vector<RenderPipeline> pipelines;
 			pipelines.reserve(specs.size());
 			for(auto& spec : specs)
-				pipelines.emplace_back(D3D12RenderPipeline(device.get(), spec));
+				pipelines.emplace_back(D3D12RenderPipeline(*device, spec));
 			return pipelines;
 		}
 
-		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout>) override
+		SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout>) override
 		{
 			return {};
 		}
@@ -89,7 +95,7 @@ namespace vt::d3d12
 
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
-			return D3D12RootSignature(device.get(), spec);
+			return D3D12RootSignature(*device, spec);
 		}
 
 		Sampler make_sampler(SamplerSpecification const& spec) override
@@ -102,9 +108,29 @@ namespace vt::d3d12
 			return D3D12Shader(std::ifstream(path, std::ios::binary));
 		}
 
-		SwapChain make_swap_chain(Driver& driver, Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
+		SwapChain make_swap_chain(Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) override
 		{
-			return {render_queue, driver, window, buffer_count};
+			return D3D12SwapChain(render_queue, *factory, window, buffer_count);
+		}
+
+		void* map(Buffer const& buffer) override
+		{
+			return buffer.d3d12.map();
+		}
+
+		void* map(Image const& image) override
+		{
+			return image.d3d12.map();
+		}
+
+		void unmap(Buffer const& buffer) override
+		{
+			buffer.d3d12.unmap();
+		}
+
+		void unmap(Image const& image) override
+		{
+			image.d3d12.unmap();
 		}
 
 		SyncToken submit_render_commands(ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens = {}) override
@@ -159,6 +185,7 @@ namespace vt::d3d12
 		}
 
 	private:
+		IDXGIFactory5*					  factory;
 		ComUnique<ID3D12Device4>		  device;
 		Queue							  render_queue;
 		Queue							  compute_queue;
@@ -167,34 +194,32 @@ namespace vt::d3d12
 		ComUnique<ID3D12CommandSignature> dispatch_signature;
 		ComUnique<ID3D12CommandSignature> draw_signature;
 		ComUnique<ID3D12CommandSignature> draw_indexed_signature;
+		ComUnique<ID3D12PipelineLibrary1> pipeline_library;
 		ComUnique<D3D12MA::Allocator>	  allocator;
 
 		static ComUnique<ID3D12Device4> make_device(Adapter const& adapter)
 		{
 			ComUnique<ID3D12Device4> device;
-			auto result = D3D12CreateDevice(adapter.d3d12.get(), D3D12Driver::MIN_FEATURE_LEVEL, VT_COM_OUT(device));
+
+			auto result = D3D12CreateDevice(adapter.d3d12.get(), MIN_FEATURE_LEVEL, VT_COM_OUT(device));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 device.");
+
 			return device;
 		}
 
-		static void validate_command_lists([[maybe_unused]] ArrayView<CommandListHandle> cmd_lists,
-										   [[maybe_unused]] D3D12_COMMAND_LIST_TYPE		 type)
+		static SyncToken submit_commands(Queue&									  queue,
+										 [[maybe_unused]] D3D12_COMMAND_LIST_TYPE type,
+										 ArrayView<CommandListHandle>			  cmds,
+										 ConstSpan<SyncToken>					  gpu_wait_tokens)
 		{
 #if VT_DEBUG
-			for(auto list : cmd_lists)
+			for(auto list : cmds)
 			{
 				bool is_right_type = list.d3d12->GetType() == type;
 				VT_ASSERT(is_right_type, "The type of this command list does not match the type of queue it was submitted to.");
 			}
 #endif
-		}
 
-		static SyncToken submit_commands(Queue&						  queue,
-										 D3D12_COMMAND_LIST_TYPE	  type,
-										 ArrayView<CommandListHandle> cmds,
-										 ConstSpan<SyncToken>		  gpu_wait_tokens)
-		{
-			validate_command_lists(cmds, type);
 			queue.submit(cmds, gpu_wait_tokens);
 			return {
 				queue.get_fence(),

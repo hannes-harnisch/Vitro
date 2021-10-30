@@ -15,6 +15,7 @@ import vt.Graphics.Shader;
 
 namespace vt
 {
+	// The kind of data represented by a vertex attribute.
 	export enum class VertexDataType : uint8_t {
 		Position,
 		TransformedPosition,
@@ -28,11 +29,13 @@ namespace vt
 		BlendIndices,
 	};
 
+	// Specifies whether a vertex buffer binding holds per-vertex or per-instance data.
 	export enum class VertexBufferInputRate : uint8_t {
 		PerVertex,
 		PerInstance,
 	};
 
+	// The kind of primitive to be drawn.
 	export enum class PrimitiveTopology : uint8_t {
 		PointList,
 		LineList,
@@ -47,13 +50,14 @@ namespace vt
 		Solid,
 	};
 
+	// What direction primitives need to face to be culled.
 	export enum class CullMode : uint8_t {
-		None,
+		None, // Disables primitive culling.
 		Front,
 		Back,
 	};
 
-	export enum class FrontFace : uint8_t {
+	export enum class WindingOrder : uint8_t {
 		CounterClockwise,
 		Clockwise,
 	};
@@ -122,7 +126,7 @@ namespace vt
 		Alpha = bit(3),
 		All	  = Red | Green | Blue | Alpha,
 	};
-	export template<> constexpr inline bool ALLOW_BIT_OPERATORS_FOR<ColorComponent> = true;
+	export template<> constexpr inline bool ENABLE_BIT_OPERATORS_FOR<ColorComponent> = true;
 
 	export constexpr inline unsigned MAX_VERTEX_ATTRIBUTES		   = 14; // Arbitrarily chosen.
 	export constexpr inline unsigned MAX_VERTEX_BUFFERS			   = 16; // Imposed by D3D12 input assembly stage.
@@ -144,13 +148,13 @@ namespace vt
 
 	struct RasterizerState
 	{
-		PolygonFillMode		fill_mode = PolygonFillMode::Solid;
-		Explicit<CullMode>	cull_mode;
-		Explicit<FrontFace> front_face;
-		bool				enable_depth_clip = false;
-		int					depth_bias		  = 0;
-		float				depth_bias_clamp  = 0.0f;
-		float				depth_bias_slope  = 0.0f;
+		PolygonFillMode		   fill_mode = PolygonFillMode::Solid;
+		Explicit<CullMode>	   cull_mode;
+		Explicit<WindingOrder> winding_order;
+		bool				   enable_depth_clip = false;
+		int					   depth_bias		 = 0;
+		float				   depth_bias_clamp	 = 0.0f;
+		float				   depth_bias_slope	 = 0.0f;
 	};
 
 	export struct StencilOpState

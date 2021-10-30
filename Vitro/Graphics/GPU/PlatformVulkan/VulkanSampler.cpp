@@ -6,7 +6,7 @@
 export module vt.Graphics.Vulkan.Sampler;
 
 import vt.Graphics.DescriptorBinding;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
@@ -118,7 +118,7 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to create Vulkan sampler.");
 		}
 
-		VkSampler ptr() const
+		VkSampler get_handle() const
 		{
 			return sampler.get();
 		}

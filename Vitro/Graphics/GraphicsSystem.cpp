@@ -39,8 +39,8 @@ namespace vt
 		std::atomic_bool			  swap_chain_invalid = false;
 		Extent						  window_size;
 
-		WindowContext(Driver& driver, Window& window, Device& device) :
-			swap_chain(device->make_swap_chain(driver, window)),
+		WindowContext(Window& window, Device& device) :
+			swap_chain(device->make_swap_chain(window)),
 			renderer(std::make_unique<ForwardRenderer>(device, swap_chain->get_format()))
 		{}
 
@@ -76,12 +76,15 @@ namespace vt
 					   Version			  app_version,
 					   Version			  engine_version) :
 			driver(enable_driver_debug_layer, app_name, app_version, engine_version),
-			device(select_adapter()),
+			device(driver->make_device(select_adapter())),
 			render_thread(&GraphicsSystem::run_rendering, this)
 		{
 			register_event_handlers<&GraphicsSystem::on_window_resize, &GraphicsSystem::on_window_object_construct,
 									&GraphicsSystem::on_window_object_move_construct, &GraphicsSystem::on_window_object_destroy,
 									&GraphicsSystem::on_window_object_move_assign>();
+
+			if(enable_driver_debug_layer)
+				Log().info("GPU driver debug layers enabled.");
 		}
 
 		~GraphicsSystem()
@@ -133,7 +136,7 @@ namespace vt
 			std::lock_guard lock(context_access_mutex);
 
 			auto& window = window_constructed.object;
-			window_contexts.try_emplace(&window, driver, window, device);
+			window_contexts.try_emplace(&window, window, device);
 		}
 
 		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_moved)

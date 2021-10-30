@@ -9,7 +9,7 @@ import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Graphics.RenderTargetSpecification;
 import vt.Graphics.SwapChain;
-import vt.Graphics.Vulkan.Driver;
+import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
@@ -36,7 +36,7 @@ namespace vt::vulkan
 			initialize_framebuffer(spec.render_pass, attachments, swap_chain->get_width(), swap_chain->get_height(), api);
 		}
 
-		VkFramebuffer get_framebuffer() const
+		VkFramebuffer get_handle() const
 		{
 			return framebuffer.get();
 		}
@@ -48,10 +48,10 @@ namespace vt::vulkan
 		{
 			FixedList<VkImageView, MAX_ATTACHMENTS> attachments;
 			for(auto attachment : spec.color_attachments)
-				attachments.emplace_back(attachment->vulkan.get_image_view());
+				attachments.emplace_back(attachment->vulkan.get_view());
 
 			if(spec.depth_stencil_attachment)
-				attachments.emplace_back(spec.depth_stencil_attachment->vulkan.get_image_view());
+				attachments.emplace_back(spec.depth_stencil_attachment->vulkan.get_view());
 
 			return attachments;
 		}
@@ -64,7 +64,7 @@ namespace vt::vulkan
 		{
 			VkFramebufferCreateInfo const framebuffer_info {
 				.sType			 = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-				.renderPass		 = render_pass.vulkan.ptr(),
+				.renderPass		 = render_pass.vulkan.get_handle(),
 				.attachmentCount = count(attachments),
 				.pAttachments	 = attachments.data(),
 				.width			 = width,

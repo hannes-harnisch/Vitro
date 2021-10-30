@@ -4,8 +4,8 @@ export module vt.Graphics.SwapChainBase;
 
 import vt.App.WindowEvent;
 import vt.Core.Rectangle;
+import vt.Graphics.AssetResourceSpecification;
 import vt.Graphics.Handle;
-import vt.Graphics.TextureSpecification;
 
 namespace vt
 {
