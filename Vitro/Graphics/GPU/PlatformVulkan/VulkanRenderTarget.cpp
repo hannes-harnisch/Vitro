@@ -18,7 +18,7 @@ namespace vt::vulkan
 	public:
 		VulkanRenderTarget(RenderTargetSpecification const& spec, DeviceApiTable const& api)
 		{
-			auto attachments = fill_attachments(spec);
+			auto attachments = fill_image_views(spec);
 			initialize_framebuffer(spec.render_pass, attachments, spec.width, spec.height, api);
 		}
 
@@ -27,7 +27,7 @@ namespace vt::vulkan
 						   unsigned								  back_buffer_index,
 						   DeviceApiTable const&				  api)
 		{
-			auto attachments = fill_attachments(spec);
+			auto attachments = fill_image_views(spec);
 
 			auto swap_chain_img_dst	 = attachments.begin() + spec.shared_img_dst_index;
 			auto swap_chain_img_view = swap_chain.vulkan.get_back_buffer_view(back_buffer_index);
@@ -44,16 +44,18 @@ namespace vt::vulkan
 	private:
 		UniqueVkFramebuffer framebuffer;
 
-		static auto fill_attachments(auto const& spec)
+		static auto fill_image_views(auto const& spec)
 		{
-			FixedList<VkImageView, MAX_ATTACHMENTS> attachments;
+			FixedList<VkImageView, MAX_ATTACHMENTS> image_views(spec.color_attachments.size());
+
+			auto image_view = image_views.begin();
 			for(auto attachment : spec.color_attachments)
-				attachments.emplace_back(attachment->vulkan.get_view());
+				*image_view++ = attachment->vulkan.get_view();
 
 			if(spec.depth_stencil_attachment)
-				attachments.emplace_back(spec.depth_stencil_attachment->vulkan.get_view());
+				image_views.emplace_back(spec.depth_stencil_attachment->vulkan.get_view());
 
-			return attachments;
+			return image_views;
 		}
 
 		void initialize_framebuffer(RenderPass const&							   render_pass,

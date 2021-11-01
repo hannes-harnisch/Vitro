@@ -10,7 +10,7 @@ export module vt.Graphics.Vulkan.CommandList;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandListBase;
 import vt.Graphics.DescriptorSet;
@@ -93,17 +93,17 @@ namespace vt::vulkan
 
 		void copy_buffer(Buffer const& src, Buffer& dst)
 		{
-			VkBufferCopy const region {
+			VkBufferCopy const copy {
 				.srcOffset = 0,
 				.dstOffset = 0,
 				.size	   = src.get_size(),
 			};
-			api->vkCmdCopyBuffer(cmd, src.vulkan.get_handle(), dst.vulkan.get_handle(), 1, &region);
+			api->vkCmdCopyBuffer(cmd, src.vulkan.get_handle(), dst.vulkan.get_handle(), 1, &copy);
 		}
 
 		void copy_image(Image const& src, Image& dst)
 		{
-			VkImageCopy const region {
+			VkImageCopy const copy {
 				.srcSubresource {
 					.aspectMask		= extract_image_aspect_flags(src),
 					.mipLevel		= 0,
@@ -125,12 +125,12 @@ namespace vt::vulkan
 				},
 			};
 			api->vkCmdCopyImage(cmd, src.vulkan.get_handle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst.vulkan.get_handle(),
-								VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+								VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 		}
 
 		void copy_buffer_to_image(Buffer const& src, Image& dst)
 		{
-			VkBufferImageCopy const region {
+			VkBufferImageCopy const copy {
 				.bufferOffset	   = 0,
 				.bufferRowLength   = 0, // Zero here means the layout is the same as the destination image extent.
 				.bufferImageHeight = 0,
@@ -148,7 +148,57 @@ namespace vt::vulkan
 				},
 			};
 			api->vkCmdCopyBufferToImage(cmd, src.vulkan.get_handle(), dst.vulkan.get_handle(),
-										VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+										VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
+		}
+
+		void update_buffer(Buffer& dst, size_t offset, size_t size, void const* data)
+		{
+			api->vkCmdUpdateBuffer(cmd, dst.vulkan.get_handle(), offset, size, data);
+		}
+
+		void copy_buffer_region(Buffer const& src, Buffer& dst, size_t src_offset, size_t dst_offset, size_t size)
+		{
+			VkBufferCopy const copy {
+				.srcOffset = src_offset,
+				.dstOffset = dst_offset,
+				.size	   = size,
+			};
+			api->vkCmdCopyBuffer(cmd, src.vulkan.get_handle(), dst.vulkan.get_handle(), 1, &copy);
+		}
+
+		void copy_image_region(Image const& src, Image& dst, ImageCopyRegion const& region)
+		{
+			VkImageCopy const copy {
+				.srcSubresource {
+					.aspectMask		= extract_image_aspect_flags(src),
+					.mipLevel		= region.src_mip,
+					.baseArrayLayer = region.src_array_index,
+					.layerCount		= 1,
+				},
+				.srcOffset {
+					.x = static_cast<int>(region.src_offset.x),
+					.y = static_cast<int>(region.src_offset.y),
+					.z = static_cast<int>(region.src_offset.z),
+				},
+				.dstSubresource {
+					.aspectMask		= extract_image_aspect_flags(dst),
+					.mipLevel		= region.dst_mip,
+					.baseArrayLayer = region.dst_array_index,
+					.layerCount		= 1,
+				},
+				.dstOffset {
+					.x = static_cast<int>(region.dst_offset.x),
+					.y = static_cast<int>(region.dst_offset.y),
+					.z = static_cast<int>(region.dst_offset.z),
+				},
+				.extent {
+					.width	= region.expanse.width,
+					.height = region.expanse.height,
+					.depth	= region.expanse.depth,
+				},
+			};
+			api->vkCmdCopyImage(cmd, src.vulkan.get_handle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst.vulkan.get_handle(),
+								VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 		}
 
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
@@ -240,10 +290,11 @@ namespace vt::vulkan
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<VkBuffer, MAX_VERTEX_BUFFERS> handles;
+			FixedList<VkBuffer, MAX_VERTEX_BUFFERS> handles(buffers.size());
 
+			auto handle = handles.begin();
 			for(auto& buffer : buffers)
-				handles.emplace_back(buffer.vulkan.get_handle());
+				*handle++ = buffer.vulkan.get_handle();
 
 			api->vkCmdBindVertexBuffers(cmd, first_buffer, count(handles), handles.data(), byte_offsets.data());
 		}
@@ -256,10 +307,20 @@ namespace vt::vulkan
 
 		void set_viewports(ArrayView<Viewport> viewports)
 		{
-			static_assert(std::is_layout_compatible_v<Viewport, VkViewport>);
+			FixedList<VkViewport, MAX_ATTACHMENTS> vk_viewports(viewports.size());
 
-			auto data = reinterpret_cast<VkViewport const*>(viewports.data());
-			api->vkCmdSetViewport(cmd, 0, count(viewports), data);
+			auto viewport = vk_viewports.begin();
+			for(auto vp : viewports)
+				*viewport++ = VkViewport {
+					.x		  = vp.x,
+					.y		  = vp.height + vp.y,
+					.width	  = vp.width,
+					.height	  = -vp.height,
+					.minDepth = vp.min_depth,
+					.maxDepth = vp.max_depth,
+				};
+
+			api->vkCmdSetViewport(cmd, 0, count(vk_viewports), vk_viewports.data());
 		}
 
 		void set_scissors(ArrayView<Rectangle> scissors)
@@ -272,13 +333,7 @@ namespace vt::vulkan
 
 		void set_blend_constants(Float4 blend_constants)
 		{
-			float const constants[] {
-				blend_constants.r,
-				blend_constants.g,
-				blend_constants.b,
-				blend_constants.a,
-			};
-			api->vkCmdSetBlendConstants(cmd, constants);
+			api->vkCmdSetBlendConstants(cmd, &blend_constants[0]);
 		}
 
 		void set_depth_bounds(float min, float max)

@@ -3,7 +3,7 @@
 export module vt.Graphics.SwapChainBase;
 
 import vt.App.WindowEvent;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Graphics.AssetResourceSpecification;
 import vt.Graphics.Handle;
 

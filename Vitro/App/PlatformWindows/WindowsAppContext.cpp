@@ -11,7 +11,7 @@ import vt.App.Window;
 import vt.App.WindowEvent;
 import vt.App.Windows.Window;
 import vt.Core.Array;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.Vector;
 import vt.Core.Windows.Utils;
 import vt.Trace.Log;

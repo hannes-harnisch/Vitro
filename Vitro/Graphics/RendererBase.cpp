@@ -4,7 +4,7 @@
 export module vt.Graphics.RendererBase;
 
 import vt.Core.FixedList;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.SmallList;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;

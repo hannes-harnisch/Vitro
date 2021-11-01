@@ -14,20 +14,26 @@ namespace vt
 {
 	using PlatformCopyCommandList = InterfaceVariant<CopyCommandListBase,
 													 VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Copy>)>;
+
+	using PlatformComputeCommandList = InterfaceVariant<ComputeCommandListBase,
+														VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Compute>)>;
+
+	using PlatformRenderCommandList = InterfaceVariant<RenderCommandListBase,
+													   VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Render>)>;
+
+	// Use the arrow operator on it to record various copy commands.
 	export class CopyCommandList : public PlatformCopyCommandList
 	{
 		using PlatformCopyCommandList::PlatformCopyCommandList;
 	};
 
-	using PlatformComputeCommandList = InterfaceVariant<ComputeCommandListBase,
-														VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Compute>)>;
+	// Use the arrow operator on it to record various compute commands.
 	export class ComputeCommandList : public PlatformComputeCommandList
 	{
 		using PlatformComputeCommandList::PlatformComputeCommandList;
 	};
 
-	using PlatformRenderCommandList = InterfaceVariant<RenderCommandListBase,
-													   VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Render>)>;
+	// Use the arrow operator on it to record various rendering commands.
 	export class RenderCommandList : public PlatformRenderCommandList
 	{
 		using PlatformRenderCommandList::PlatformRenderCommandList;

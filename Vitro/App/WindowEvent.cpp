@@ -4,7 +4,7 @@ export module vt.App.WindowEvent;
 
 import vt.App.Window;
 import vt.Core.Enum;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.Vector;
 
 namespace vt

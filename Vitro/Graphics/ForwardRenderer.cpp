@@ -3,7 +3,7 @@
 export module vt.Graphics.ForwardRenderer;
 
 import vt.Core.Matrix;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.Vector;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandList;
@@ -108,9 +108,11 @@ namespace vt
 	protected:
 		SmallList<CommandListHandle> render(RenderTarget const& render_target) override
 		{
-			context->deletion_queue.delete_all();
+			auto& current = context.current();
 
-			auto& cmd = context->command_list;
+			current.deletion_queue.delete_all();
+
+			auto& cmd = current.render_cmd_list;
 			cmd->reset();
 			cmd->begin();
 
@@ -140,8 +142,8 @@ namespace vt
 			triangle_color.a	  = 1;
 			cmd->push_render_constants(0, sizeof triangle_color, &triangle_color);
 
-			size_t offsets[] {0};
-			cmd->bind_vertex_buffers(0, vertex_buffers[0], offsets);
+			size_t offset = 0;
+			cmd->bind_vertex_buffers(0, vertex_buffers[0], offset);
 
 			cmd->draw(3, 1, 0, 0);
 			cmd->end_render_pass();
@@ -174,10 +176,10 @@ namespace vt
 
 		struct FrameResources
 		{
-			RenderCommandList command_list;
+			RenderCommandList render_cmd_list;
 			DeletionQueue	  deletion_queue;
 
-			FrameResources(Device& device) : command_list(device->make_render_command_list())
+			FrameResources(Device& device) : render_cmd_list(device->make_render_command_list())
 			{}
 		};
 		RingBuffer<FrameResources> context;

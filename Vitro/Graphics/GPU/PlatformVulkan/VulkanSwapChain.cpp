@@ -11,7 +11,7 @@ import vt.App.AppContextBase;
 import vt.App.Window;
 import vt.Core.Algorithm;
 import vt.Core.Array;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.SmallList;
 import vt.Graphics.SwapChainBase;
 import vt.Graphics.Vulkan.Handle;

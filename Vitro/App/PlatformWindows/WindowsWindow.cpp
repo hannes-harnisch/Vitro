@@ -7,7 +7,7 @@
 export module vt.App.Windows.Window;
 
 import vt.App.AppContextBase;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.Vector;
 import vt.Core.Windows.Utils;
 

@@ -4,7 +4,7 @@ export module vt.Graphics.CommandListBase;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.Vector;
 import vt.Graphics.AssetResource;
 import vt.Graphics.DescriptorSet;
@@ -22,6 +22,7 @@ namespace vt
 		Render,
 	};
 
+	// Holds either a clear value for a color attachment or a depth stencil attachment.
 	export union ClearValue
 	{
 		Float4 color = {};
@@ -30,6 +31,19 @@ namespace vt
 			float	 depth;
 			unsigned stencil;
 		};
+	};
+
+	// Describes which subresource of an image at which offset to copy from, and to which subresource at what offset to
+	// copy it to.
+	export struct ImageCopyRegion
+	{
+		Expanse	 expanse;
+		UInt3	 src_offset		 = {};
+		UInt3	 dst_offset		 = {};
+		unsigned src_mip		 = 0; // Mip level of the source image.
+		unsigned src_array_index = 0; // Index of the source image in a texture array.
+		unsigned dst_mip		 = 0; // Mip level of the destination image.
+		unsigned dst_array_index = 0; // Index of the destination image in a texture array.
 	};
 
 	export class CopyCommandListBase
@@ -57,6 +71,16 @@ namespace vt
 
 		// Directs the GPU to copy the entire content of the source buffer to the destination image.
 		virtual void copy_buffer_to_image(Buffer const& src, Image& dst) = 0;
+
+		// Update a region of a buffer without a staging buffer. Must be called outside of a render pass. Is more efficient when
+		// the amount of data is small. Size should never exceed 65536 bytes.
+		virtual void update_buffer(Buffer& dst, size_t offset, size_t size, void const* data) = 0;
+
+		// Directs the GPU to copy size amount of bytes from the source buffer to the destination buffer at the given offsets.
+		virtual void copy_buffer_region(Buffer const& src, Buffer& dst, size_t src_offset, size_t dst_offset, size_t size) = 0;
+
+		// Directs the GPU to copy the amount of texel data specified by region from the source image to the destination image.
+		virtual void copy_image_region(Image const& src, Image& dst, ImageCopyRegion const& region) = 0;
 	};
 
 	export class ComputeCommandListBase : public CopyCommandListBase
@@ -84,7 +108,10 @@ namespace vt
 	export class RenderCommandListBase : public ComputeCommandListBase
 	{
 	public:
-		// Begins a render pass, binding the given render target, potentially clearing it with the given clear values.
+		// Begins a render pass, binding the given render target, potentially clearing it with the given clear values. The span
+		// of clear values should hold clear values corresponding to how each attachment, in the order of its render target,
+		// should be cleared. Color attachments will read the clear value as a clear color, depth stencil attachments as a
+		// depth-stencil clear value.
 		virtual void begin_render_pass(RenderPass const&	 render_pass,
 									   RenderTarget const&	 render_target,
 									   ConstSpan<ClearValue> clear_values = {}) = 0;

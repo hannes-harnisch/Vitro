@@ -95,6 +95,7 @@ namespace vt::vulkan
 		DEVICE_FUNC(vkCmdSetScissor)
 		DEVICE_FUNC(vkCmdSetStencilReference)
 		DEVICE_FUNC(vkCmdSetViewport)
+		DEVICE_FUNC(vkCmdUpdateBuffer)
 		DEVICE_FUNC(vkCreateBuffer)
 		DEVICE_FUNC(vkCreateCommandPool)
 		DEVICE_FUNC(vkCreateComputePipelines)

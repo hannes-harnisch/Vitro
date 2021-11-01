@@ -46,6 +46,8 @@ namespace vt
 
 		void update(Window& window, Device& device)
 		{
+			auto& current = ring.current();
+
 			if(swap_chain_invalid)
 			{
 				device->flush_render_queue();
@@ -56,13 +58,13 @@ namespace vt
 				swap_chain_invalid = false;
 			}
 			else
-				device->wait_for_workload(ring->final_submit_token);
+				device->wait_for_workload(current.final_submit_token);
 
 			auto present_token = swap_chain->request_frame();
 			if(present_token)
 			{
-				auto final_commands		 = renderer->render(swap_chain);
-				ring->final_submit_token = device->submit_for_present(final_commands, swap_chain, *present_token);
+				auto final_commands		   = renderer->render(swap_chain);
+				current.final_submit_token = device->submit_for_present(final_commands, swap_chain, *present_token);
 			}
 			ring.move_to_next_frame();
 		}

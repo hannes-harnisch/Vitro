@@ -19,28 +19,14 @@ namespace vt
 				frame_resources.emplace_back(args...);
 		}
 
-		// Gives the currently active frame resources.
-		T& operator*() noexcept
+		T& current() noexcept
 		{
 			return frame_resources[index];
 		}
 
-		// Gives the currently active frame resources.
-		T const& operator*() const noexcept
+		T const& current() const noexcept
 		{
 			return frame_resources[index];
-		}
-
-		// Allows indirection to the currently active frame resources.
-		T* operator->() noexcept
-		{
-			return &frame_resources[index];
-		}
-
-		// Allows indirection to the currently active frame resources.
-		T const* operator->() const noexcept
-		{
-			return &frame_resources[index];
 		}
 
 		void move_to_next_frame()
@@ -60,7 +46,7 @@ namespace vt
 			return frame_resources[(index + size - 1) % size];
 		}
 
-		unsigned current_index() const noexcept
+		unsigned get_current_index() const noexcept
 		{
 			return index;
 		}

@@ -6,7 +6,7 @@ export module vt.App.Window;
 
 import vt.App.ObjectEvent;
 import vt.App.VT_SYSTEM_MODULE.Window;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
 import vt.Core.Vector;
 
 namespace vt

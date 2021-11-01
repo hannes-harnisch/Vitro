@@ -8,7 +8,8 @@ export module vt.Graphics.D3D12.CommandList;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
-import vt.Core.Rectangle;
+import vt.Core.Rect;
+import vt.Core.SmallList;
 import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.RenderPass;
@@ -136,6 +137,58 @@ namespace vt::d3d12
 			cmd->CopyResource(dst.d3d12.get_resource(), src.d3d12.get_resource());
 		}
 
+		void update_buffer(Buffer& dst, size_t offset, size_t size, void const* data)
+		{
+			SmallList<D3D12_WRITEBUFFERIMMEDIATE_PARAMETER> params(size / sizeof(DWORD));
+
+			auto param	 = params.begin();
+			auto address = dst.d3d12.get_gpu_address() + offset;
+			auto end	 = address + size;
+			auto ptr	 = static_cast<char const*>(data);
+			while(address != end)
+			{
+				param->Dest = address;
+				std::memcpy(&param->Value, ptr, sizeof(DWORD));
+
+				address += sizeof(DWORD);
+				ptr += sizeof(DWORD);
+				++param;
+			}
+
+			cmd->WriteBufferImmediate(count(params), params.data(), nullptr);
+		}
+
+		void copy_buffer_region(Buffer const& src, Buffer& dst, size_t src_offset, size_t dst_offset, size_t size)
+		{
+			cmd->CopyBufferRegion(dst.d3d12.get_resource(), dst_offset, src.d3d12.get_resource(), src_offset, size);
+		}
+
+		void copy_image_region(Image const& src, Image& dst, ImageCopyRegion const& region)
+		{
+			D3D12_TEXTURE_COPY_LOCATION const source {
+				.pResource		  = src.d3d12.get_resource(),
+				.Type			  = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+				.SubresourceIndex = region.src_mip + region.src_array_index * src.count_mips(),
+			};
+			D3D12_TEXTURE_COPY_LOCATION const destination {
+				.pResource		  = dst.d3d12.get_resource(),
+				.Type			  = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
+				.SubresourceIndex = region.dst_mip + region.dst_array_index * dst.count_mips(),
+			};
+			D3D12_BOX const box {
+				.left	= region.src_offset.x,
+				.top	= region.src_offset.y,
+				.front	= region.src_offset.z,
+				.right	= box.left + region.expanse.width,
+				.bottom = box.top + region.expanse.height,
+				.back	= box.front + region.expanse.depth,
+			};
+			UINT dst_x = region.dst_offset.x;
+			UINT dst_y = region.dst_offset.y;
+			UINT dst_z = region.dst_offset.z;
+			cmd->CopyTextureRegion(&destination, dst_x, dst_y, dst_z, &source, &box);
+		}
+
 		void bind_compute_pipeline(ComputePipeline const& pipeline)
 		{
 			cmd->SetPipelineState(pipeline.d3d12.get_handle());
@@ -203,7 +256,7 @@ namespace vt::d3d12
 			auto& subpass = pass.get_subpass(0);
 			insert_render_pass_barriers(subpass.transitions);
 
-			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs;
+			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs(pass.count_color_attachments());
 
 			size_t index = 0;
 			for(auto access : pass.get_render_target_accesses())
@@ -222,7 +275,7 @@ namespace vt::d3d12
 						},
 					};
 
-				rt_descs.emplace_back(D3D12_RENDER_PASS_RENDER_TARGET_DESC {
+				rt_descs[index] = D3D12_RENDER_PASS_RENDER_TARGET_DESC {
 					.cpuDescriptor = target.get_view(index),
 					.BeginningAccess {
 						.Type  = access.begin_access,
@@ -231,7 +284,8 @@ namespace vt::d3d12
 					.EndingAccess {
 						.Type = access.end_access,
 					},
-				});
+				};
+
 				++index;
 			}
 
@@ -287,7 +341,7 @@ namespace vt::d3d12
 		void transition_subpass()
 		{
 			auto& pass = *this->bound_render_pass;
-			VT_ASSERT(this->subpass_index < pass.subpass_count() - 1,
+			VT_ASSERT(this->subpass_index < pass.count_subpasses() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
 
 			cmd->EndRenderPass();
@@ -367,15 +421,16 @@ namespace vt::d3d12
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
 		{
-			FixedList<D3D12_VERTEX_BUFFER_VIEW, MAX_VERTEX_BUFFERS> views;
+			FixedList<D3D12_VERTEX_BUFFER_VIEW, MAX_VERTEX_BUFFERS> views(buffers.size());
 
+			auto view	= views.begin();
 			auto offset = byte_offsets.begin();
 			for(auto& buffer : buffers)
-				views.emplace_back(D3D12_VERTEX_BUFFER_VIEW {
+				*view++ = D3D12_VERTEX_BUFFER_VIEW {
 					.BufferLocation = buffer.d3d12.get_gpu_address() + *offset++,
 					.SizeInBytes	= buffer.get_size(),
 					.StrideInBytes	= buffer.get_stride(),
-				});
+				};
 
 			cmd->IASetVertexBuffers(first_buffer, count(views), views.data());
 		}
@@ -400,27 +455,23 @@ namespace vt::d3d12
 
 		void set_scissors(ArrayView<Rectangle> scissors)
 		{
-			FixedList<D3D12_RECT, MAX_ATTACHMENTS> rects;
-			for(auto&& scissor : scissors)
-				rects.emplace_back(D3D12_RECT {
+			FixedList<D3D12_RECT, MAX_ATTACHMENTS> rects(scissors.size());
+
+			auto rect = rects.begin();
+			for(auto scissor : scissors)
+				*rect++ = D3D12_RECT {
 					.left	= scissor.x,
 					.top	= scissor.y,
 					.right	= static_cast<LONG>(scissor.x + scissor.width),
 					.bottom = static_cast<LONG>(scissor.y + scissor.height),
-				});
+				};
 
 			cmd->RSSetScissorRects(count(rects), rects.data());
 		}
 
 		void set_blend_constants(Float4 blend_constants)
 		{
-			float const factor[] {
-				blend_constants.r,
-				blend_constants.g,
-				blend_constants.b,
-				blend_constants.a,
-			};
-			cmd->OMSetBlendFactor(factor);
+			cmd->OMSetBlendFactor(&blend_constants[0]);
 		}
 
 		void set_depth_bounds(float min, float max)
@@ -475,10 +526,12 @@ namespace vt::d3d12
 
 		void insert_render_pass_barriers(TransitionList const& transitions)
 		{
-			FixedList<D3D12_RESOURCE_BARRIER, MAX_ATTACHMENTS> barriers;
+			FixedList<D3D12_RESOURCE_BARRIER, MAX_ATTACHMENTS> barriers(transitions.size());
+
+			auto barrier = barriers.begin();
 			for(auto transition : transitions)
 			{
-				barriers.emplace_back(D3D12_RESOURCE_BARRIER {
+				*barrier++ = D3D12_RESOURCE_BARRIER {
 					.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
 					.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
 					.Transition {
@@ -487,8 +540,9 @@ namespace vt::d3d12
 						.StateBefore = transition.old_layout,
 						.StateAfter	 = transition.new_layout,
 					},
-				});
+				};
 			}
+
 			cmd->ResourceBarrier(count(barriers), barriers.data());
 		}
 	};

@@ -68,6 +68,11 @@ namespace vt
 			return depth;
 		}
 
+		uint8_t count_mips() const
+		{
+			return mips;
+		}
+
 		bool is_depth_stencil() const
 		{
 			return is_depth_stencil_image;
@@ -77,6 +82,7 @@ namespace vt
 		uint16_t width;
 		uint16_t height;
 		uint16_t depth;
+		uint8_t	 mips;
 		bool	 is_depth_stencil_image = false;
 	};
 

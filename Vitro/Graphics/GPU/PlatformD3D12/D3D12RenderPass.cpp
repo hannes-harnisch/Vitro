@@ -71,9 +71,11 @@ namespace vt::d3d12
 			stencil_begin_access(convert_image_load_op(spec.stencil_load_op)),
 			stencil_end_access(convert_image_store_op(spec.stencil_store_op))
 		{
-			FixedList<D3D12_RESOURCE_STATES, MAX_ATTACHMENTS> current_layouts;
+			FixedList<D3D12_RESOURCE_STATES, MAX_ATTACHMENTS> current_layouts(spec.attachments.size());
+
+			auto current_layout = current_layouts.begin();
 			for(auto attachment : spec.attachments)
-				current_layouts.emplace_back(convert_image_layout(attachment.initial_layout));
+				*current_layout++ = convert_image_layout(attachment.initial_layout);
 
 			for(auto& subpass : spec.subpasses)
 			{
@@ -143,6 +145,11 @@ namespace vt::d3d12
 			return {attachments.begin(), attachments.end() - is_using_depth_stencil};
 		}
 
+		size_t count_color_attachments() const
+		{
+			return attachments.size() - is_using_depth_stencil;
+		}
+
 		DXGI_FORMAT get_render_target_format(size_t index) const
 		{
 			return attachments[index].format;
@@ -188,7 +195,7 @@ namespace vt::d3d12
 			return final_transitions;
 		}
 
-		size_t subpass_count() const
+		size_t count_subpasses() const
 		{
 			return subpasses.size();
 		}

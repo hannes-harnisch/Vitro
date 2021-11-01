@@ -19,7 +19,6 @@ workspace 'Vitro'
 							'%{prj.name}/**.hpp',
 							'%{prj.name}/**.hlsl',
 							'%{prj.name}/**.hlsli',
-							'%{prj.name}/**.natvis',
 						}
 	removefiles			'**/Platform**/'
 	debugdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
@@ -135,7 +134,6 @@ project 'D3D12MemoryAllocator'
 	files				{
 							'Dependencies/%{prj.name}/src/D3D12MemAlloc.cpp',
 							'Dependencies/%{prj.name}/src/D3D12MemAlloc.h',
-							'Dependencies/%{prj.name}/src/D3D12MemAlloc.natvis',
 						}
 
 	filter 'platforms:D3D12 or D3D12+Vulkan'
@@ -147,9 +145,13 @@ project 'VulkanMemoryAllocator'
 	kind				'None'
 	files				{
 							'Dependencies/VulkanMemoryAllocator.cpp',
-							'Dependencies/%{prj.name}/src/vk_mem_alloc.natvis',
 						}
 	includedirs			'C:/VulkanSDK/**/Include'
 
 	filter 'platforms:Vulkan or D3D12+Vulkan'
 		kind			'StaticLib'
+
+project 'NatvisFiles'
+	location			'Dependencies'
+	kind				'None'
+	files				'**.natvis'

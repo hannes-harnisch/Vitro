@@ -82,7 +82,7 @@ namespace vt::vulkan
 		VT_UNREACHABLE();
 	}
 
-	VkFrontFace convert_front_face(WindingOrder order)
+	VkFrontFace convert_winding_order(WindingOrder order)
 	{
 		switch(order)
 		{
@@ -351,7 +351,7 @@ namespace vt::vulkan
 				.depthClampEnable		 = spec.rasterizer.enable_depth_clip,
 				.polygonMode			 = convert_fill_mode(spec.rasterizer.fill_mode),
 				.cullMode				 = convert_cull_mode(spec.rasterizer.cull_mode),
-				.frontFace				 = convert_front_face(spec.rasterizer.winding_order),
+				.frontFace				 = convert_winding_order(spec.rasterizer.winding_order),
 				.depthBiasEnable		 = spec.rasterizer.depth_bias != 0,
 				.depthBiasConstantFactor = static_cast<float>(spec.rasterizer.depth_bias),
 				.depthBiasClamp			 = spec.rasterizer.depth_bias_clamp,

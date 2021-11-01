@@ -58,9 +58,11 @@ namespace vt::vulkan
 		{
 			bool const uses_depth_stencil = spec.uses_depth_stencil_attachment();
 
-			FixedList<VkAttachmentDescription, MAX_ATTACHMENTS> attachments;
+			FixedList<VkAttachmentDescription, MAX_ATTACHMENTS> attachments(spec.attachments.size());
+
+			auto attachment_desc = attachments.begin();
 			for(auto attachment : spec.attachments)
-				attachments.emplace_back(VkAttachmentDescription {
+				*attachment_desc++ = VkAttachmentDescription {
 					.format			= convert_image_format(attachment.format),
 					.samples		= convert_sample_count(attachment.sample_count),
 					.loadOp			= convert_image_load_op(attachment.load_op),
@@ -69,7 +71,7 @@ namespace vt::vulkan
 					.stencilStoreOp = convert_image_store_op(spec.stencil_store_op),
 					.initialLayout	= convert_image_layout(attachment.initial_layout),
 					.finalLayout	= convert_image_layout(attachment.final_layout),
-				});
+				};
 
 			SmallList<VkSubpassDescription> subpasses;
 			subpasses.reserve(spec.subpasses.size());
