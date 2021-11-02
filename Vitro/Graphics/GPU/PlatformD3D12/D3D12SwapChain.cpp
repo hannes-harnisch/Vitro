@@ -68,7 +68,7 @@ namespace vt::d3d12
 			return swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		unsigned get_present_count() const override
+		unsigned count_presents() const override
 		{
 			UINT count;
 			auto result = swap_chain->GetLastPresentCount(&count);
@@ -76,7 +76,7 @@ namespace vt::d3d12
 			return count;
 		}
 
-		unsigned get_buffer_count() const override
+		unsigned count_buffers() const override
 		{
 			return buffer_count;
 		}

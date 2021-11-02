@@ -4,6 +4,7 @@
 	#define VK_USE_PLATFORM_XCB_KHR
 #endif
 
+#define VK_NO_PROTOTYPES
 #include <vulkan/vulkan.h>
 
 #if VT_SYSTEM_WINDOWS
@@ -20,4 +21,4 @@ typedef struct _SECURITY_ATTRIBUTES SECURITY_ATTRIBUTES;
 	#include <vulkan/vulkan_win32.h>
 #endif
 
-#include <VulkanMemoryAllocator/include/vk_mem_alloc.h>
+#include <VulkanMemoryAllocator/VulkanMemoryAllocator/include/vk_mem_alloc.h>

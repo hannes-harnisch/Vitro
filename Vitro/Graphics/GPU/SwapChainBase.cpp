@@ -18,8 +18,8 @@ namespace vt
 
 		virtual ImageFormat get_format() const				= 0;
 		virtual unsigned	get_current_image_index() const = 0;
-		virtual unsigned	get_present_count() const		= 0;
-		virtual unsigned	get_buffer_count() const		= 0;
+		virtual unsigned	count_presents() const			= 0;
+		virtual unsigned	count_buffers() const			= 0;
 		virtual unsigned	get_width() const				= 0;
 		virtual unsigned	get_height() const				= 0;
 		virtual void		resize(Extent size)				= 0;

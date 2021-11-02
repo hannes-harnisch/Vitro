@@ -117,7 +117,7 @@ namespace vt
 									   ConstSpan<ClearValue> clear_values = {}) = 0;
 
 		// Transitions the currently bound render target to its next state in the render pass.
-		virtual void transition_subpass() = 0;
+		virtual void change_subpass() = 0;
 
 		// Denotes the end of a render pass.
 		virtual void end_render_pass() = 0;

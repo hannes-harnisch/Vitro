@@ -48,7 +48,7 @@ namespace vt
 											SwapChain const&					   swap_chain,
 											unsigned							   back_buffer_index)
 	{
-		if(back_buffer_index >= swap_chain->get_buffer_count())
+		if(back_buffer_index >= swap_chain->count_buffers())
 			throw std::invalid_argument("Invalid swap chain back buffer index.");
 
 		if(spec.shared_img_dst_index > spec.color_attachments.size())

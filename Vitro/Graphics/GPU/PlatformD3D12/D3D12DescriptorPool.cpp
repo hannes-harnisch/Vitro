@@ -3,7 +3,6 @@
 #include "D3D12API.hpp"
 
 #include <algorithm>
-#include <array>
 #include <deque>
 #include <vector>
 export module vt.Graphics.D3D12.DescriptorPool;
@@ -38,7 +37,12 @@ namespace vt::d3d12
 			auto result = device.CreateDescriptorHeap(&desc, VT_COM_OUT(heap));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 descriptor heap.");
 
-			free_blocks.emplace_back(get_cpu_heap_start(), descriptor_count);
+			free_blocks.emplace_back(heap->GetCPUDescriptorHandleForHeapStart(), descriptor_count);
+
+			if(shader_visible)
+				gpu_heap_start = heap->GetGPUDescriptorHandleForHeapStart();
+			else
+				gpu_heap_start = {};
 		}
 
 		DescriptorAllocation allocate(size_t unit_count)
@@ -112,12 +116,21 @@ namespace vt::d3d12
 
 		D3D12_CPU_DESCRIPTOR_HANDLE get_cpu_heap_start() const
 		{
-			return heap->GetCPUDescriptorHandleForHeapStart();
+			return free_blocks[0].handle;
 		}
 
+		// Returns a descriptor with value zero if the heap is not shader-visible.
 		D3D12_GPU_DESCRIPTOR_HANDLE get_gpu_heap_start() const
 		{
-			return heap->GetGPUDescriptorHandleForHeapStart();
+			return gpu_heap_start;
+		}
+
+		// Only valid for shader-visible descriptor heaps. Calculates the value of the GPU descriptor equivalent to the given
+		// CPU descriptor on this heap.
+		D3D12_GPU_DESCRIPTOR_HANDLE mirror_descriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
+		{
+			VT_ASSERT(gpu_heap_start.ptr, "This method cannot validly be called on a non-shader-visible descriptor heap.");
+			return {descriptor.ptr - get_cpu_heap_start().ptr + gpu_heap_start.ptr};
 		}
 
 		ID3D12DescriptorHeap* get_handle() const
@@ -128,21 +141,25 @@ namespace vt::d3d12
 	private:
 		std::deque<DescriptorAllocation> free_blocks;
 		ComUnique<ID3D12DescriptorHeap>	 heap;
+		D3D12_GPU_DESCRIPTOR_HANDLE		 gpu_heap_start;
 		unsigned						 stride;
 	};
 
+	// Acts as an owner for all D3D12 descriptor heaps, so as to easily allocate various types of descriptors from one object
+	// instead of having to ask for various types of descriptor heaps.
 	export class DescriptorPool
 	{
 	public:
 		DescriptorPool(ID3D12Device4& device) :
-			device(&device),
 			rtv_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, MAX_RENDER_TARGET_VIEWS, false),
 			dsv_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, MAX_DEPTH_STENCIL_VIEWS, false),
 			view_staging_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, false),
 			sampler_staging_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, false),
 			gpu_view_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, MAX_CBV_SRV_UAVS_ON_GPU, true),
 			gpu_sampler_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, true)
-		{}
+		{
+			initialize_render_target_null_descriptor(device);
+		}
 
 		DescriptorAllocation allocate_render_target_views(size_t count)
 		{
@@ -174,14 +191,21 @@ namespace vt::d3d12
 			return dsv_heap.get_stride();
 		}
 
-		std::array<ID3D12DescriptorHeap*, 2> get_shader_visible_heaps() const
+		// Returns a render target null descriptor for a 2D render target.
+		D3D12_CPU_DESCRIPTOR_HANDLE get_rtv_null_descriptor() const
 		{
-			return {gpu_view_heap.get_handle(), gpu_sampler_heap.get_handle()};
+			// We can just return the start of the heap here, since the null descriptor resides at the first allocation.
+			return rtv_heap.get_cpu_heap_start();
 		}
 
-		ID3D12Device4* get_device() const
+		ID3D12DescriptorHeap* get_shader_visible_view_heap() const
 		{
-			return device;
+			return gpu_view_heap.get_handle();
+		}
+
+		ID3D12DescriptorHeap* get_shader_visible_sampler_heap() const
+		{
+			return gpu_sampler_heap.get_handle();
 		}
 
 	private:
@@ -190,12 +214,27 @@ namespace vt::d3d12
 		static constexpr unsigned MAX_CBV_SRV_UAVS_ON_GPU	 = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
 		static constexpr unsigned MAX_DYNAMIC_SAMPLER_ON_GPU = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
 
-		ID3D12Device4* device;
 		DescriptorHeap rtv_heap;
 		DescriptorHeap dsv_heap;
 		DescriptorHeap view_staging_heap;
 		DescriptorHeap sampler_staging_heap;
 		DescriptorHeap gpu_view_heap;
 		DescriptorHeap gpu_sampler_heap;
+
+		void initialize_render_target_null_descriptor(ID3D12Device4& device)
+		{
+			// Guaranteed to return the start of the heap.
+			auto alloc = rtv_heap.allocate(1);
+
+			D3D12_RENDER_TARGET_VIEW_DESC const rtv_desc {
+				.Format		   = DXGI_FORMAT_R8G8B8A8_UNORM, // TODO: Should another format be chosen? Unknown is not permitted.
+				.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
+				.Texture2D {
+					.MipSlice	= 0,
+					.PlaneSlice = 0,
+				},
+			};
+			device.CreateRenderTargetView(nullptr, &rtv_desc, alloc.handle);
+		}
 	};
 }

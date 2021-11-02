@@ -3,7 +3,6 @@
 #include "D3D12API.hpp"
 
 #include <atomic>
-#include <memory>
 #include <vector>
 export module vt.Graphics.D3D12.DescriptorSetLayout;
 

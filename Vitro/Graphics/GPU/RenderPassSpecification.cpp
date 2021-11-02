@@ -27,8 +27,9 @@ namespace vt
 
 	export struct Subpass
 	{
-		using AttachmentIndexList = FixedList<uint8_t, MAX_COLOR_ATTACHMENTS>;
-
+		using AttachmentIndexList = FixedList<uint8_t, MAX_ATTACHMENTS - 1>; // -1 because we cannot have all attachments in one
+																			 // category.
+		AttachmentIndexList			  preserve_attachments;
 		AttachmentIndexList			  input_attachments;
 		Explicit<AttachmentIndexList> output_attachments;
 	};

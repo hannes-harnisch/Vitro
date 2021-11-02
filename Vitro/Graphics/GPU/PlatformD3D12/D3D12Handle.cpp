@@ -1,8 +1,6 @@
 ﻿module;
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
-
-#include <memory>
 export module vt.Graphics.D3D12.Handle;
 
 namespace vt::d3d12

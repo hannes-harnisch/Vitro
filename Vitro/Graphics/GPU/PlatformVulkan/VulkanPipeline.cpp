@@ -189,10 +189,13 @@ namespace vt::vulkan
 	{
 		static constexpr unsigned		MAX_SHADER_STAGES	 = 4;
 		static constexpr unsigned		MAX_TOTAL_ATTRIBUTES = MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES;
-		static constexpr VkDynamicState DYNAMIC_STATES[]	 = {
-			VK_DYNAMIC_STATE_VIEWPORT,	   VK_DYNAMIC_STATE_SCISSOR,		   VK_DYNAMIC_STATE_BLEND_CONSTANTS,
-			VK_DYNAMIC_STATE_DEPTH_BOUNDS, VK_DYNAMIC_STATE_STENCIL_REFERENCE,
-		};
+		static constexpr VkDynamicState DYNAMIC_STATES[] {
+			VK_DYNAMIC_STATE_VIEWPORT,			// The number of dynamic states should be as small as possible to maximize
+			VK_DYNAMIC_STATE_SCISSOR,			// optimization opportunities in the driver when pipelines are compiled. The
+			VK_DYNAMIC_STATE_BLEND_CONSTANTS,	// dynamic states specified here are always dynamic in every pipeline we compile
+			VK_DYNAMIC_STATE_DEPTH_BOUNDS,		// for Vulkan. They are the smallest common denominator of dynamic states
+			VK_DYNAMIC_STATE_STENCIL_REFERENCE, // between D3D12 and Vulkan and it also makes reacting to certain state changes
+		};										// simpler, such as for swap chain resizes.
 
 		FixedList<VkPipelineShaderStageCreateInfo, MAX_SHADER_STAGES>		  shader_stages;
 		FixedList<VkVertexInputBindingDescription, MAX_VERTEX_BUFFERS>		  vertex_bindings;

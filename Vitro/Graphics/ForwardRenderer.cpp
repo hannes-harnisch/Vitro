@@ -46,6 +46,9 @@ namespace vt
 							VertexAttribute {
 								.type = VertexDataType::Position,
 							},
+							VertexAttribute {
+								.type = VertexDataType::Color,
+							},
 						},
 					},
 				},
@@ -68,12 +71,13 @@ namespace vt
 			// Testing vertex buffers
 			struct Vertex
 			{
+				Float4 position;
 				Float4 color;
 			};
 			Vertex vertices[] {
-				{0, 0.5, 0.5, 1},
-				{0.5, -0.5, 0.5, 1},
-				{-0.5, -0.5, 0.5, 1},
+				{{0, 0.5, 0.5, 1}, {1, 0, 0, 1}},
+				{{0.5, -0.5, 0.5, 1}, {0, 1, 0, 1}},
+				{{-0.5, -0.5, 0.5, 1}, {0, 0, 1, 1}},
 			};
 
 			BufferSpecification const staging_buffer_spec {

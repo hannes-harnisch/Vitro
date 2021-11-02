@@ -21,7 +21,8 @@ namespace vt::vulkan
 	{
 	public:
 		VulkanDriver(bool enable_debug_layer, std::string const& app_name, Version app_version, Version engine_version) :
-			driver_dylib("vulkan-1")
+			loader("vulkan-1"),
+			vkGetInstanceProcAddr(loader.load_symbol<std::remove_pointer_t<PFN_vkGetInstanceProcAddr>>("vkGetInstanceProcAddr"))
 		{
 			ensure_instance_extensions_exist();
 			if(enable_debug_layer)
@@ -35,12 +36,15 @@ namespace vt::vulkan
 				.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 							   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
 				.pfnUserCallback = log_vulkan_validation,
+				.pUserData		 = nullptr,
 			};
 			VkValidationFeaturesEXT const validation_features {
-				.sType						   = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
-				.pNext						   = &messenger_info,
-				.enabledValidationFeatureCount = count(VALIDATION_FEATURES),
-				.pEnabledValidationFeatures	   = VALIDATION_FEATURES,
+				.sType							= VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
+				.pNext							= &messenger_info,
+				.enabledValidationFeatureCount	= count(VALIDATION_FEATURES),
+				.pEnabledValidationFeatures		= VALIDATION_FEATURES,
+				.disabledValidationFeatureCount = 0,
+				.pDisabledValidationFeatures	= nullptr,
 			};
 			VkApplicationInfo const app_info {
 				.sType				= VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -156,16 +160,13 @@ namespace vt::vulkan
 		};
 		using UniqueVkDebugUtilsMessengerEXT = std::unique_ptr<VkDebugUtilsMessengerEXT, MessengerDeleter>;
 
-		SharedLibrary			  driver_dylib;
-		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr = driver_dylib.load_symbol<decltype(::vkGetInstanceProcAddr)>(
-			"vkGetInstanceProcAddr");
-
 #define INSTANCE_NULL_FUNC(FUNC) PFN_##FUNC FUNC = reinterpret_cast<PFN_##FUNC>(vkGetInstanceProcAddr(nullptr, #FUNC));
 
-		INSTANCE_NULL_FUNC(vkCreateInstance)
+		SharedLibrary			  loader;
+		PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr;
+		INSTANCE_NULL_FUNC(vkCreateInstance) // These three functions are only used for creating a VkInstance.
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceExtensionProperties)
 		INSTANCE_NULL_FUNC(vkEnumerateInstanceLayerProperties)
-
 		std::unique_ptr<InstanceApiTable> api;
 		UniqueVkInstance				  instance;
 		UniqueVkDebugUtilsMessengerEXT	  messenger;

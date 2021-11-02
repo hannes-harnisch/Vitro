@@ -9,10 +9,11 @@ PushConstants(PushConstants, constants);
 
 struct VertexOut
 {
-	float4 position : SV_POSITION;
+	float4 position : SV_Position;
+	float4 color : COLOR;
 };
 
-float4 main(VertexOut position) : SV_TARGET
+float4 main(VertexOut vertex_out) : SV_Target
 {
-	return constants.triangle_color;
+	return vertex_out.color * constants.triangle_color;
 }

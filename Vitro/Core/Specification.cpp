@@ -32,7 +32,8 @@ namespace vt
 		T val;
 	};
 
-	// Forces explicit initialization with designated initializers. To be used when no reasonable default value can be used.
+	// When a data member is wrapped in this, it means there is no reasonable default value, so an explicit value must be
+	// provided for it to be initialized.
 	export template<typename T> struct Explicit : T
 	{
 		Explicit() = delete;
@@ -50,6 +51,8 @@ namespace vt
 		}
 	};
 
+	// When a data member is wrapped in this, it means there is no reasonable default value, so an explicit value must be
+	// provided for it to be initialized.
 	export template<typename T>
 	requires std::is_scalar_v<T>
 	struct Explicit<T>
@@ -71,7 +74,8 @@ namespace vt
 		T val;
 	};
 
-	// Forces explicit initialization with designated initializers. To be used when no reasonable default value can be used.
+	// When a data member is wrapped in this, it means there is no reasonable default value, so an explicit value must be
+	// provided for it to be initialized.
 	export template<typename T>
 	requires(std::is_union_v<T> || std::is_final_v<T>) struct Explicit<T>
 	{

@@ -3,6 +3,7 @@
 export module vt.Graphics.AssetResourceSpecification;
 
 import vt.Core.Enum;
+import vt.Core.Rect;
 import vt.Core.Specification;
 
 namespace vt
@@ -120,6 +121,10 @@ namespace vt
 		Presentable,
 	};
 
+	export enum class ImageUsage : uint8_t {};
+
 	export struct ImageSpecification
-	{};
+	{
+		Expanse expanse;
+	};
 }

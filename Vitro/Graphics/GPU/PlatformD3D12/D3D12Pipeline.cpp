@@ -454,7 +454,9 @@ namespace vt::d3d12
 					.NumRenderTargets = spec.blend.attachment_states.count(),
 				},
 				.type_12			  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT,
-				.depth_stencil_format = pass.uses_depth_stencil() ? pass.get_depth_stencil_format() : DXGI_FORMAT_UNKNOWN,
+				.depth_stencil_format = pass.get_subpass(spec.subpass_index).uses_depth_stencil()
+											? pass.get_depth_stencil_format()
+											: DXGI_FORMAT_UNKNOWN,
 				.type_13			  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC,
 				.sample_desc {
 					.Count = spec.multisample.sample_count,
@@ -478,8 +480,8 @@ namespace vt::d3d12
 				stream.blend_desc.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
 
 			i = 0;
-			for(auto access : pass.get_render_target_accesses())
-				stream.render_target_formats.RTFormats[i++] = access.format;
+			for(; i != spec.blend.attachment_states.size(); ++i)
+				stream.render_target_formats.RTFormats[i] = pass.get_attachment_format(i);
 
 			D3D12_PIPELINE_STATE_STREAM_DESC const desc {
 				.SizeInBytes				   = sizeof stream,

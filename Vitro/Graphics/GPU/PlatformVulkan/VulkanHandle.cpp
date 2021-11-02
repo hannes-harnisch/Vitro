@@ -19,6 +19,9 @@ namespace vt::vulkan
 		uint64_t	resets	  = 0;
 	};
 
+	// This struct is essentially a globally unique vtable for all Vulkan functions that are either device-independent, need to
+	// be called before device creation or where any dispatch overhead inside the vulkan-1 shared library is acceptable. It also
+	// stores the global VkInstance. Storing pointers to it is safe because it will exist in its own heap allocation.
 	export struct InstanceApiTable : Singleton<InstanceApiTable>, NoCopyNoMove
 	{
 		PFN_vkGetInstanceProcAddr const vkGetInstanceProcAddr;
@@ -54,6 +57,12 @@ namespace vt::vulkan
 		{}
 	};
 
+	// This struct is essentially a custom vtable for all the Vulkan functions associated with a specific Vulkan device as well
+	// as providing the device, physical device and allocator itself. It loads the device-specific functions right from the
+	// device driver. This way is recommended since using the global function prototypes and implicit dynamic linking requires
+	// the Vulkan shared library to dispatch manually to the right device driver, which is entirely avoidable overhead. Keeping
+	// pointers to it around is safe, since a specific instance of this table is only destroyed when the VkDevice is destroyed
+	// and it exists in its own heap allocation.
 	export struct DeviceApiTable : NoCopyNoMove
 	{
 		PFN_vkGetDeviceProcAddr const vkGetDeviceProcAddr;
@@ -158,26 +167,34 @@ namespace vt::vulkan
 		{}
 	};
 
-	template<typename T>
-	using DeviceTableFunctionPointerMember = void (*const DeviceApiTable::*)(VkDevice, T, VkAllocationCallbacks const*);
+	// Supply a Vulkan handle type H and you get a member object pointer type usable on DeviceApiTable that has the right type
+	// to be called as the destroying function for H. This only makes sense to be used for the many Vulkan handles whose
+	// destroying functions have the prototype "void (*)(VkDevice, H, VkAllocationCallbacks const*)".
+	template<typename H>
+	using DeviceTableFunctionPointerMember = void (*const DeviceApiTable::*)(VkDevice, H, VkAllocationCallbacks const*);
 
-	template<typename T, DeviceTableFunctionPointerMember<T> DELETER> struct DeviceResourceDeleter
+	// Can be used to create an appropriate custom deleter for std::unique_ptr that stores a pointer to the DeviceApiTable whose
+	// device owns the given Vulkan handle H and will destroy the handle appropriately.
+	template<typename H, DeviceTableFunctionPointerMember<H> DELETER> struct DeviceResourceDeleter
 	{
-		using pointer = T;
+		using pointer = H;
 
 		DeviceApiTable const* owner;
 
+		// Needs to be default-constructible otherwise unique pointers using it won't be.
 		DeviceResourceDeleter() = default;
 
 		DeviceResourceDeleter(DeviceApiTable const& owner) : owner(&owner)
 		{}
 
-		void operator()(T ptr) const
+		void operator()(H handle) const
 		{
-			(owner->*DELETER)(owner->device, ptr, nullptr);
+			(owner->*DELETER)(owner->device, handle, nullptr);
 		}
 	};
 
+	// Reusable custom version of std::unique_ptr for Vulkan handles that are destroyed in a similar way. Makes RAII for Vulkan
+	// way easier overall.
 	template<typename T, DeviceTableFunctionPointerMember<T> DELETER>
 	class UniqueDeviceResource : public std::unique_ptr<T, DeviceResourceDeleter<T, DELETER>>
 	{
@@ -193,6 +210,7 @@ namespace vt::vulkan
 		}
 	};
 
+	// Exports an alias for a unique pointer for a specific Vulkan handle.
 #define EXPORT_UNIQUE_DEVICE_RESOURCE(RESOURCE)                                                                                \
 	export using UniqueVk##RESOURCE = UniqueDeviceResource<Vk##RESOURCE, &DeviceApiTable::vkDestroy##RESOURCE>;
 

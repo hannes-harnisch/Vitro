@@ -54,13 +54,14 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		ID3D12CommandSignature*			 draw_signature;
-		ID3D12CommandSignature*			 draw_indexed_signature;
-		RootSignatureParameterMap const* bound_render_root_indices = nullptr;
-		D3D12RenderPass const*			 bound_render_pass		   = nullptr;
-		D3D12RenderTarget const*		 bound_render_target	   = nullptr;
-		unsigned						 subpass_index			   = 1;
-		D3D_PRIMITIVE_TOPOLOGY			 bound_primitive_topology  = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		ID3D12CommandSignature*				   draw_signature;
+		ID3D12CommandSignature*				   draw_indexed_signature;
+		RootSignatureParameterMap const*	   bound_render_root_indices = nullptr;
+		D3D12RenderPass const*				   bound_render_pass		 = nullptr;
+		D3D12RenderTarget const*			   bound_render_target		 = nullptr;
+		D3D_PRIMITIVE_TOPOLOGY				   bound_primitive_topology	 = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		unsigned							   subpass_index;
+		FixedList<ClearValue, MAX_ATTACHMENTS> clear_values;
 	};
 
 	export template<CommandType TYPE> class D3D12CommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
@@ -108,8 +109,11 @@ namespace vt::d3d12
 
 			if constexpr(TYPE != CommandType::Copy)
 			{
-				auto heaps = this->descriptor_pool->get_shader_visible_heaps();
-				cmd->SetDescriptorHeaps(2, heaps.data());
+				ID3D12DescriptorHeap* heaps[] {
+					this->descriptor_pool->get_shader_visible_view_heap(),
+					this->descriptor_pool->get_shader_visible_sampler_heap(),
+				};
+				cmd->SetDescriptorHeaps(count(heaps), heaps);
 			}
 		}
 
@@ -154,7 +158,6 @@ namespace vt::d3d12
 				ptr += sizeof(DWORD);
 				++param;
 			}
-
 			cmd->WriteBufferImmediate(count(params), params.data(), nullptr);
 		}
 
@@ -249,115 +252,19 @@ namespace vt::d3d12
 		{
 			this->bound_render_pass	  = &render_pass.d3d12;
 			this->bound_render_target = &render_target.d3d12;
+			this->clear_values.assign(clear_values.begin(), clear_values.end());
 
-			auto& pass	 = *this->bound_render_pass;
-			auto& target = *this->bound_render_target;
-
-			auto& subpass = pass.get_subpass(0);
-			insert_render_pass_barriers(subpass.transitions);
-
-			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs(pass.count_color_attachments());
-
-			size_t index = 0;
-			for(auto access : pass.get_render_target_accesses())
-			{
-				D3D12_CLEAR_VALUE color_clear;
-				if(clear_values.empty())
-					color_clear = {};
-				else
-					color_clear = {
-						.Format = access.format,
-						.Color {
-							clear_values[index].color.r,
-							clear_values[index].color.g,
-							clear_values[index].color.b,
-							clear_values[index].color.a,
-						},
-					};
-
-				rt_descs[index] = D3D12_RENDER_PASS_RENDER_TARGET_DESC {
-					.cpuDescriptor = target.get_view(index),
-					.BeginningAccess {
-						.Type  = access.begin_access,
-						.Clear = {color_clear},
-					},
-					.EndingAccess {
-						.Type = access.end_access,
-					},
-				};
-
-				++index;
-			}
-
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds_desc;
-			if(pass.uses_depth_stencil())
-			{
-				D3D12_CLEAR_VALUE depth_clear, stencil_clear;
-				if(clear_values.empty())
-				{
-					depth_clear	  = {};
-					stencil_clear = {};
-				}
-				else
-				{
-					depth_clear = {
-						.Format = pass.get_depth_stencil_format(),
-						.DepthStencil {
-							.Depth = clear_values.back().depth,
-						},
-					};
-					stencil_clear = {
-						.Format = pass.get_depth_stencil_format(),
-						.DepthStencil {
-							.Stencil = static_cast<UINT8>(clear_values.back().stencil),
-						},
-					};
-				}
-
-				ds_desc = {
-					.cpuDescriptor = target.get_depth_stencil_view(),
-					.DepthBeginningAccess {
-						.Type  = pass.get_depth_begin_access(),
-						.Clear = {depth_clear},
-					},
-					.StencilBeginningAccess {
-						.Type  = pass.get_stencil_begin_access(),
-						.Clear = {stencil_clear},
-					},
-					.DepthEndingAccess {
-						.Type = pass.get_depth_end_access(),
-					},
-					.StencilEndingAccess {
-						.Type = pass.get_stencil_end_access(),
-					},
-				};
-			}
-
-			auto ds_desc_ptr = pass.uses_depth_stencil() ? &ds_desc : nullptr;
-			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
+			begin_subpass(0);
 			this->subpass_index = 1;
 		}
 
-		void transition_subpass()
+		void change_subpass()
 		{
-			auto& pass = *this->bound_render_pass;
-			VT_ASSERT(this->subpass_index < pass.count_subpasses() - 1,
+			VT_ASSERT(this->subpass_index < this->bound_render_pass->count_subpasses() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
 
 			cmd->EndRenderPass();
-
-			auto& subpass = pass.get_subpass(this->subpass_index);
-			insert_render_pass_barriers(subpass.transitions);
-
-			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs;
-			// TODO: finish logic on this
-			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds_desc;
-
-			auto ds_desc_ptr = pass.uses_depth_stencil() ? &ds_desc : nullptr;
-			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
-
-			this->subpass_index++;
-			throw "Not implemented.";
+			begin_subpass(this->subpass_index++);
 		}
 
 		void end_render_pass()
@@ -365,7 +272,24 @@ namespace vt::d3d12
 			cmd->EndRenderPass();
 
 			auto& final_transitions = this->bound_render_pass->get_final_transitions();
-			insert_render_pass_barriers(final_transitions);
+
+			FixedList<D3D12_RESOURCE_BARRIER, MAX_ATTACHMENTS> barriers(final_transitions.size());
+
+			auto barrier = barriers.begin();
+			for(auto transition : final_transitions)
+			{
+				*barrier++ = D3D12_RESOURCE_BARRIER {
+					.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
+					.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
+					.Transition {
+						.pResource	 = this->bound_render_target->get_attachment(transition.index),
+						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
+						.StateBefore = transition.old_layout,
+						.StateAfter	 = transition.new_layout,
+					},
+				};
+			}
+			cmd->ResourceBarrier(count(barriers), barriers.data());
 		}
 
 		void bind_render_pipeline(RenderPipeline const& pipeline)
@@ -524,26 +448,133 @@ namespace vt::d3d12
 			VT_UNREACHABLE();
 		}
 
-		void insert_render_pass_barriers(TransitionList const& transitions)
+		void insert_subpass_barriers(TransitionList const& transitions) const
 		{
 			FixedList<D3D12_RESOURCE_BARRIER, MAX_ATTACHMENTS> barriers(transitions.size());
 
 			auto barrier = barriers.begin();
 			for(auto transition : transitions)
 			{
-				*barrier++ = D3D12_RESOURCE_BARRIER {
-					.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
-					.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
-					.Transition {
-						.pResource	 = this->bound_render_target->get_attachment(transition.index),
+				auto resource  = this->bound_render_target->get_attachment(transition.index);
+				barrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+				if(transition.requires_uav_barrier)
+				{
+					barrier->Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+					barrier->UAV  = {
+						 .pResource = resource,
+					 };
+				}
+				else
+				{
+					barrier->Type		= D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+					barrier->Transition = {
+						.pResource	 = resource,
 						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
 						.StateBefore = transition.old_layout,
 						.StateAfter	 = transition.new_layout,
+					};
+				};
+				++barrier;
+			}
+			cmd->ResourceBarrier(count(barriers), barriers.data());
+		}
+
+		void begin_subpass(unsigned subpass_index) const
+		{
+			auto& pass	  = *this->bound_render_pass;
+			auto& target  = *this->bound_render_target;
+			auto& clears  = this->clear_values;
+			auto& subpass = pass.get_subpass(subpass_index);
+			insert_subpass_barriers(subpass.transitions);
+
+			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs(pass.count_color_attachments());
+
+			auto rt_desc = rt_descs.begin();
+			for(size_t index = 0; auto access : subpass.accesses)
+			{
+				D3D12_CPU_DESCRIPTOR_HANDLE rt_descriptor;
+				D3D12_CLEAR_VALUE			color_clear_value = {};
+				if(access.for_input)
+					rt_descriptor = this->descriptor_pool->get_rtv_null_descriptor();
+				else
+				{
+					rt_descriptor = target.get_render_target_view(index);
+					if(!clears.empty())
+						color_clear_value = {
+							.Format = pass.get_attachment_format(index),
+							.Color {
+								clears[index].color.r,
+								clears[index].color.g,
+								clears[index].color.b,
+								clears[index].color.a,
+							},
+						};
+				}
+
+				*rt_desc++ = D3D12_RENDER_PASS_RENDER_TARGET_DESC {
+					.cpuDescriptor = rt_descriptor,
+					.BeginningAccess {
+						.Type = access.begin,
+						.Clear {
+							.ClearValue = color_clear_value,
+						},
+					},
+					.EndingAccess {
+						.Type = access.end,
+					},
+				};
+				++index;
+			}
+
+			D3D12_RENDER_PASS_DEPTH_STENCIL_DESC ds_desc;
+			if(subpass.uses_depth_stencil())
+			{
+				D3D12_CLEAR_VALUE depth_clear_value, stencil_clear_value;
+				if(clears.empty())
+				{
+					depth_clear_value	= {};
+					stencil_clear_value = {};
+				}
+				else
+				{
+					depth_clear_value = {
+						.Format = pass.get_depth_stencil_format(),
+						.DepthStencil {
+							.Depth = clears.back().depth,
+						},
+					};
+					stencil_clear_value = {
+						.Format = pass.get_depth_stencil_format(),
+						.DepthStencil {
+							.Stencil = static_cast<UINT8>(clears.back().stencil),
+						},
+					};
+				}
+
+				ds_desc = D3D12_RENDER_PASS_DEPTH_STENCIL_DESC {
+					.cpuDescriptor = target.get_depth_stencil_view(),
+					.DepthBeginningAccess {
+						.Type = subpass.get_depth_begin_access(),
+						.Clear {
+							.ClearValue = depth_clear_value,
+						},
+					},
+					.StencilBeginningAccess {
+						.Type = subpass.stencil_begin,
+						.Clear {
+							.ClearValue = stencil_clear_value,
+						},
+					},
+					.DepthEndingAccess {
+						.Type = subpass.get_depth_end_access(),
+					},
+					.StencilEndingAccess {
+						.Type = subpass.stencil_end,
 					},
 				};
 			}
-
-			cmd->ResourceBarrier(count(barriers), barriers.data());
+			auto ds_desc_ptr = subpass.uses_depth_stencil() ? &ds_desc : nullptr;
+			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
 		}
 	};
 }

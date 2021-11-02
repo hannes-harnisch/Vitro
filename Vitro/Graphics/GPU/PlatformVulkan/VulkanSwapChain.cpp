@@ -93,12 +93,12 @@ namespace vt::vulkan
 			return current_img_index;
 		}
 
-		unsigned get_present_count() const override
+		unsigned count_presents() const override
 		{
 			return present_count;
 		}
 
-		unsigned get_buffer_count() const override
+		unsigned count_buffers() const override
 		{
 			return count(images);
 		}

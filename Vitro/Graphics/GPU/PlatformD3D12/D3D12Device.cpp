@@ -229,20 +229,20 @@ namespace vt::d3d12
 
 		RenderTarget make_platform_render_target(RenderTargetSpecification const& spec) override
 		{
-			return {D3D12RenderTarget(descriptor_pool, spec), spec.width, spec.height};
+			return {D3D12RenderTarget(spec, *device, descriptor_pool), spec.width, spec.height};
 		}
 
 		RenderTarget make_platform_render_target(SharedRenderTargetSpecification const& spec,
 												 SwapChain const&						swap_chain,
 												 unsigned								back_buffer_index) override
 		{
-			return {D3D12RenderTarget(descriptor_pool, spec, swap_chain, back_buffer_index), swap_chain->get_width(),
+			return {D3D12RenderTarget(spec, swap_chain, back_buffer_index, *device, descriptor_pool), swap_chain->get_width(),
 					swap_chain->get_height()};
 		}
 
 		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
 		{
-			render_target.d3d12.recreate(spec);
+			render_target.d3d12.recreate(*device, spec);
 		}
 
 		void recreate_platform_render_target(RenderTarget&							render_target,
@@ -250,7 +250,7 @@ namespace vt::d3d12
 											 SwapChain const&						swap_chain,
 											 unsigned								back_buffer_index) override
 		{
-			render_target.d3d12.recreate(spec, swap_chain, back_buffer_index);
+			render_target.d3d12.recreate(*device, spec, swap_chain, back_buffer_index);
 		}
 
 		void ensure_required_features_exist() const

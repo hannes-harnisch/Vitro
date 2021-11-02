@@ -256,7 +256,7 @@ namespace vt::vulkan
 			api->vkCmdBeginRenderPass(cmd, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 		}
 
-		void transition_subpass()
+		void change_subpass()
 		{
 			api->vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_INLINE);
 		}
@@ -283,8 +283,8 @@ namespace vt::vulkan
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_render_layout->get_handle(),
-									this->bound_render_layout->get_push_constant_stages(), static_cast<uint32_t>(byte_offset),
+			auto stages = this->bound_render_layout->get_push_constant_stages();
+			api->vkCmdPushConstants(cmd, this->bound_render_layout->get_handle(), stages, static_cast<uint32_t>(byte_offset),
 									static_cast<uint32_t>(byte_size), data);
 		}
 

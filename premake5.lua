@@ -1,4 +1,4 @@
-output_dir				= '%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}'
+output_dir = '%{cfg.buildcfg}_%{cfg.architecture}_%{cfg.system}'
 
 workspace 'Vitro'
 	startproject		'Vitro'
@@ -70,6 +70,9 @@ project 'Vitro'
 	defines				'VT_ENGINE_NAME="%{prj.name}"'
 	targetname			'%{prj.name}%{cfg.platform}'
 	debugargs			{ '-debug-gpu-api' }
+	links				{
+							'tinyobjloader',
+						}
 
 	-- filter 'Release'
 		-- kind			'WindowedApp'
@@ -119,39 +122,38 @@ project 'Vitro'
 
 group 'Dependencies'
 
+deploc		 = 'Dependencies/%{prj.name}'
+depsubmoddir = 'Dependencies/%{prj.name}/%{prj.name}'
+
+project 'NatvisFiles'
+	location			(deploc)
+	kind				'None'
+	files				'**.natvis'
+
 project 'tinyobjloader'	
-	location			'Dependencies'
+	location			(deploc)
 	warnings			'Off'
 	kind				'StaticLib'
-	files				{
-							'Dependencies/%{prj.name}/tiny_obj_loader.cc',
-						}
+	files				(depsubmoddir .. '/tiny_obj_loader.cc')
 
 project 'D3D12MemoryAllocator'
-	location			'Dependencies'
+	location			(deploc)
 	warnings			'Off'
 	kind				'None'
 	files				{
-							'Dependencies/%{prj.name}/src/D3D12MemAlloc.cpp',
-							'Dependencies/%{prj.name}/src/D3D12MemAlloc.h',
+							(depsubmoddir .. '/src/D3D12MemAlloc.cpp'),
+							(depsubmoddir .. '/src/D3D12MemAlloc.h'),
 						}
 
 	filter 'platforms:D3D12 or D3D12+Vulkan'
 		kind			'StaticLib'
 
 project 'VulkanMemoryAllocator'
-	location			'Dependencies'
+	location			(deploc)
 	warnings			'Off'
 	kind				'None'
-	files				{
-							'Dependencies/VulkanMemoryAllocator.cpp',
-						}
+	files				(deploc .. '/VulkanMemoryAllocator.cpp')
 	includedirs			'C:/VulkanSDK/**/Include'
 
 	filter 'platforms:Vulkan or D3D12+Vulkan'
 		kind			'StaticLib'
-
-project 'NatvisFiles'
-	location			'Dependencies'
-	kind				'None'
-	files				'**.natvis'

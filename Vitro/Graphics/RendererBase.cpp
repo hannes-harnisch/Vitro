@@ -28,7 +28,7 @@ namespace vt
 			{
 				auto shared_target_spec = get_shared_render_target_specification();
 
-				size_t const count = swap_chain->get_buffer_count();
+				size_t const count = swap_chain->count_buffers();
 				for(int i = 0; i != count; ++i)
 					shared_targets.emplace_back(device->make_render_target(shared_target_spec, swap_chain, i));
 			}
@@ -46,7 +46,7 @@ namespace vt
 
 			auto shared_target_spec = get_shared_render_target_specification();
 
-			size_t const new_count = swap_chain->get_buffer_count();
+			size_t const new_count = swap_chain->count_buffers();
 			for(int i = 0; i != std::min(new_count, shared_targets.size()); ++i)
 				device->recreate_render_target(shared_targets[i], shared_target_spec, swap_chain, i);
 

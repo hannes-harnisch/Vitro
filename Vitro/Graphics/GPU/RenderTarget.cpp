@@ -39,6 +39,9 @@ namespace vt
 		unsigned width;
 		unsigned height;
 
+		friend class DeviceBase;
+
+		// We're using these to update a RenderTarget from DeviceBase.
 		void set_width(unsigned new_width)
 		{
 			width = new_width;
@@ -48,7 +51,5 @@ namespace vt
 		{
 			height = new_height;
 		}
-
-		friend class DeviceBase;
 	};
 }
