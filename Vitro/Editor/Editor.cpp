@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <new>
 export module vt.Editor.Editor;
 

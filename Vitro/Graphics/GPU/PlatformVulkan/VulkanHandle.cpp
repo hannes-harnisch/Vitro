@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "VulkanAPI.hpp"
 
 #include <memory>

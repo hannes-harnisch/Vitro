@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <vector>
 export module vt.Core.SmallList;
 

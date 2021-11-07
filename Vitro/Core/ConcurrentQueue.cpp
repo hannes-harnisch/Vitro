@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <concurrentqueue/concurrentqueue.h>
 export module vt.Core.ConcurrentQueue;
 

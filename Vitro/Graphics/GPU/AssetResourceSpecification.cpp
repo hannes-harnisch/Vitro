@@ -1,4 +1,5 @@
-﻿module;
+module;
+#include <cmath>
 #include <cstdint>
 export module vt.Graphics.AssetResourceSpecification;
 
@@ -121,10 +122,29 @@ namespace vt
 		Presentable,
 	};
 
+	export enum class ImageDimension : uint8_t {
+		Image1D,
+		Image2D,
+		Image3D,
+	};
+
 	export enum class ImageUsage : uint8_t {};
 
+	// Describes the properties of an image to be created. If the dimension is 2D, expanse depth will be interpreted as the
+	// count of an image array.
 	export struct ImageSpecification
 	{
-		Expanse expanse;
+		Explicit<ImageDimension> dimension;
+		Explicit<ImageFormat>	 format;
+		uint8_t					 mip_count	  = calc_default_mip_count();
+		uint8_t					 sample_count = 1;
+		Explicit<Expanse>		 expanse;
+
+		uint8_t calc_default_mip_count() const
+		{
+			unsigned max   = std::max(expanse.width, expanse.height);
+			double	 count = std::floor(std::log2(max)) + 1;
+			return static_cast<uint8_t>(count);
+		}
 	};
 }

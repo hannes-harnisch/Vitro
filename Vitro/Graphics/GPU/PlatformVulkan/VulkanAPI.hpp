@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #if VT_SYSTEM_LINUX
 	#define VK_USE_PLATFORM_XCB_KHR

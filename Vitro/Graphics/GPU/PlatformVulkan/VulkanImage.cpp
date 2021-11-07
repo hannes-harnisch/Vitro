@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include "VulkanAPI.hpp"
 
@@ -90,8 +90,8 @@ namespace vt::vulkan
 	export ImageFormat canonicalize_image_format(VkFormat format)
 	{
 		using enum ImageFormat;
-		switch (format)
-		{
+		switch(format)
+		{ 
 			case VK_FORMAT_UNDEFINED:				 return Unknown;
 			case VK_FORMAT_R32G32B32A32_SFLOAT:		 return Rgba32Float;
 			case VK_FORMAT_R32G32B32A32_UINT:		 return Rgba32UInt;

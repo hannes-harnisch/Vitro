@@ -1,9 +1,10 @@
-﻿module;
+module;
 #include <vector>
 export module vt.Graphics.ForwardRenderer;
 
 import vt.Core.Matrix;
 import vt.Core.Rect;
+import vt.Core.Tick;
 import vt.Core.Vector;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandList;
@@ -110,7 +111,7 @@ namespace vt
 		}
 
 	protected:
-		SmallList<CommandListHandle> render(RenderTarget const& render_target) override
+		SmallList<CommandListHandle> render(Tick tick, RenderTarget const& render_target) override
 		{
 			auto& current = context.current();
 
@@ -120,8 +121,9 @@ namespace vt
 			cmd->reset();
 			cmd->begin();
 
-			Float4 clear_color = 0.5f + 0.5f * cos(time++ / 1000.0f + Float3 {0, 2, 4});
+			Float4 clear_color = 0.5f + 0.5f * cos(time / 1000.0f + Float3 {0, 2, 4});
 			clear_color.a	   = 1;
+			time += tick * 1000;
 
 			ClearValue clear_value {
 				.color = clear_color,
@@ -170,13 +172,12 @@ namespace vt
 		{}
 
 	private:
-		unsigned time = 0;
-
 		RenderPass						 present_pass;
 		std::vector<DescriptorSetLayout> descriptor_set_layouts;
 		std::vector<RootSignature>		 root_signatures;
 		std::vector<RenderPipeline>		 render_pipelines;
 		std::vector<Buffer>				 vertex_buffers;
+		float							 time = 0;
 
 		struct FrameResources
 		{

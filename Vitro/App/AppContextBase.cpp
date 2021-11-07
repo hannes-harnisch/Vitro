@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include VT_SYSTEM_HEADER
 
@@ -9,6 +9,8 @@ import vt.Core.Singleton;
 
 namespace vt
 {
+	// Provides state shared between all platform-specific app context implementations. Specifically it stores the mapping
+	// between the platform-specific window handles and what engine window it corresponds to.
 	export class AppContextBase : public Singleton<AppContextBase>
 	{
 	public:

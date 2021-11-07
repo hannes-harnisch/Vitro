@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <iterator>
 export module vt.Core.ContainerTraits;
 

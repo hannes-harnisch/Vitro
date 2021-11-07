@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 export module vt.Graphics.D3D12.Pipeline;

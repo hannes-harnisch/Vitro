@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 export module vt.Graphics.AssetResource;
 
@@ -50,7 +50,12 @@ namespace vt
 	{
 	public:
 		// This constructor is for internal use only.
-		Image(PlatformImage&& platform_image, ImageSpecification const&) : PlatformImage(std::move(platform_image))
+		Image(PlatformImage&& platform_image, ImageSpecification const& spec) :
+			PlatformImage(std::move(platform_image)),
+			width(static_cast<uint16_t>(spec.expanse.width)),
+			height(static_cast<uint16_t>(spec.expanse.height)),
+			depth(static_cast<uint16_t>(spec.expanse.depth)),
+			mips(spec.mip_count)
 		{}
 
 		uint16_t get_width() const
@@ -87,12 +92,15 @@ namespace vt
 	};
 
 	using PlatformComputePipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(ComputePipeline)>;
+	using PlatformRenderPipeline  = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderPipeline)>;
+
+	// Represents a collection of GPU state necessary to perform specific compute operations.
 	export class ComputePipeline : public PlatformComputePipeline
 	{
 		using PlatformComputePipeline::PlatformComputePipeline;
 	};
 
-	using PlatformRenderPipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(RenderPipeline)>;
+	// Represents a collection of GPU state necessary to perform specific rendering operations.
 	export class RenderPipeline : public PlatformRenderPipeline
 	{
 		using PlatformRenderPipeline::PlatformRenderPipeline;

@@ -30,7 +30,7 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
-		buildcommands	'C:/VulkanSDK/1.2.189.2/bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
+		buildcommands	'"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc" %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
 
 	filter { 'files:**.hlsl', 'platforms:D3D12' }
 		buildcommands	'.cso /D VT_GPU_API_D3D12 ^'
@@ -41,10 +41,10 @@ workspace 'Vitro'
 		buildoutputs	'%{cfg.targetdir}/%{file.basename}.spv'
 
 	filter 'files:**.vert.hlsl'
-		buildcommands	'-T vs_6_0'
+		buildcommands	'/T vs_5_1'
 
 	filter 'files:**.frag.hlsl'
-		buildcommands	'-T ps_6_0'
+		buildcommands	'/T ps_5_1'
 
 	filter 'Debug'
 		symbols			'On'

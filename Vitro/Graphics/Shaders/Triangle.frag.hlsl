@@ -1,4 +1,4 @@
-﻿#include "Vitro.hlsli"
+#include "Vitro.hlsli"
 
 struct PushConstants
 {

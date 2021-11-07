@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <format>
 #include <string>
 #include <type_traits>

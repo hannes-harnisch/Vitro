@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 
@@ -58,6 +58,11 @@ namespace vt::d3d12
 		Buffer make_buffer(BufferSpecification const& spec) override
 		{
 			return {D3D12Buffer(spec, *allocator), spec};
+		}
+
+		Image make_image(ImageSpecification const& spec) override
+		{
+			return {D3D12Image(spec, *allocator), spec};
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override

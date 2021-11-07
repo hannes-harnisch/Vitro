@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <algorithm>
 #include <vector>
 export module vt.Graphics.RendererBase;
@@ -6,6 +6,7 @@ export module vt.Graphics.RendererBase;
 import vt.Core.FixedList;
 import vt.Core.Rect;
 import vt.Core.SmallList;
+import vt.Core.Tick;
 import vt.Graphics.Device;
 import vt.Graphics.Handle;
 import vt.Graphics.RenderPass;
@@ -21,7 +22,7 @@ namespace vt
 		virtual ~RendererBase() = default;
 
 		// For internal use only.
-		SmallList<CommandListHandle> render(SwapChain& swap_chain)
+		SmallList<CommandListHandle> render(Tick tick, SwapChain& swap_chain)
 		{
 			// Create swap chain render targets lazily.
 			if(shared_targets.empty())
@@ -35,7 +36,7 @@ namespace vt
 
 			unsigned index		   = swap_chain->get_current_image_index();
 			auto&	 render_target = shared_targets[index];
-			return render(render_target);
+			return render(tick, render_target);
 		}
 
 		// For internal use only.
@@ -66,9 +67,9 @@ namespace vt
 		{}
 
 		// Does the renderer-specific rendering. The final batch of command lists is returned for submission here.
-		virtual SmallList<CommandListHandle> render(RenderTarget const& render_target) = 0;
+		virtual SmallList<CommandListHandle> render(Tick tick, RenderTarget const& render_target) = 0;
 
-		// Gets the specification describing the components of the render target that is last rendered to in this renderer.
+		// Gets the specification describing the components of the render target that is rendered to last in this renderer.
 		virtual SharedRenderTargetSpecification get_shared_render_target_specification() const = 0;
 
 		// Allows the renderer to respond to swap chain resizing, such as resizing intermediate render targets.

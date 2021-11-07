@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <atomic>
 #include <string>
 export module vt.App.AppSystem;
@@ -16,9 +16,9 @@ namespace vt
 		AppSystem(std::atomic_bool& engine_running_status) : app_context(engine_running_status)
 		{}
 
-		void update()
+		void pump_system_events()
 		{
-			app_context.poll_events();
+			app_context.pump_system_events();
 		}
 
 		std::string get_current_app_name() const

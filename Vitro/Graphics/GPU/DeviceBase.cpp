@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <vector>
 export module vt.Graphics.DeviceBase;
 
@@ -37,6 +37,9 @@ namespace vt
 
 		// Makes a buffer from a specification.
 		virtual Buffer make_buffer(BufferSpecification const& spec) = 0;
+
+		// Makes an image from a specification.
+		virtual Image make_image(ImageSpecification const& spec) = 0;
 
 		// Makes pipeline objects usable in compute commands. It can be more efficient to create many at once.
 		virtual std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) = 0;

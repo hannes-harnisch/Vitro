@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <any>
 #include <type_traits>
 export module vt.App.EventListener;
@@ -70,9 +70,9 @@ namespace vt
 				// dereferenced immediately, the optimizer can assume that it cannot possibly be nullptr, which allows it to
 				// eliminate the type check, since nullptr can only be returned if the check fails. This prevents generation of
 				// an unneeded branch and instructions related to exception handling.
-				auto& event = *std::any_cast<Handler::EventType>(&stored_event);
-
+				auto& event	 = *std::any_cast<Handler::EventType>(&stored_event);
 				auto& object = static_cast<Handler::ClassType&>(listener);
+
 				if constexpr(std::is_same_v<Handler::ReturnType, void>)
 				{
 					(object.*HANDLER)(event);

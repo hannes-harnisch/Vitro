@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <format>
 export module vt.App.WindowEvent;
 

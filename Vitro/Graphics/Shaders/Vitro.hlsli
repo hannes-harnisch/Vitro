@@ -1,4 +1,4 @@
-﻿#if VT_GPU_API_D3D12
+#if VT_GPU_API_D3D12
 
 	#define PushConstants(TYPE, NAME) ConstantBuffer<TYPE> NAME : register(b0, space0)
 	#define InputAttachment(TYPE)

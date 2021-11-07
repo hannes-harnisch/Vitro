@@ -1,15 +1,11 @@
-﻿module;
 #include <atomic>
-#include <condition_variable>
 #include <cstdlib>
 #include <stdexcept>
 #include <string_view>
 #include <vector>
-export module vt.Engine;
 
 import vt.App.AppSystem;
 import vt.Core.Algorithm;
-import vt.Core.Tick;
 import vt.Core.Version;
 import vt.Editor.Editor;
 import vt.Graphics.GraphicsSystem;
@@ -38,12 +34,10 @@ namespace vt
 		{
 			try
 			{
-				uint64_t previous_time = Tick::measure_time();
+				is_running = true;
 				while(is_running)
-				{
-					tick.update(previous_time);
-					update();
-				}
+					app_system.pump_system_events();
+
 				return EXIT_SUCCESS;
 			}
 			catch(std::exception const& e)
@@ -58,22 +52,16 @@ namespace vt
 		static constexpr Version	 ENGINE_VERSION		= {0, 0, 1};
 		static constexpr char const* CVAR_DEBUG_GPU_API = "-debug-gpu-api";
 
-		std::atomic_bool			  is_running = true;
+		std::atomic_bool			  is_running;
 		std::vector<std::string_view> command_line_args;
-		Tick						  tick;
 		TraceSystem					  trace_system;
 		AppSystem					  app_system;
 		GraphicsSystem				  graphics_system;
 		Editor						  editor;
-
-		void update()
-		{
-			app_system.update();
-		}
 	};
 }
 
-export int main(int argc, char* argv[])
+int main(int argc, char* argv[])
 {
 	static vt::Engine engine(argc, argv);
 	return engine.run();

@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include "Core/PlatformWindows/WindowsAPI.hpp"
 

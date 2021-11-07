@@ -1,77 +1,33 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 
 #include <algorithm>
 #include <atomic>
-#include <memory>
 #include <mutex>
 #include <string>
-#include <thread>
 #include <unordered_map>
 export module vt.Graphics.GraphicsSystem;
 
+import vt.App.AppContextBase;
 import vt.App.EventListener;
 import vt.App.ObjectEvent;
 import vt.App.Window;
 import vt.App.WindowEvent;
+import vt.Core.Tick;
 import vt.Core.Version;
 import vt.Graphics.Device;
 import vt.Graphics.Driver;
 import vt.Graphics.DynamicGpuApi;
-import vt.Graphics.ForwardRenderer;
 import vt.Graphics.Handle;
-import vt.Graphics.RendererBase;
-import vt.Graphics.RingBuffer;
-import vt.Graphics.SwapChain;
+import vt.Graphics.WindowContext;
 import vt.Trace.Log;
 
 namespace vt
 {
-	struct WindowContext
-	{
-		struct FrameResources
-		{
-			SyncToken final_submit_token = {};
-		};
-		RingBuffer<FrameResources>	  ring;
-		SwapChain					  swap_chain;
-		std::unique_ptr<RendererBase> renderer;
-		std::atomic_bool			  swap_chain_invalid = false;
-		Extent						  window_size;
-
-		WindowContext(Window& window, Device& device) :
-			swap_chain(device->make_swap_chain(window)),
-			renderer(std::make_unique<ForwardRenderer>(device, swap_chain->get_format()))
-		{}
-
-		void update(Window& window, Device& device)
-		{
-			auto& current = ring.current();
-
-			if(swap_chain_invalid)
-			{
-				device->flush_render_queue();
-				swap_chain->resize(window_size);
-				window.enable_resize();
-
-				renderer->recreate_shared_render_targets(swap_chain);
-				swap_chain_invalid = false;
-			}
-			else
-				device->wait_for_workload(current.final_submit_token);
-
-			auto present_token = swap_chain->request_frame();
-			if(present_token)
-			{
-				auto final_commands		   = renderer->render(swap_chain);
-				current.final_submit_token = device->submit_for_present(final_commands, swap_chain, *present_token);
-			}
-			ring.move_to_next_frame();
-		}
-	};
-
 	export class GraphicsSystem : public EventListener
 	{
+		friend class Engine;
+
 	public:
 		GraphicsSystem(bool				  enable_driver_debug_layer,
 					   std::string const& app_name,
@@ -102,8 +58,8 @@ namespace vt
 		Device			 device;
 		std::atomic_bool should_run = true;
 		std::mutex		 context_access_mutex;
-		std::mutex		 resize_mutex;
 		std::jthread	 render_thread;
+		Tick			 tick;
 
 		Adapter select_adapter()
 		{
@@ -117,20 +73,25 @@ namespace vt
 
 		void run_rendering()
 		{
+			uint64_t previous_time = Tick::measure_time();
 			while(should_run)
 			{
+				tick.update(previous_time);
+
 				std::lock_guard lock(context_access_mutex);
 				for(auto& [window, context] : window_contexts)
-					context.update(*window, device);
+					context.execute_frame(tick, *window, device);
 			}
 		}
 
 		void on_window_resize(WindowSizeEvent& window_size_event)
 		{
 			auto& [window, context] = *window_contexts.find(&window_size_event.window);
+
+			// We're disabling resize here from the event thread, but we'll re-enable it on the other thread after handling the
+			// resize.
 			window->disable_resize();
-			context.swap_chain_invalid = true;
-			context.window_size		   = window_size_event.size;
+			context.invalidate_swap_chain(window_size_event);
 		}
 
 		void on_window_object_construct(ObjectConstructEvent<Window>& window_constructed)
@@ -144,30 +105,30 @@ namespace vt
 		void on_window_object_move_construct(ObjectMoveConstructEvent<Window>& window_moved)
 		{
 			std::lock_guard lock(context_access_mutex);
-			replace_key_for_swap_chain(window_moved.moved, window_moved.constructed);
+			replace_key_for_window_context(window_moved.moved, window_moved.constructed);
 		}
 
 		void on_window_object_destroy(ObjectDestroyEvent<Window>& window_destroyed)
 		{
 			std::lock_guard lock(context_access_mutex);
-			destroy_swap_chain(window_destroyed.object);
+			destroy_window_context(window_destroyed.object);
 		}
 
 		void on_window_object_move_assign(ObjectMoveAssignEvent<Window>& window_moved)
 		{
 			std::lock_guard lock(context_access_mutex);
 
-			destroy_swap_chain(window_moved.left);
-			replace_key_for_swap_chain(window_moved.right, window_moved.left);
+			destroy_window_context(window_moved.left);
+			replace_key_for_window_context(window_moved.right, window_moved.left);
 		}
 
-		void destroy_swap_chain(Window& window)
+		void destroy_window_context(Window& window)
 		{
 			device->flush(); // Flush entire device because context destroys renderer, which might use multiple queues.
 			window_contexts.erase(&window);
 		}
 
-		void replace_key_for_swap_chain(Window& old_window, Window& new_window)
+		void replace_key_for_window_context(Window& old_window, Window& new_window)
 		{
 			auto node  = window_contexts.extract(&old_window);
 			node.key() = &new_window;

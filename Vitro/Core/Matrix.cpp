@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <cmath>
 #include <format>
 export module vt.Core.Matrix;

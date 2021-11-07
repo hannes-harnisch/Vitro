@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <optional>
 export module vt.Graphics.SwapChainBase;
 

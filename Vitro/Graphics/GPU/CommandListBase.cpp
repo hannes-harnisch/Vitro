@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <span>
 export module vt.Graphics.CommandListBase;
 

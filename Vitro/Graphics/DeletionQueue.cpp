@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <any>
 #include <deque>
 export module vt.Graphics.DeletionQueue;

@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <cmath>
 export module vt.Graphics.Camera;
 

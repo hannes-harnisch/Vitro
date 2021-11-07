@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include "Core/PlatformWindows/WindowsAPI.hpp"
 
@@ -47,7 +47,7 @@ namespace vt::windows
 												  static_cast<UINT>(sizeof(RAWINPUTDEVICE)));
 		}
 
-		void poll_events()
+		void pump_system_events()
 		{
 			MSG message;
 			while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
@@ -101,12 +101,12 @@ namespace vt::windows
 				case WM_XBUTTONDBLCLK: get().on_mouse_event<DoubleClickEvent>(hwnd, convert_extra_button(w_param)); return true;
 				case WM_MOUSEWHEEL:	   get().on_vertical_scroll(hwnd, w_param); return 0;
 				case WM_MOUSEHWHEEL:   get().on_horizontal_scroll(hwnd, w_param); return 0;
-			}
+			} // clang-format on
 			return ::DefWindowProc(hwnd, message, w_param, l_param);
 		}
 
 		KeyCode convert_virtual_key(WPARAM virtual_key)
-		{
+		{ // clang-format off
 			using enum KeyCode;
 			switch(virtual_key)
 			{

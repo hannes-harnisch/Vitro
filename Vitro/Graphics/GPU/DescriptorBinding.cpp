@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <cstdint>
 export module vt.Graphics.DescriptorBinding;
 

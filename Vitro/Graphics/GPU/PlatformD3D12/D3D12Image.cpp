@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 export module vt.Graphics.D3D12.Image;
@@ -107,10 +107,62 @@ namespace vt::d3d12
 		VT_UNREACHABLE();
 	}
 
+	D3D12_RESOURCE_DIMENSION convert_image_dimension(ImageDimension dimension)
+	{
+		using enum ImageDimension;
+		switch(dimension)
+		{
+			case Image1D: return D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+			case Image2D: return D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			case Image3D: return D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+		}
+		VT_UNREACHABLE();
+	}
+
 	export class D3D12Image : public Resource
 	{
 	public:
-		D3D12Image(D3D12MA::Allocator*)
-		{}
+		D3D12Image(ImageSpecification const& spec, D3D12MA::Allocator& allocator)
+		{
+			D3D12_HEAP_TYPE		  heap_type;
+			D3D12_RESOURCE_STATES initial_state;
+			if(spec.usage.get() & BufferUsage::Upload)
+			{
+				heap_type	  = D3D12_HEAP_TYPE_UPLOAD;
+				initial_state = D3D12_RESOURCE_STATE_GENERIC_READ;
+			}
+			else if(spec.usage.get() & BufferUsage::Readback)
+			{
+				heap_type	  = D3D12_HEAP_TYPE_READBACK;
+				initial_state = D3D12_RESOURCE_STATE_COPY_DEST;
+			}
+			else
+			{
+				heap_type	  = D3D12_HEAP_TYPE_DEFAULT;
+				initial_state = D3D12_RESOURCE_STATE_COMMON; // More specialized resource states are not needed for buffers
+			}												 // because of the promotion rules.
+
+			D3D12MA::ALLOCATION_DESC const allocation_desc {
+				.HeapType = heap_type,
+			};
+			D3D12_RESOURCE_DESC const resource_desc {
+				.Dimension		  = convert_image_dimension(spec.image_dimension),
+				.Alignment		  = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
+				.Width			  = spec.expanse.width,
+				.Height			  = spec.expanse.height,
+				.DepthOrArraySize = spec.expanse.depth,
+				.MipLevels		  = spec.mip_count,
+				.Format			  = convert_image_format(spec.image_format),
+				.SampleDesc {
+					.Count	 = spec.sample_count,
+					.Quality = 0,
+				},
+				.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
+				.Flags	= D3D12_RESOURCE_FLAG_NONE,
+			};
+			auto result = allocator.CreateResource(&allocation_desc, &resource_desc, initial_state, nullptr,
+												   std::out_ptr(allocation), VT_COM_OUT(resource));
+			VT_CHECK_RESULT(result, "Failed to create D3D12 image.");
+		}
 	};
 }
