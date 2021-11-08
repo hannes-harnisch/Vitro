@@ -5,6 +5,7 @@ export module vt.Graphics.Camera;
 import vt.Core.Matrix;
 import vt.Core.Transform;
 import vt.Core.Vector;
+import vt.Trace.Log;
 
 namespace vt
 {
@@ -14,7 +15,7 @@ namespace vt
 		Camera(Float3 position, Float3 target, Float4x4 const& projection) :
 			projection(projection), position(position), forward(normalize(target))
 		{
-			update_view();
+			update_view_projection();
 		}
 
 		Float4x4 const& get_projection() const
@@ -50,39 +51,39 @@ namespace vt
 		void set_position(Float3 pos)
 		{
 			position = pos;
-			update_view();
+			update_view_projection();
 		}
 
 		void translate(Float3 translation)
 		{
 			position += Float3x3 {right, up, forward} * translation;
-			update_view();
+			update_view_projection();
 		}
 
 		void pitch(float radians)
 		{
 			forward = normalize(forward * std::cos(radians) + up * std::sin(radians));
-			update_view();
+			update_view_projection();
 		}
 
 		void yaw(float radians)
 		{
 			forward = normalize(forward * std::cos(radians) + right * std::sin(radians));
 			right	= cross(up, forward);
-			update_view();
+			update_view_projection();
 		}
 
 		void roll(float radians)
 		{
 			right = normalize(right * std::cos(radians) + up * std::sin(radians));
 			up	  = cross(forward, right);
-			update_view();
+			update_view_projection();
 		}
 
 	private:
-		static constexpr Float3 DEFAULT_RIGHT	= {1, 0, 0};
-		static constexpr Float3 DEFAULT_UP		= {0, 1, 0};
-		static constexpr Float3 DEFAULT_FORWARD = {0, 0, 1};
+		static const inline Float3 DEFAULT_RIGHT   = {1, 0, 0}; // TODO: change to constexpr once compiler fixed
+		static const inline Float3 DEFAULT_UP	   = {0, 1, 0};
+		static const inline Float3 DEFAULT_FORWARD = {0, 0, 1};
 
 		Float4x4 projection;
 		Float4x4 view_projection;
@@ -91,9 +92,9 @@ namespace vt
 		Float3	 up		 = DEFAULT_UP;
 		Float3	 forward = DEFAULT_FORWARD;
 
-		void update_view()
+		void update_view_projection()
 		{
-			view_projection = projection * look_at(position, position + forward, up);
+			view_projection = look_at(position, position + forward, up) * projection;
 		}
 	};
 }

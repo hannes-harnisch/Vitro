@@ -19,46 +19,42 @@ namespace vt
 	export using magic_enum::enum_count;
 	export using magic_enum::enum_name;
 
-	template<typename T>
+	export template<typename T>
 	requires std::is_enum_v<T>
 	constexpr size_t size_from_enum_max()
 	{
 		auto values = magic_enum::enum_values<T>();
-		auto max	= *std::max_element(values.begin(), values.end());
-		return static_cast<size_t>(max) + 1;
+		auto max	= std::max_element(values.begin(), values.end());
+		return static_cast<size_t>(*max) + 1;
 	}
 
 	// A bit array big enough for the enum T, so that you can set a bit for each numeric value of an enum constant.
-	export template<typename T> class EnumBitArray
+	export template<typename E> class EnumBitArray : public std::bitset<size_from_enum_max<E>()>
 	{
+		using Base = std::bitset<size_from_enum_max<E>()>;
+
 	public:
-		auto operator[](T index)
+		using Base::Base;
+
+		auto operator[](E index)
 		{
-			return bitset[static_cast<size_t>(index)];
+			return Base::operator[](static_cast<size_t>(index));
 		}
 
-		bool operator[](T index) const
+		bool operator[](E index) const
 		{
-			return bitset[static_cast<size_t>(index)];
+			return Base::operator[](static_cast<size_t>(index));
 		}
 
-		bool test(T position) const
+		bool test(E position) const
 		{
-			return bitset.test(static_cast<size_t>(position));
+			return Base::test(static_cast<size_t>(position));
 		}
 
-		void set(T position, bool value = true)
+		void set(E position, bool value = true)
 		{
-			bitset.set(static_cast<size_t>(position), value);
+			Base::set(static_cast<size_t>(position), value);
 		}
-
-		std::string to_string() const
-		{
-			return bitset.to_string();
-		}
-
-	private:
-		std::bitset<size_from_enum_max<T>()> bitset;
 	};
 
 	// Returns a number with the bit set at the given position.

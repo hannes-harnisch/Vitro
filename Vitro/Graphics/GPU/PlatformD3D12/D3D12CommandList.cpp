@@ -8,6 +8,7 @@ export module vt.Graphics.D3D12.CommandList;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Core.LookupTable;
 import vt.Core.Rect;
 import vt.Core.SmallList;
 import vt.Graphics.D3D12.DescriptorPool;
@@ -26,17 +27,15 @@ import vt.Graphics.RootSignature;
 
 namespace vt::d3d12
 {
-	constexpr D3D12_COMMAND_LIST_TYPE convert_command_type(CommandType type)
-	{
+	constexpr inline auto COMMAND_TYPE_LOOKUP = [] {
+		LookupTable<CommandType, D3D12_COMMAND_LIST_TYPE> _;
 		using enum CommandType;
-		switch(type)
-		{
-			case Copy: return D3D12_COMMAND_LIST_TYPE_COPY;
-			case Compute: return D3D12_COMMAND_LIST_TYPE_COMPUTE;
-			case Render: return D3D12_COMMAND_LIST_TYPE_DIRECT;
-		}
-		VT_UNREACHABLE();
-	}
+
+		_[Copy]	   = D3D12_COMMAND_LIST_TYPE_COPY;
+		_[Compute] = D3D12_COMMAND_LIST_TYPE_COMPUTE;
+		_[Render]  = D3D12_COMMAND_LIST_TYPE_DIRECT;
+		return _;
+	}();
 
 	template<CommandType> class CommandListData;
 
@@ -84,10 +83,10 @@ namespace vt::d3d12
 				this->draw_indexed_signature = draw_indexed_signature;
 			}
 
-			auto result = device.CreateCommandAllocator(COMMAND_LIST_TYPE, VT_COM_OUT(allocator));
+			auto result = device.CreateCommandAllocator(COMMAND_TYPE_LOOKUP[TYPE], VT_COM_OUT(allocator));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 command allocator.");
 
-			result = device.CreateCommandList1(0, COMMAND_LIST_TYPE, D3D12_COMMAND_LIST_FLAG_NONE, VT_COM_OUT(cmd));
+			result = device.CreateCommandList1(0, COMMAND_TYPE_LOOKUP[TYPE], D3D12_COMMAND_LIST_FLAG_NONE, VT_COM_OUT(cmd));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 command list.");
 		}
 
@@ -433,8 +432,6 @@ namespace vt::d3d12
 		}
 
 	private:
-		static constexpr D3D12_COMMAND_LIST_TYPE COMMAND_LIST_TYPE = convert_command_type(TYPE);
-
 		ComUnique<ID3D12CommandAllocator>	  allocator;
 		ComUnique<ID3D12GraphicsCommandList4> cmd;
 
@@ -490,7 +487,7 @@ namespace vt::d3d12
 			FixedList<D3D12_RENDER_PASS_RENDER_TARGET_DESC, MAX_COLOR_ATTACHMENTS> rt_descs(pass.count_color_attachments());
 
 			auto rt_desc = rt_descs.begin();
-			for(size_t index = 0; auto access : subpass.accesses)
+			for(size_t index = 0; auto access : subpass.get_color_attachment_accesses())
 			{
 				D3D12_CPU_DESCRIPTOR_HANDLE rt_descriptor;
 				D3D12_CLEAR_VALUE			color_clear_value = {};

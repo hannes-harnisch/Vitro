@@ -49,7 +49,7 @@ namespace vt
 		using AttachmentList = FixedList<AttachmentSpecification, MAX_ATTACHMENTS>;
 
 		Explicit<AttachmentList> attachments;
-		ImageLoadOp				 stencil_load_op  = ImageLoadOp::Ignore;
+		ImageLoadOp				 stencil_load_op  = ImageLoadOp::Clear;
 		ImageStoreOp			 stencil_store_op = ImageStoreOp::Ignore;
 		ArrayView<Subpass>		 subpasses;
 
@@ -62,7 +62,7 @@ namespace vt
 			auto it = std::find_if(attachments.begin(), attachments.end(), uses_depth_stencil_layout);
 
 			auto second = std::find_if(it, attachments.end(), uses_depth_stencil_layout);
-			if(second != attachments.end())
+			if(second != it)
 				throw std::invalid_argument("Multiple depth stencil attachments are not allowed.");
 
 			return it != attachments.end();

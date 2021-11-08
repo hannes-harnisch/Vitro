@@ -7,6 +7,7 @@ module;
 export module vt.Graphics.Vulkan.DescriptorSetLayout;
 
 import vt.Core.Array;
+import vt.Core.LookupTable;
 import vt.Core.SmallList;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Vulkan.Handle;
@@ -14,46 +15,42 @@ import vt.Graphics.Vulkan.Sampler;
 
 namespace vt::vulkan
 {
-	VkDescriptorType convert_descriptor_type(DescriptorType type)
-	{
+	constexpr inline auto DESCRIPTOR_TYPE_LOOKUP = [] {
+		LookupTable<DescriptorType, VkDescriptorType> _;
 		using enum DescriptorType;
-		switch(type)
-		{ // clang-format off
-			case Sampler:			  return VK_DESCRIPTOR_TYPE_SAMPLER;
-			case Texture:			  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-			case RwTexture:			  return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-			case Buffer:			  return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
-			case RwBuffer:			  return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
-			case UniformBuffer:		  return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			case StructuredBuffer:
-			case RwStructuredBuffer:
-			case ByteAddressBuffer:
-			case RwByteAddressBuffer: return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			case InputAttachment:	  return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-		}
-		VT_UNREACHABLE();
-	}
 
-	export VkShaderStageFlags convert_shader_stage(ShaderStage stage)
-	{
+		_[Sampler]			   = VK_DESCRIPTOR_TYPE_SAMPLER;
+		_[Texture]			   = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+		_[RwTexture]		   = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		_[Buffer]			   = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+		_[RwBuffer]			   = VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+		_[UniformBuffer]	   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		_[StructuredBuffer]	   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		_[RwStructuredBuffer]  = _[StructuredBuffer];
+		_[ByteAddressBuffer]   = _[StructuredBuffer];
+		_[RwByteAddressBuffer] = _[StructuredBuffer];
+		_[InputAttachment]	   = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+		return _;
+	}();
+
+	export constexpr inline auto SHADER_STAGE_LOOKUP = [] {
+		LookupTable<ShaderStage, VkShaderStageFlags> _;
 		using enum ShaderStage;
-		switch(stage)
-		{
-			case Render:	   return VK_SHADER_STAGE_ALL_GRAPHICS;
-			case Vertex:	   return VK_SHADER_STAGE_VERTEX_BIT;
-			case Hull:		   return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-			case Domain:	   return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-			case Fragment:	   return VK_SHADER_STAGE_FRAGMENT_BIT;
-			case Compute:	   return VK_SHADER_STAGE_COMPUTE_BIT;
-			case RayGen:	   return VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-			case AnyHit:	   return VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-			case ClosestHit:   return VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-			case Miss:		   return VK_SHADER_STAGE_MISS_BIT_KHR;
-			case Intersection: return VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-			case Callable:	   return VK_SHADER_STAGE_CALLABLE_BIT_KHR;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
+
+		_[Render]		= VK_SHADER_STAGE_ALL_GRAPHICS;
+		_[Vertex]		= VK_SHADER_STAGE_VERTEX_BIT;
+		_[Hull]			= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+		_[Domain]		= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+		_[Fragment]		= VK_SHADER_STAGE_FRAGMENT_BIT;
+		_[Compute]		= VK_SHADER_STAGE_COMPUTE_BIT;
+		_[RayGen]		= VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+		_[AnyHit]		= VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+		_[ClosestHit]	= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+		_[Miss]			= VK_SHADER_STAGE_MISS_BIT_KHR;
+		_[Intersection] = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+		_[Callable]		= VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+		return _;
+	}();
 
 	export class VulkanDescriptorSetLayout
 	{
@@ -63,7 +60,7 @@ namespace vt::vulkan
 			SmallList<VkDescriptorSetLayoutBinding> bindings;
 			bindings.reserve(spec.bindings.size());
 
-			auto visibility = convert_shader_stage(spec.visibility);
+			auto visibility = SHADER_STAGE_LOOKUP[spec.visibility];
 			for(auto& binding : spec.bindings)
 			{
 				VkSampler static_sampler;
@@ -72,9 +69,9 @@ namespace vt::vulkan
 
 				bindings.emplace_back(VkDescriptorSetLayoutBinding {
 					.binding			= binding.shader_register,
-					.descriptorType		= convert_descriptor_type(binding.type),
+					.descriptorType		= DESCRIPTOR_TYPE_LOOKUP[binding.type],
 					.descriptorCount	= binding.static_sampler_spec ? 1u : binding.count.get(),
-					.stageFlags			= binding.static_sampler_spec ? convert_shader_stage(binding.static_sampler_visibility)
+					.stageFlags			= binding.static_sampler_spec ? SHADER_STAGE_LOOKUP[binding.static_sampler_visibility]
 																	  : visibility,
 					.pImmutableSamplers = binding.static_sampler_spec ? &static_sampler : nullptr,
 				});

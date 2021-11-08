@@ -63,10 +63,8 @@ namespace vt::windows
 
 			RECT rect;
 			call_win32<::GetClientRect>("Failed to get window client rect.", window.get(), &rect);
-
 			call_win32<::MapWindowPoints>("Failed to map window points.", window.get(), nullptr,
 										  reinterpret_cast<POINT*>(&rect), static_cast<UINT>(sizeof(RECT) / sizeof(POINT)));
-
 			call_win32<::ClipCursor>("Failed to clip cursor.", &rect);
 		}
 
@@ -168,16 +166,13 @@ namespace vt::windows
 
 		void make_resizable(bool enable) const
 		{
-			auto old_style = call_win32<::GetWindowLongPtr>("Failed to get Windows window attributes.", window.get(),
-															GWL_STYLE);
-
-			LONG_PTR new_style;
+			auto style = call_win32<::GetWindowLongPtr>("Failed to get Windows window attributes.", window.get(), GWL_STYLE);
 			if(enable)
-				new_style = old_style | WS_THICKFRAME;
+				style |= WS_THICKFRAME;
 			else
-				new_style = old_style ^ WS_THICKFRAME;
+				style ^= WS_THICKFRAME;
 
-			call_win32<::SetWindowLongPtr>("Failed to set Windows window attributes.", window.get(), GWL_STYLE, new_style);
+			call_win32<::SetWindowLongPtr>("Failed to set Windows window attributes.", window.get(), GWL_STYLE, style);
 		}
 	};
 }

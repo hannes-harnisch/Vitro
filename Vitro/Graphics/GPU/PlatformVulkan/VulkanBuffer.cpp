@@ -13,29 +13,29 @@ namespace vt::vulkan
 {
 	VkBufferUsageFlags convert_buffer_usage(BufferUsage usage)
 	{
-		int result = 0;
+		VkBufferUsageFlags flags = 0;
 
 		using enum BufferUsage;
 		if(usage & CopySrc)
-			result |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+			flags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 		if(usage & CopyDst)
-			result |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+			flags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 		if(usage & Untyped)
-			result |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 		if(usage & RwUntyped)
-			result |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
 		if(usage & Uniform)
-			result |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 		if(usage & Storage)
-			result |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 		if(usage & Index)
-			result |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
 		if(usage & Vertex)
-			result |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
 		if(usage & Indirect)
-			result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+			flags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
-		return result;
+		return flags;
 	}
 
 	export class VulkanBuffer

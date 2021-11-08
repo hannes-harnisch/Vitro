@@ -8,6 +8,7 @@ export module vt.Graphics.Vulkan.Pipeline;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Core.LookupTable;
 import vt.Graphics.PipelineSpecification;
 import vt.Graphics.RenderPassSpecification;
 import vt.Graphics.Vulkan.Handle;
@@ -16,169 +17,143 @@ import vt.Graphics.Vulkan.Sampler;
 
 namespace vt::vulkan
 {
-	VkFormat convert_vertex_data_type(VertexDataType type)
-	{
+	constexpr inline auto VERTEX_DATA_TYPE_LOOKUP = [] {
+		LookupTable<VertexDataType, VkFormat> _;
 		using enum VertexDataType;
-		switch(type)
-		{ // clang-format off
-			case Position:
-			case TransformedPosition:
-			case TextureCoordinates:
-			case Normal:
-			case Binormal:
-			case Tangent:
-			case Color:		   return VK_FORMAT_R32G32B32A32_SFLOAT;
-			case PointSize:
-			case BlendWeight:  return VK_FORMAT_R32_SFLOAT;
-			case BlendIndices: return VK_FORMAT_R32_UINT;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkVertexInputRate convert_input_rate(VertexBufferInputRate rate)
-	{
-		switch(rate)
-		{
-			case VertexBufferInputRate::PerVertex:	 return VK_VERTEX_INPUT_RATE_VERTEX;
-			case VertexBufferInputRate::PerInstance: return VK_VERTEX_INPUT_RATE_INSTANCE;
-		}
-		VT_UNREACHABLE();
-	}
+		_[Position]			   = VK_FORMAT_R32G32B32A32_SFLOAT;
+		_[TransformedPosition] = _[Position];
+		_[TextureCoordinates]  = _[Position];
+		_[Normal]			   = _[Position];
+		_[Binormal]			   = _[Position];
+		_[Tangent]			   = _[Position];
+		_[Color]			   = _[Position];
+		_[PointSize]		   = VK_FORMAT_R32_SFLOAT;
+		_[BlendWeight]		   = VK_FORMAT_R32_SFLOAT;
+		_[BlendIndices]		   = VK_FORMAT_R32_UINT;
+		return _;
+	}();
 
-	VkPrimitiveTopology convert_primitive_topology(PrimitiveTopology topology)
-	{
+	constexpr inline auto PRIMITIVE_TOPOLOGY_LOOKUP = [] {
+		LookupTable<PrimitiveTopology, VkPrimitiveTopology> _;
 		using enum PrimitiveTopology;
-		switch(topology)
-		{
-			case PointList:		return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-			case LineList:		return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-			case LineStrip:		return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-			case TriangleList:	return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-			case TriangleStrip:	return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-			case PatchList:		return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkPolygonMode convert_fill_mode(PolygonFillMode mode)
-	{
-		switch(mode)
-		{
-			case PolygonFillMode::Wireframe: return VK_POLYGON_MODE_LINE;
-			case PolygonFillMode::Solid:	 return VK_POLYGON_MODE_FILL;
-		}
-		VT_UNREACHABLE();
-	}
+		_[PointList]	 = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+		_[LineList]		 = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+		_[LineStrip]	 = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+		_[TriangleList]	 = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+		_[TriangleStrip] = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+		_[PatchList]	 = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+		return _;
+	}();
 
-	VkCullModeFlags convert_cull_mode(CullMode mode)
-	{
+	constexpr inline auto FILL_MODE_LOOKUP = [] {
+		LookupTable<PolygonFillMode, VkPolygonMode> _;
+		using enum PolygonFillMode;
+
+		_[Wireframe] = VK_POLYGON_MODE_LINE;
+		_[Solid]	 = VK_POLYGON_MODE_FILL;
+		return _;
+	}();
+
+	constexpr inline auto CULL_MODE_LOOKUP = [] {
+		LookupTable<CullMode, VkCullModeFlags> _;
 		using enum CullMode;
-		switch(mode)
-		{
-			case None:	return VK_CULL_MODE_NONE;
-			case Front:	return VK_CULL_MODE_FRONT_BIT;
-			case Back:	return VK_CULL_MODE_BACK_BIT;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkFrontFace convert_winding_order(WindingOrder order)
-	{
-		switch(order)
-		{
-			case WindingOrder::CounterClockwise: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
-			case WindingOrder::Clockwise:		 return VK_FRONT_FACE_CLOCKWISE;
-		}
-		VT_UNREACHABLE();
-	}
+		_[None]	 = VK_CULL_MODE_NONE;
+		_[Front] = VK_CULL_MODE_FRONT_BIT;
+		_[Back]	 = VK_CULL_MODE_BACK_BIT;
+		return _;
+	}();
 
-	VkStencilOp convert_stencil_op(StencilOp op)
-	{
+	constexpr inline auto WINDING_ORDER_LOOKUP = [] {
+		LookupTable<WindingOrder, VkFrontFace> _;
+		using enum WindingOrder;
+
+		_[CounterClockwise] = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+		_[Clockwise]		= VK_FRONT_FACE_CLOCKWISE;
+		return _;
+	}();
+
+	constexpr inline auto STENCIL_OP_LOOKUP = [] {
+		LookupTable<StencilOp, VkStencilOp> _;
 		using enum StencilOp;
-		switch(op)
-		{
-			case Keep:			 return VK_STENCIL_OP_KEEP;
-			case Zero:			 return VK_STENCIL_OP_ZERO;
-			case Replace:		 return VK_STENCIL_OP_REPLACE;
-			case IncrementClamp: return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-			case DecrementClamp: return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
-			case Invert:		 return VK_STENCIL_OP_INVERT;
-			case IncrementWrap:	 return VK_STENCIL_OP_INCREMENT_AND_WRAP;
-			case DecrementWrap:	 return VK_STENCIL_OP_DECREMENT_AND_WRAP;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkLogicOp convert_logic_op(LogicOp op)
-	{
+		_[Keep]			  = VK_STENCIL_OP_KEEP;
+		_[Zero]			  = VK_STENCIL_OP_ZERO;
+		_[Replace]		  = VK_STENCIL_OP_REPLACE;
+		_[IncrementClamp] = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+		_[DecrementClamp] = VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+		_[Invert]		  = VK_STENCIL_OP_INVERT;
+		_[IncrementWrap]  = VK_STENCIL_OP_INCREMENT_AND_WRAP;
+		_[DecrementWrap]  = VK_STENCIL_OP_DECREMENT_AND_WRAP;
+		return _;
+	}();
+
+	constexpr inline auto LOGIC_OP_LOOKUP = [] {
+		LookupTable<LogicOp, VkLogicOp> _;
 		using enum LogicOp;
-		switch(op)
-		{
-			case Clear:		   return VK_LOGIC_OP_CLEAR;
-			case Set:		   return VK_LOGIC_OP_SET;
-			case Copy:		   return VK_LOGIC_OP_COPY;
-			case CopyInverted: return VK_LOGIC_OP_COPY_INVERTED;
-			case NoOp:		   return VK_LOGIC_OP_NO_OP;
-			case Invert:	   return VK_LOGIC_OP_INVERT;
-			case And:		   return VK_LOGIC_OP_AND;
-			case Nand:		   return VK_LOGIC_OP_NAND;
-			case Or:		   return VK_LOGIC_OP_OR;
-			case Nor:		   return VK_LOGIC_OP_NOR;
-			case Xor:		   return VK_LOGIC_OP_XOR;
-			case Equivalent:   return VK_LOGIC_OP_EQUIVALENT;
-			case AndReverse:   return VK_LOGIC_OP_AND_REVERSE;
-			case AndInverted:  return VK_LOGIC_OP_AND_INVERTED;
-			case OrReverse:	   return VK_LOGIC_OP_OR_REVERSE;
-			case OrInverted:   return VK_LOGIC_OP_OR_INVERTED;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkBlendFactor convert_blend_factor(BlendFactor factor)
-	{
+		_[Clear]		= VK_LOGIC_OP_CLEAR;
+		_[Set]			= VK_LOGIC_OP_SET;
+		_[Copy]			= VK_LOGIC_OP_COPY;
+		_[CopyInverted] = VK_LOGIC_OP_COPY_INVERTED;
+		_[NoOp]			= VK_LOGIC_OP_NO_OP;
+		_[Invert]		= VK_LOGIC_OP_INVERT;
+		_[And]			= VK_LOGIC_OP_AND;
+		_[Nand]			= VK_LOGIC_OP_NAND;
+		_[Or]			= VK_LOGIC_OP_OR;
+		_[Nor]			= VK_LOGIC_OP_NOR;
+		_[Xor]			= VK_LOGIC_OP_XOR;
+		_[Equivalent]	= VK_LOGIC_OP_EQUIVALENT;
+		_[AndReverse]	= VK_LOGIC_OP_AND_REVERSE;
+		_[AndInverted]	= VK_LOGIC_OP_AND_INVERTED;
+		_[OrReverse]	= VK_LOGIC_OP_OR_REVERSE;
+		_[OrInverted]	= VK_LOGIC_OP_OR_INVERTED;
+		return _;
+	}();
+
+	constexpr inline auto BLEND_FACTOR_LOOKUP = [] {
+		LookupTable<BlendFactor, VkBlendFactor> _;
 		using enum BlendFactor;
-		switch(factor)
-		{
-			case Zero:			   return VK_BLEND_FACTOR_ZERO;
-			case One:			   return VK_BLEND_FACTOR_ONE;
-			case SrcColor:		   return VK_BLEND_FACTOR_SRC_COLOR;
-			case SrcColorInv:	   return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
-			case SrcAlpha:		   return VK_BLEND_FACTOR_SRC_ALPHA;
-			case SrcAlphaInv:	   return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-			case DstAlpha:		   return VK_BLEND_FACTOR_DST_ALPHA;
-			case DstAlphaInv:	   return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-			case DstColor:		   return VK_BLEND_FACTOR_DST_COLOR;
-			case DstColorInv:	   return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
-			case SrcAlphaSaturate: return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
-			case Src1Color:		   return VK_BLEND_FACTOR_SRC1_COLOR;
-			case Src1ColorInv:	   return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
-			case Src1Alpha:		   return VK_BLEND_FACTOR_SRC1_ALPHA;
-			case Src1AlphaInv:	   return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkBlendOp convert_blend_op(BlendOp op)
-	{
+		_[Zero]				= VK_BLEND_FACTOR_ZERO;
+		_[One]				= VK_BLEND_FACTOR_ONE;
+		_[SrcColor]			= VK_BLEND_FACTOR_SRC_COLOR;
+		_[SrcColorInv]		= VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+		_[SrcAlpha]			= VK_BLEND_FACTOR_SRC_ALPHA;
+		_[SrcAlphaInv]		= VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		_[DstAlpha]			= VK_BLEND_FACTOR_DST_ALPHA;
+		_[DstAlphaInv]		= VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+		_[DstColor]			= VK_BLEND_FACTOR_DST_COLOR;
+		_[DstColorInv]		= VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+		_[SrcAlphaSaturate] = VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+		_[Src1Color]		= VK_BLEND_FACTOR_SRC1_COLOR;
+		_[Src1ColorInv]		= VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+		_[Src1Alpha]		= VK_BLEND_FACTOR_SRC1_ALPHA;
+		_[Src1AlphaInv]		= VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+		return _;
+	}();
+
+	constexpr inline auto BLEND_OP_LOOKUP = [] {
+		LookupTable<BlendOp, VkBlendOp> _;
 		using enum BlendOp;
-		switch(op)
-		{
-			case Add:			  return VK_BLEND_OP_ADD;
-			case Subtract:		  return VK_BLEND_OP_SUBTRACT;
-			case ReverseSubtract: return VK_BLEND_OP_REVERSE_SUBTRACT;
-			case Min:			  return VK_BLEND_OP_MIN;
-			case Max:			  return VK_BLEND_OP_MAX;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
+
+		_[Add]			   = VK_BLEND_OP_ADD;
+		_[Subtract]		   = VK_BLEND_OP_SUBTRACT;
+		_[ReverseSubtract] = VK_BLEND_OP_REVERSE_SUBTRACT;
+		_[Min]			   = VK_BLEND_OP_MIN;
+		_[Max]			   = VK_BLEND_OP_MAX;
+		return _;
+	}();
 
 	VkStencilOpState convert_stencil_op_state(StencilOpState op_state, uint8_t read_mask, uint8_t write_mask)
 	{
 		return {
-			.failOp		 = convert_stencil_op(op_state.fail_op),
-			.passOp		 = convert_stencil_op(op_state.pass_op),
-			.depthFailOp = convert_stencil_op(op_state.depth_fail_op),
-			.compareOp	 = convert_compare_op(op_state.compare_op),
+			.failOp		 = STENCIL_OP_LOOKUP[op_state.fail_op],
+			.passOp		 = STENCIL_OP_LOOKUP[op_state.pass_op],
+			.depthFailOp = STENCIL_OP_LOOKUP[op_state.depth_fail_op],
+			.compareOp	 = COMPARE_OP_LOOKUP[op_state.compare_op],
 			.compareMask = read_mask,
 			.writeMask	 = write_mask,
 			.reference	 = 0,
@@ -222,7 +197,7 @@ namespace vt::vulkan
 
 			input_assembly = VkPipelineInputAssemblyStateCreateInfo {
 				.sType					= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-				.topology				= convert_primitive_topology(spec.primitive_topology),
+				.topology				= PRIMITIVE_TOPOLOGY_LOOKUP[spec.primitive_topology],
 				.primitiveRestartEnable = spec.enable_primitive_restart,
 			};
 			tessellation = VkPipelineTessellationStateCreateInfo {
@@ -312,7 +287,7 @@ namespace vt::vulkan
 					vertex_attributes.emplace_back(VkVertexInputAttributeDescription {
 						.location = location++,
 						.binding  = binding,
-						.format	  = convert_vertex_data_type(attribute.type),
+						.format	  = VERTEX_DATA_TYPE_LOOKUP[attribute.type],
 						.offset	  = size,
 					});
 					size += static_cast<uint32_t>(get_vertex_data_type_size(attribute.type));
@@ -321,7 +296,8 @@ namespace vt::vulkan
 				vertex_bindings.emplace_back(VkVertexInputBindingDescription {
 					.binding   = binding++,
 					.stride	   = size,
-					.inputRate = convert_input_rate(buffer_binding.input_rate),
+					.inputRate = buffer_binding.input_rate == VertexBufferInputRate::PerVertex ? VK_VERTEX_INPUT_RATE_VERTEX
+																							   : VK_VERTEX_INPUT_RATE_INSTANCE,
 				});
 			}
 
@@ -352,9 +328,9 @@ namespace vt::vulkan
 			rasterization = VkPipelineRasterizationStateCreateInfo {
 				.sType					 = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 				.depthClampEnable		 = spec.rasterizer.enable_depth_clip,
-				.polygonMode			 = convert_fill_mode(spec.rasterizer.fill_mode),
-				.cullMode				 = convert_cull_mode(spec.rasterizer.cull_mode),
-				.frontFace				 = convert_winding_order(spec.rasterizer.winding_order),
+				.polygonMode			 = FILL_MODE_LOOKUP[spec.rasterizer.fill_mode],
+				.cullMode				 = CULL_MODE_LOOKUP[spec.rasterizer.cull_mode],
+				.frontFace				 = WINDING_ORDER_LOOKUP[spec.rasterizer.winding_order],
 				.depthBiasEnable		 = spec.rasterizer.depth_bias != 0,
 				.depthBiasConstantFactor = static_cast<float>(spec.rasterizer.depth_bias),
 				.depthBiasClamp			 = spec.rasterizer.depth_bias_clamp,
@@ -369,7 +345,7 @@ namespace vt::vulkan
 
 			multisample = VkPipelineMultisampleStateCreateInfo {
 				.sType				   = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-				.rasterizationSamples  = convert_sample_count(spec.multisample.rasterizer_sample_count),
+				.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(spec.multisample.rasterizer_sample_count.get()),
 				.sampleShadingEnable   = false,
 				.minSampleShading	   = 0.0f,
 				.pSampleMask		   = sample_masks,
@@ -386,7 +362,7 @@ namespace vt::vulkan
 				.sType				   = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
 				.depthTestEnable	   = ds.enable_depth_test,
 				.depthWriteEnable	   = ds.enable_depth_write,
-				.depthCompareOp		   = convert_compare_op(ds.depth_compare_op),
+				.depthCompareOp		   = COMPARE_OP_LOOKUP[ds.depth_compare_op],
 				.depthBoundsTestEnable = ds.enable_depth_bounds_test,
 				.stencilTestEnable	   = ds.enable_stencil_test,
 				.front				   = convert_stencil_op_state(ds.front, ds.stencil_read_mask, ds.stencil_write_mask),
@@ -401,19 +377,19 @@ namespace vt::vulkan
 			for(auto state : spec.blend.attachment_states)
 				color_blend_states.emplace_back(VkPipelineColorBlendAttachmentState {
 					.blendEnable		 = state.enable_blend,
-					.srcColorBlendFactor = convert_blend_factor(state.src_color_factor),
-					.dstColorBlendFactor = convert_blend_factor(state.dst_color_factor),
-					.colorBlendOp		 = convert_blend_op(state.color_op),
-					.srcAlphaBlendFactor = convert_blend_factor(state.src_alpha_factor),
-					.dstAlphaBlendFactor = convert_blend_factor(state.dst_alpha_factor),
-					.alphaBlendOp		 = convert_blend_op(state.alpha_op),
+					.srcColorBlendFactor = BLEND_FACTOR_LOOKUP[state.src_color_factor],
+					.dstColorBlendFactor = BLEND_FACTOR_LOOKUP[state.dst_color_factor],
+					.colorBlendOp		 = BLEND_OP_LOOKUP[state.color_op],
+					.srcAlphaBlendFactor = BLEND_FACTOR_LOOKUP[state.src_alpha_factor],
+					.dstAlphaBlendFactor = BLEND_FACTOR_LOOKUP[state.dst_alpha_factor],
+					.alphaBlendOp		 = BLEND_OP_LOOKUP[state.alpha_op],
 					.colorWriteMask		 = static_cast<VkColorComponentFlags>(state.write_mask),
 				});
 
 			color_blend = VkPipelineColorBlendStateCreateInfo {
 				.sType			 = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 				.logicOpEnable	 = spec.blend.enable_logic_op,
-				.logicOp		 = convert_logic_op(spec.blend.logic_op),
+				.logicOp		 = LOGIC_OP_LOOKUP[spec.blend.logic_op],
 				.attachmentCount = count(color_blend_states),
 				.pAttachments	 = color_blend_states.data(),
 				.blendConstants	 = {},

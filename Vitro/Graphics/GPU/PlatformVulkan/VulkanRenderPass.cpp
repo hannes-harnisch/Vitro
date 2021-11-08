@@ -8,6 +8,7 @@ export module vt.Graphics.Vulkan.RenderPass;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Core.LookupTable;
 import vt.Core.SmallList;
 import vt.Graphics.RenderPassSpecification;
 import vt.Graphics.Vulkan.Handle;
@@ -15,42 +16,24 @@ import vt.Graphics.Vulkan.Image;
 
 namespace vt::vulkan
 {
-	VkAttachmentLoadOp convert_image_load_op(ImageLoadOp op)
-	{
+	constexpr inline auto IMAGE_LOAD_OP_LOOKUP = [] {
+		LookupTable<ImageLoadOp, VkAttachmentLoadOp> _;
 		using enum ImageLoadOp;
-		switch(op)
-		{ // clang-format off
-			case Load:   return VK_ATTACHMENT_LOAD_OP_LOAD;
-			case Clear:  return VK_ATTACHMENT_LOAD_OP_CLEAR;
-			case Ignore: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		}
-		VT_UNREACHABLE();
-	}
 
-	VkAttachmentStoreOp convert_image_store_op(ImageStoreOp op)
-	{
-		switch(op)
-		{
-			case ImageStoreOp::Store:  return VK_ATTACHMENT_STORE_OP_STORE;
-			case ImageStoreOp::Ignore: return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		}
-		VT_UNREACHABLE();
-	}
+		_[Load]	  = VK_ATTACHMENT_LOAD_OP_LOAD;
+		_[Clear]  = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		_[Ignore] = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		return _;
+	}();
 
-	export VkSampleCountFlagBits convert_sample_count(uint8_t count)
-	{
-		switch(count)
-		{
-			case 1:	 return VK_SAMPLE_COUNT_1_BIT;
-			case 2:	 return VK_SAMPLE_COUNT_2_BIT;
-			case 4:	 return VK_SAMPLE_COUNT_4_BIT;
-			case 8:	 return VK_SAMPLE_COUNT_8_BIT;
-			case 16: return VK_SAMPLE_COUNT_16_BIT;
-			case 32: return VK_SAMPLE_COUNT_32_BIT;
-			case 64: return VK_SAMPLE_COUNT_64_BIT;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
+	constexpr inline auto IMAGE_STORE_OP_LOOKUP = [] {
+		LookupTable<ImageStoreOp, VkAttachmentStoreOp> _;
+		using enum ImageStoreOp;
+
+		_[Store]  = VK_ATTACHMENT_STORE_OP_STORE;
+		_[Ignore] = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		return _;
+	}();
 
 	export class VulkanRenderPass
 	{
@@ -64,14 +47,14 @@ namespace vt::vulkan
 			auto attachment_desc = attachments.begin();
 			for(auto attachment : spec.attachments)
 				*attachment_desc++ = VkAttachmentDescription {
-					.format			= convert_image_format(attachment.format),
-					.samples		= convert_sample_count(attachment.sample_count),
-					.loadOp			= convert_image_load_op(attachment.load_op),
-					.storeOp		= convert_image_store_op(attachment.store_op),
-					.stencilLoadOp	= convert_image_load_op(spec.stencil_load_op),
-					.stencilStoreOp = convert_image_store_op(spec.stencil_store_op),
-					.initialLayout	= convert_image_layout(attachment.initial_layout),
-					.finalLayout	= convert_image_layout(attachment.final_layout),
+					.format			= IMAGE_FORMAT_LOOKUP[attachment.format],
+					.samples		= static_cast<VkSampleCountFlagBits>(attachment.sample_count),
+					.loadOp			= IMAGE_LOAD_OP_LOOKUP[attachment.load_op],
+					.storeOp		= IMAGE_STORE_OP_LOOKUP[attachment.store_op],
+					.stencilLoadOp	= IMAGE_LOAD_OP_LOOKUP[spec.stencil_load_op],
+					.stencilStoreOp = IMAGE_STORE_OP_LOOKUP[spec.stencil_store_op],
+					.initialLayout	= IMAGE_LAYOUT_LOOKUP[attachment.initial_layout],
+					.finalLayout	= IMAGE_LAYOUT_LOOKUP[attachment.final_layout],
 				};
 
 			SmallList<VkSubpassDescription>	 subpasses(spec.subpasses.size());

@@ -151,7 +151,7 @@ namespace vt
 		PolygonFillMode		   fill_mode = PolygonFillMode::Solid;
 		Explicit<CullMode>	   cull_mode;
 		Explicit<WindingOrder> winding_order;
-		bool				   enable_depth_clip = false;
+		bool				   enable_depth_clip = true;
 		int					   depth_bias		 = 0;
 		float				   depth_bias_clamp	 = 0.0f;
 		float				   depth_bias_slope	 = 0.0f;
@@ -167,13 +167,13 @@ namespace vt
 
 	struct DepthStencilState
 	{
-		Explicit<bool> enable_depth_test;
-		bool		   enable_depth_write		= false;
-		CompareOp	   depth_compare_op			= CompareOp::Never;
+		bool		   enable_depth_test		= true;
+		bool		   enable_depth_write		= true;
+		CompareOp	   depth_compare_op			= CompareOp::Less;
 		bool		   enable_depth_bounds_test = false;
-		Explicit<bool> enable_stencil_test;
-		uint8_t		   stencil_read_mask  = 0;
-		uint8_t		   stencil_write_mask = 0;
+		bool		   enable_stencil_test		= false;
+		uint8_t		   stencil_read_mask		= 0xFF;
+		uint8_t		   stencil_write_mask		= 0xFF;
 		StencilOpState front;
 		StencilOpState back;
 	};
@@ -182,18 +182,18 @@ namespace vt
 	{
 		unsigned		  sample_mask			   = ~0u;
 		Positive<uint8_t> sample_count			   = 1;
-		Positive<uint8_t> rasterizer_sample_count  = 1;
+		uint8_t			  rasterizer_sample_count  = 0;
 		bool			  enable_alpha_to_coverage = false;
 	};
 
 	export struct ColorAttachmentBlendState
 	{
-		bool		   enable_blend		= false;
+		bool		   enable_blend		= true;
 		BlendFactor	   src_color_factor = BlendFactor::SrcAlpha;
 		BlendFactor	   dst_color_factor = BlendFactor::SrcAlphaInv;
 		BlendOp		   color_op			= BlendOp::Add;
 		BlendFactor	   src_alpha_factor = BlendFactor::One;
-		BlendFactor	   dst_alpha_factor = BlendFactor::One;
+		BlendFactor	   dst_alpha_factor = BlendFactor::Zero;
 		BlendOp		   alpha_op			= BlendOp::Add;
 		ColorComponent write_mask		= ColorComponent::All;
 	};

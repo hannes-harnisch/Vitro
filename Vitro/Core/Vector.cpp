@@ -24,7 +24,7 @@ namespace vt
 		return cast;
 	}
 
-#define DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)                                                                             \
+#define DEFINE_VECTOR_CONVERSIONS(D)                                                                                           \
 	template<typename T2, int D2> constexpr operator Vector<T2, D2>() const noexcept requires LosslesslyConvertibleTo<T, T2>   \
 	{                                                                                                                          \
 		return vector_cast<T2, D2>(*this);                                                                                     \
@@ -34,16 +34,6 @@ namespace vt
 	explicit constexpr operator Vector<T2, D2>() const noexcept requires(!LosslesslyConvertibleTo<T, T2>)                      \
 	{                                                                                                                          \
 		return vector_cast<T2, D2>(*this);                                                                                     \
-	}                                                                                                                          \
-                                                                                                                               \
-	std::string to_string() const                                                                                              \
-	{                                                                                                                          \
-		auto str = std::format("[{}", (*this)[0]);                                                                             \
-                                                                                                                               \
-		for(int i = 1; i != D; ++i)                                                                                            \
-			str += std::format(", {}", (*this)[i]);                                                                            \
-                                                                                                                               \
-		return str + ']';                                                                                                      \
 	}
 
 	export template<typename T, int D> union Vector
@@ -60,7 +50,17 @@ namespace vt
 			return arr[index];
 		}
 
-		DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(D)
+		std::string to_string() const
+		{
+			auto str = std::format("[{}", (*this)[0]);
+
+			for(int i = 1; i != D; ++i)
+				str += std::format(", {}", (*this)[i]);
+
+			return str + ']';
+		}
+
+		DEFINE_VECTOR_CONVERSIONS(D)
 	};
 
 	export template<typename T> union Vector<T, 2>
@@ -84,7 +84,12 @@ namespace vt
 			return this->*MEMBERS[index];
 		}
 
-		DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(2)
+		std::string to_string() const
+		{
+			return std::format("[{}, {}]", x, y);
+		}
+
+		DEFINE_VECTOR_CONVERSIONS(2)
 
 	private:
 		static constexpr T Vector::*MEMBERS[] {&Vector::x, &Vector::y};
@@ -111,7 +116,12 @@ namespace vt
 			return this->*MEMBERS[index];
 		}
 
-		DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(3)
+		std::string to_string() const
+		{
+			return std::format("[{}, {}, {}]", x, y, z);
+		}
+
+		DEFINE_VECTOR_CONVERSIONS(3)
 
 	private:
 		static constexpr T Vector::*MEMBERS[] {&Vector::x, &Vector::y, &Vector::z};
@@ -138,7 +148,12 @@ namespace vt
 			return this->*MEMBERS[index];
 		}
 
-		DEFINE_VECTOR_CONVERSIONS_AND_SUBSCRIPT(4)
+		std::string to_string() const
+		{
+			return std::format("[{}, {}, {}, {}]", x, y, z, w);
+		}
+
+		DEFINE_VECTOR_CONVERSIONS(4)
 
 	private:
 		static constexpr T Vector::*MEMBERS[] {&Vector::x, &Vector::y, &Vector::z, &Vector::w};

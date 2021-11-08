@@ -36,19 +36,50 @@ namespace vt
 		Vulkan,
 	};
 
-	template<typename T>
-	concept HasToString = requires(T const& t)
+	template<typename T, typename... Ts>
+	concept OneOf = std::disjunction_v<std::is_same<T, Ts>...>;
+
+	template<typename T> auto prepare_argument(T& value)
 	{
-		{
-			t.to_string()
-			} -> std::convertible_to<std::string>;
-	};
+		return value.to_string();
+	}
+
+	template<OneOf<int, long, long long, unsigned, unsigned long, unsigned long long, float, double, long double> T>
+	auto prepare_argument(T value)
+	{
+		return std::to_string(value);
+	}
 
 	template<typename T>
-	concept HasStdToStringOverload = !std::same_as<bool, T> && !std::is_enum_v<T> && requires(T t)
+	requires std::is_enum_v<T> std::string_view prepare_argument(T value)
 	{
-		std::to_string(t);
-	};
+		return enum_name(value);
+	}
+
+	template<std::convertible_to<std::string_view> T> decltype(auto) prepare_argument(T& value)
+	{
+		return value;
+	}
+
+	char const* prepare_argument(char const* value)
+	{
+		return value;
+	}
+
+	std::string_view prepare_argument(std::string_view value)
+	{
+		return value;
+	}
+
+	char prepare_argument(char value)
+	{
+		return value;
+	}
+
+	char const* prepare_argument(bool value)
+	{
+		return value ? "true" : "false";
+	}
 
 	export class Logger : public Singleton<Logger>
 	{
@@ -92,7 +123,6 @@ namespace vt
 			stdc::system_clock::duration time;
 			std::string					 message;
 		};
-
 		ConcurrentQueue<Entry>				  queue;
 		ConsumerToken						  con_token;
 		std::mutex							  mutex;
@@ -101,33 +131,6 @@ namespace vt
 		std::atomic<EnumBitArray<LogLevel>>	  disabled_levels;
 		std::atomic_bool					  is_accepting_logs = true;
 		std::jthread						  log_worker;
-
-		static std::string prepare_argument(HasToString auto&& arg)
-		{
-			return arg.to_string();
-		}
-
-		static char const* prepare_argument(bool arg)
-		{
-			return arg ? "true" : "false";
-		}
-
-		static std::string prepare_argument(HasStdToStringOverload auto arg)
-		{
-			return std::to_string(arg);
-		}
-
-		template<typename T> static std::string_view prepare_argument(T arg) requires std::is_enum_v<T>
-		{
-			return enum_name(arg);
-		}
-
-		template<typename T>
-		static auto prepare_argument(T arg) requires(std::same_as<T, std::string> || std::same_as<T, std::string_view> ||
-													 std::convertible_to<T, char const*>)
-		{
-			return arg;
-		}
 
 		template<typename... Ts> static std::string make_message(Ts&&... ts)
 		{
@@ -165,6 +168,7 @@ namespace vt
 
 		void atomically_set_disabled_channels(LogChannel channel, bool value)
 		{
+			// TODO: this can tear
 			auto channels = disabled_channels.load();
 			channels.set(channel, value);
 			disabled_channels.store(channels);
@@ -172,6 +176,7 @@ namespace vt
 
 		void atomically_set_disabled_levels(LogLevel level, bool value)
 		{
+			// TODO: this can tear
 			auto levels = disabled_levels.load();
 			levels.set(level, value);
 			disabled_levels.store(levels);

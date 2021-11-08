@@ -2,9 +2,9 @@
 
 struct PushConstants
 {
-	float4 triangle_color;
+	float4	 triangle_color;
+	float4x4 mvp;
 };
-
 PUSH_CONST(PushConstants, constants);
 
 struct VertexOut

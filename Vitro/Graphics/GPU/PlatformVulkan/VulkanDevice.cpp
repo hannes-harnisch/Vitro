@@ -58,6 +58,11 @@ namespace vt::vulkan
 			return {VulkanBuffer(spec, *api, allocator.get()), spec};
 		}
 
+		Image make_image(ImageSpecification const& spec) override
+		{
+			return {VulkanImage(spec, *api, allocator.get()), spec};
+		}
+
 		SmallList<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
 		{
 			std::vector<VkComputePipelineCreateInfo> pipeline_infos;

@@ -7,36 +7,35 @@ module;
 export module vt.Graphics.D3D12.DescriptorSetLayout;
 
 import vt.Core.Array;
+import vt.Core.LookupTable;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.D3D12.Sampler;
 
 namespace vt::d3d12
 {
-	D3D12_DESCRIPTOR_RANGE_TYPE convert_descriptor_type(DescriptorType type)
-	{
+	constexpr inline auto DESCRIPTOR_TYPE_LOOKUP = [] {
+		LookupTable<DescriptorType, D3D12_DESCRIPTOR_RANGE_TYPE> _;
 		using enum DescriptorType;
-		switch(type)
-		{ // clang-format off
-			case Sampler:			  return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-			case Texture:
-			case Buffer:
-			case StructuredBuffer:
-			case ByteAddressBuffer:	  return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			case RwTexture:
-			case RwBuffer:
-			case RwStructuredBuffer:
-			case RwByteAddressBuffer:
-			case InputAttachment:	  return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-			case UniformBuffer:		  return D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
+
+		_[Sampler]			   = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+		_[Texture]			   = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		_[Buffer]			   = _[Texture];
+		_[StructuredBuffer]	   = _[Texture];
+		_[ByteAddressBuffer]   = _[Texture];
+		_[RwTexture]		   = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+		_[RwBuffer]			   = _[RwTexture];
+		_[RwStructuredBuffer]  = _[RwTexture];
+		_[RwByteAddressBuffer] = _[RwTexture];
+		_[InputAttachment]	   = _[RwTexture];
+		_[UniformBuffer]	   = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+		return _;
+	}();
 
 	export class D3D12DescriptorSetLayout
 	{
 	public:
 		D3D12DescriptorSetLayout(DescriptorSetLayoutSpecification const& spec) :
-			parameter_type(determine_parameter_type(spec.bindings)), visibility(convert_shader_stage(spec.visibility))
+			parameter_type(determine_parameter_type(spec.bindings)), visibility(SHADER_STAGE_LOOKUP[spec.visibility])
 		{
 			for(auto& binding : spec.bindings)
 				if(binding.static_sampler_spec)
@@ -53,7 +52,7 @@ namespace vt::d3d12
 						continue;
 
 					table_ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
-						.RangeType						   = convert_descriptor_type(binding.type),
+						.RangeType						   = DESCRIPTOR_TYPE_LOOKUP[binding.type],
 						.NumDescriptors					   = binding.count,
 						.BaseShaderRegister				   = binding.shader_register,
 						.RegisterSpace					   = 0, // will be set during root signature creation

@@ -5,6 +5,7 @@ module;
 #include <memory>
 export module vt.Graphics.Vulkan.Sampler;
 
+import vt.Core.LookupTable;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Vulkan.Handle;
 
@@ -49,47 +50,41 @@ namespace vt::vulkan
 		return VK_SAMPLER_MIPMAP_MODE_NEAREST;
 	}
 
-	VkSamplerAddressMode convert_address_mode(AddressMode mode)
-	{
+	constexpr inline auto ADDRESS_MODE_LOOKUP = [] {
+		LookupTable<AddressMode, VkSamplerAddressMode> _;
 		using enum AddressMode;
-		switch(mode)
-		{ // clang-format off
-			case Repeat:		 return VK_SAMPLER_ADDRESS_MODE_REPEAT;
-			case MirroredRepeat: return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-			case ClampToEdge:	 return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-			case ClampToBorder:	 return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-		}
-		VT_UNREACHABLE();
-	}
 
-	export VkCompareOp convert_compare_op(CompareOp op)
-	{
+		_[Repeat]		  = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		_[MirroredRepeat] = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+		_[ClampToEdge]	  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+		_[ClampToBorder]  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+		return _;
+	}();
+
+	export constexpr inline auto COMPARE_OP_LOOKUP = [] {
+		LookupTable<CompareOp, VkCompareOp> _;
 		using enum CompareOp;
-		switch(op)
-		{
-			case Never:			 return VK_COMPARE_OP_NEVER;
-			case Less:			 return VK_COMPARE_OP_LESS;
-			case Equal:			 return VK_COMPARE_OP_EQUAL;
-			case LessOrEqual:	 return VK_COMPARE_OP_LESS_OR_EQUAL;
-			case Greater:		 return VK_COMPARE_OP_GREATER;
-			case NotEqual:		 return VK_COMPARE_OP_NOT_EQUAL;
-			case GreaterOrEqual: return VK_COMPARE_OP_GREATER_OR_EQUAL;
-			case Always:		 return VK_COMPARE_OP_ALWAYS;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
 
-	VkBorderColor convert_border_color(BorderColor color)
-	{
+		_[Never]		  = VK_COMPARE_OP_NEVER;
+		_[Less]			  = VK_COMPARE_OP_LESS;
+		_[Equal]		  = VK_COMPARE_OP_EQUAL;
+		_[LessOrEqual]	  = VK_COMPARE_OP_LESS_OR_EQUAL;
+		_[Greater]		  = VK_COMPARE_OP_GREATER;
+		_[NotEqual]		  = VK_COMPARE_OP_NOT_EQUAL;
+		_[GreaterOrEqual] = VK_COMPARE_OP_GREATER_OR_EQUAL;
+		_[Always]		  = VK_COMPARE_OP_ALWAYS;
+		return _;
+	}();
+
+	constexpr inline auto BORDER_COLOR_LOOKUP = [] {
+		LookupTable<BorderColor, VkBorderColor> _;
 		using enum BorderColor;
-		switch(color)
-		{
-			case Transparent: return VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
-			case OpaqueBlack: return VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
-			case OpaqueWhite: return VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
-		}
-		VT_UNREACHABLE();
-	}
+
+		_[Transparent] = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+		_[OpaqueBlack] = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+		_[OpaqueWhite] = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		return _;
+	}();
 
 	export class VulkanSampler
 	{
@@ -101,17 +96,17 @@ namespace vt::vulkan
 				.magFilter				 = convert_mag_filter(spec.filter),
 				.minFilter				 = convert_min_filter(spec.filter),
 				.mipmapMode				 = convert_mipmap_mode(spec.filter),
-				.addressModeU			 = convert_address_mode(spec.u_address_mode),
-				.addressModeV			 = convert_address_mode(spec.v_address_mode),
-				.addressModeW			 = convert_address_mode(spec.w_address_mode),
+				.addressModeU			 = ADDRESS_MODE_LOOKUP[spec.u_address_mode],
+				.addressModeV			 = ADDRESS_MODE_LOOKUP[spec.v_address_mode],
+				.addressModeW			 = ADDRESS_MODE_LOOKUP[spec.w_address_mode],
 				.mipLodBias				 = spec.mip_lod_bias,
 				.anisotropyEnable		 = spec.filter == Filter::Anisotropic,
 				.maxAnisotropy			 = static_cast<float>(spec.max_anisotropy),
 				.compareEnable			 = spec.enable_compare,
-				.compareOp				 = convert_compare_op(spec.compare_op),
+				.compareOp				 = COMPARE_OP_LOOKUP[spec.compare_op],
 				.minLod					 = spec.min_lod,
 				.maxLod					 = spec.max_lod,
-				.borderColor			 = convert_border_color(spec.border_color),
+				.borderColor			 = BORDER_COLOR_LOOKUP[spec.border_color],
 				.unnormalizedCoordinates = false,
 			};
 			auto result = api.vkCreateSampler(api.device, &sampler_info, nullptr, std::out_ptr(sampler, api));

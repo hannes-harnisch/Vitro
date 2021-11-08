@@ -1,6 +1,7 @@
 module;
 #include <cmath>
 #include <format>
+#include <string>
 export module vt.Core.Matrix;
 
 import vt.Core.Vector;
@@ -253,12 +254,14 @@ namespace vt
 
 		std::string to_string() const
 		{
+			// TODO: stringstream?
 			auto str = std::format("[{}", rows[0].to_string());
 
 			for(int r = 1; r != R; ++r)
-				str += std::format(", {}", rows[r].to_string());
+				str += std::format(",\n{}", rows[r].to_string());
 
-			return str + ']';
+			str += ']';
+			return str;
 		}
 
 		friend constexpr Matrix<T, C, R> transpose(Matrix const& mat) noexcept

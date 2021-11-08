@@ -30,6 +30,7 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
+	--	buildcommands	'C:/VulkanSDK/1.2.189.2//Bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
 		buildcommands	'"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc" %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
 
 	filter { 'files:**.hlsl', 'platforms:D3D12' }
@@ -69,10 +70,11 @@ project 'Vitro'
 	includedirs			{ '%{prj.name}', 'Dependencies' }
 	defines				'VT_ENGINE_NAME="%{prj.name}"'
 	targetname			'%{prj.name}%{cfg.platform}'
-	debugargs			{ '-debug-gpu-api' }
 	links				{
 							'tinyobjloader',
 						}
+	filter 'Debug or Development'
+		debugargs		{ '-debug-gpu-api' }
 
 	-- filter 'Release'
 		-- kind			'WindowedApp'

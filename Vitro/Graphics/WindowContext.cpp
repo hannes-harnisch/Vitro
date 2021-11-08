@@ -22,7 +22,7 @@ namespace vt
 	public:
 		WindowContext(Window& window, Device& device) :
 			swap_chain(device->make_swap_chain(window)),
-			renderer(std::make_unique<ForwardRenderer>(device, swap_chain->get_format()))
+			renderer(std::make_unique<ForwardRenderer>(device, window.client_area().extent(), swap_chain->get_format()))
 		{}
 
 		void execute_frame(Tick tick, Window& window, Device& device)

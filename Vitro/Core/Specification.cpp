@@ -7,31 +7,6 @@ export module vt.Core.Specification;
 
 namespace vt
 {
-	// Wraps any unsigned integer type but prevents the value zero. To be used when zero is not an acceptable value in a
-	// designated initializer.
-	export template<std::unsigned_integral T> class Positive
-	{
-	public:
-		Positive(T value) : val(value)
-		{
-			if(val == 0)
-				throw std::invalid_argument("This value is not allowed to be zero.");
-		}
-
-		operator T() const noexcept
-		{
-			return val;
-		}
-
-		T get() const noexcept
-		{
-			return val;
-		}
-
-	private:
-		T val;
-	};
-
 	// When a data member is wrapped in this, it means there is no reasonable default value, so an explicit value must be
 	// provided for it to be initialized.
 	export template<typename T> struct Explicit : T
@@ -77,12 +52,25 @@ namespace vt
 	// When a data member is wrapped in this, it means there is no reasonable default value, so an explicit value must be
 	// provided for it to be initialized.
 	export template<typename T>
+	requires std::is_aggregate_v<T>
+	struct Explicit<T> : T
+	{
+		Explicit() = delete;
+
+		template<typename... Ts>
+		Explicit(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>) : T(std::forward<Ts>(ts)...)
+		{}
+	};
+
+	// When a data member is wrapped in this, it means there is no reasonable default value, so an explicit value must be
+	// provided for it to be initialized.
+	export template<typename T>
 	requires(std::is_union_v<T> || std::is_final_v<T>) struct Explicit<T>
 	{
 		Explicit() = delete;
 
 		template<typename... Ts>
-		Explicit(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>) : value {std::forward<Ts>(ts)...}
+		Explicit(Ts&&... ts) noexcept(std::is_nothrow_constructible_v<T, Ts...>) : value(std::forward<Ts>(ts)...)
 		{}
 
 		operator T&() noexcept
@@ -97,5 +85,30 @@ namespace vt
 
 	private:
 		T value;
+	};
+
+	// Wraps any unsigned integer type but prevents the value zero. To be used when zero is not an acceptable value in a
+	// designated initializer.
+	export template<std::unsigned_integral T> class Positive
+	{
+	public:
+		Positive(T value) : val(value)
+		{
+			if(val == 0)
+				throw std::invalid_argument("This value is not allowed to be zero.");
+		}
+
+		operator T() const noexcept
+		{
+			return val;
+		}
+
+		T get() const noexcept
+		{
+			return val;
+		}
+
+	private:
+		T val;
 	};
 }

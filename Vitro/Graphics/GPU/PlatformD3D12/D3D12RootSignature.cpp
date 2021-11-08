@@ -53,7 +53,7 @@ namespace vt::d3d12
 					.RegisterSpace	= 0,
 					.Num32BitValues = static_cast<UINT>(spec.push_constants_byte_size / sizeof(DWORD)),
 				},
-				.ShaderVisibility = convert_shader_stage(spec.push_constants_visibility),
+				.ShaderVisibility = SHADER_STAGE_LOOKUP[spec.push_constants_visibility],
 			});
 
 			SmallList<D3D12_DESCRIPTOR_RANGE1>	 descriptor_ranges;

@@ -3,9 +3,11 @@ module;
 
 #include <cmath>
 #include <limits>
+#include <numbers>
 export module vt.Core.Transform;
 
 import vt.Core.Matrix;
+import vt.Core.Rect;
 import vt.Core.Vector;
 
 namespace vt
@@ -20,10 +22,13 @@ namespace vt
 		}};
 	}
 
-	export Float4x4 project_perspective(float fov_in_radians, unsigned width, unsigned height, float near_z, float far_z)
+	export Float4x4 project_perspective(float fov_in_radians, Extent size, float near_z, float far_z)
 	{
+		auto [width, height] = size;
+
 		float aspect = width / static_cast<float>(height);
 		VT_ASSERT(std::abs(aspect - std::numeric_limits<float>::epsilon()) > 0, "Bad aspect ratio.");
+
 		float fov_tan = std::tan(fov_in_radians / 2);
 		return {{
 			{1 / (aspect * fov_tan), 0, 0, 0},
@@ -97,5 +102,15 @@ namespace vt
 			mat.rows[2] * vec.z,
 			mat.rows[3],
 		};
+	}
+
+	export constexpr auto degrees(auto radians)
+	{
+		return 180.0f / std::numbers::pi_v<float> * radians;
+	}
+
+	export constexpr auto radians(auto degrees)
+	{
+		return degrees / (180.0f / std::numbers::pi_v<float>);
 	}
 }

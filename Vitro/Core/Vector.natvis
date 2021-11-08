@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+	<Type Name="vt::Vector&lt;*&gt;">
+		<Expand>
+			<ArrayItems>
+				<Size>$T2</Size>
+				<ValuePointer>($T1*)this</ValuePointer>
+			</ArrayItems>
+		</Expand>
+	</Type>
+</AutoVisualizer>

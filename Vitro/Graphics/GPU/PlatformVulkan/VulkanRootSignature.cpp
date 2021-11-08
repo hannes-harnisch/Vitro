@@ -19,7 +19,7 @@ namespace vt::vulkan
 	{
 	public:
 		VulkanRootSignature(RootSignatureSpecification const& spec, DeviceApiTable const& api) :
-			push_constant_stages(convert_shader_stage(spec.push_constants_visibility))
+			push_constant_stages(SHADER_STAGE_LOOKUP[spec.push_constants_visibility])
 		{
 			SmallList<VkDescriptorSetLayout> set_layouts;
 			set_layouts.reserve(spec.layouts.size());

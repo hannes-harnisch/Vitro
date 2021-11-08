@@ -8,33 +8,31 @@ export module vt.Graphics.D3D12.RenderPass;
 import vt.Core.Array;
 import vt.Core.Enum;
 import vt.Core.FixedList;
+import vt.Core.LookupTable;
 import vt.Core.SmallList;
 import vt.Graphics.D3D12.Image;
 import vt.Graphics.RenderPassSpecification;
 
 namespace vt::d3d12
 {
-	D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE convert_image_load_op(ImageLoadOp op)
-	{
+	constexpr inline auto IMAGE_LOAD_OP_LOOKUP = [] {
+		LookupTable<ImageLoadOp, D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE> _;
 		using enum ImageLoadOp;
-		switch(op)
-		{ // clang-format off
-			case Load:   return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
-			case Clear:  return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
-			case Ignore: return D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_RENDER_PASS_ENDING_ACCESS_TYPE convert_image_store_op(ImageStoreOp op)
-	{
-		switch(op)
-		{
-			case ImageStoreOp::Store:  return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
-			case ImageStoreOp::Ignore: return D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
+		_[Load]	  = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
+		_[Clear]  = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_CLEAR;
+		_[Ignore] = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_DISCARD;
+		return _;
+	}();
+
+	constexpr inline auto IMAGE_STORE_OP_LOOKUP = [] {
+		LookupTable<ImageStoreOp, D3D12_RENDER_PASS_ENDING_ACCESS_TYPE> _;
+		using enum ImageStoreOp;
+
+		_[Store]  = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
+		_[Ignore] = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_DISCARD;
+		return _;
+	}();
 
 	struct AttachmentTransition
 	{
@@ -52,20 +50,25 @@ namespace vt::d3d12
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	end	  : 4;
 		bool									for_input; // Indicates whether the attachment is used as an input attachment.
 	};
-	using AccessList = FixedList<SubpassAccess, MAX_ATTACHMENTS>;
+	using SubpassAccessList = FixedList<SubpassAccess, MAX_ATTACHMENTS>;
 
 	// Stores all information related to a specific subpass of a D3D12 render pass.
 	struct Subpass
 	{
 		D3D12_RENDER_PASS_FLAGS					flags;
 		TransitionList							transitions;
-		AccessList								accesses;
+		SubpassAccessList						accesses;
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE stencil_begin = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
 		D3D12_RENDER_PASS_ENDING_ACCESS_TYPE	stencil_end	  = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
 
 		bool uses_depth_stencil() const
 		{
 			return stencil_begin != D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
+		}
+
+		ConstSpan<SubpassAccess> get_color_attachment_accesses() const
+		{
+			return {accesses.begin(), accesses.size() - uses_depth_stencil()};
 		}
 
 		D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE get_depth_begin_access() const
@@ -89,7 +92,7 @@ namespace vt::d3d12
 		{
 			auto current_layout = begin();
 			for(auto attachment : spec.attachments)
-				*current_layout++ = convert_image_layout(attachment.initial_layout);
+				*current_layout++ = IMAGE_LAYOUT_LOOKUP[attachment.initial_layout];
 		}
 	};
 
@@ -161,7 +164,6 @@ namespace vt::d3d12
 			subpasses(spec.subpasses.size())
 		{
 			initialize_formats(spec);
-
 			ResourceStateList		  current_layouts(spec);
 			RenderPassAttachmentUsage attachment_usage(spec);
 
@@ -196,7 +198,8 @@ namespace vt::d3d12
 					auto new_layout = is_depth_stencil ? new_depth_layout : new_color_layout;
 					if(old_layout != new_layout)
 					{
-						subpass.transitions.emplace_back(attach_idx, for_input && for_output, old_layout, new_layout);
+						bool needs_uav_barrier = for_input && for_output;
+						subpass.transitions.emplace_back(attach_idx, needs_uav_barrier, old_layout, new_layout);
 						current_layouts[attach_idx] = new_layout;
 					}
 
@@ -208,7 +211,7 @@ namespace vt::d3d12
 					if(subpass_idx < first_subpass_where_used || !for_output && !preserve)
 						new_access.begin = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_NO_ACCESS;
 					else if(subpass_idx == first_subpass_where_used)
-						new_access.begin = convert_image_load_op(spec.attachments[attach_idx].load_op);
+						new_access.begin = IMAGE_LOAD_OP_LOOKUP[spec.attachments[attach_idx].load_op];
 					else
 						new_access.begin = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
 
@@ -216,7 +219,7 @@ namespace vt::d3d12
 					if(subpass_idx > last_subpass_where_used || !for_output && !preserve)
 						new_access.end = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_NO_ACCESS;
 					else if(subpass_idx == last_subpass_where_used)
-						new_access.end = convert_image_store_op(spec.attachments[attach_idx].store_op);
+						new_access.end = IMAGE_STORE_OP_LOOKUP[spec.attachments[attach_idx].store_op];
 					else
 						new_access.end = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
 
@@ -224,12 +227,12 @@ namespace vt::d3d12
 					if(is_depth_stencil)
 					{
 						if(subpass_idx == first_subpass_where_used)
-							subpass.stencil_begin = convert_image_load_op(spec.stencil_load_op);
+							subpass.stencil_begin = IMAGE_LOAD_OP_LOOKUP[spec.stencil_load_op];
 						else if(subpass_idx > first_subpass_where_used && (for_output || preserve))
 							subpass.stencil_begin = D3D12_RENDER_PASS_BEGINNING_ACCESS_TYPE_PRESERVE;
 
 						if(subpass_idx == last_subpass_where_used)
-							subpass.stencil_end = convert_image_store_op(spec.stencil_store_op);
+							subpass.stencil_end = IMAGE_STORE_OP_LOOKUP[spec.stencil_store_op];
 						else if(subpass_idx < last_subpass_where_used && (for_output || preserve))
 							subpass.stencil_end = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
 					}
@@ -282,7 +285,7 @@ namespace vt::d3d12
 		{
 			auto format = formats.begin();
 			for(auto attachment : spec.attachments)
-				*format++ = convert_image_format(attachment.format);
+				*format++ = IMAGE_FORMAT_LOOKUP[attachment.format];
 		}
 
 		void initialize_final_transitions(RenderPassSpecification const& spec, ResourceStateList const& current_layouts)
@@ -290,7 +293,7 @@ namespace vt::d3d12
 			for(uint8_t i = 0; i != spec.attachments.size(); ++i)
 			{
 				auto prev  = current_layouts[i];
-				auto final = convert_image_layout(spec.attachments[i].final_layout);
+				auto final = IMAGE_LAYOUT_LOOKUP[spec.attachments[i].final_layout];
 				if(prev != final)
 					final_transitions.emplace_back(i, false, prev, final);
 			}

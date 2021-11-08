@@ -3,119 +3,120 @@ module;
 #include "D3D12API.hpp"
 export module vt.Graphics.D3D12.Sampler;
 
+import vt.Core.LookupTable;
 import vt.Core.Vector;
 import vt.Graphics.DescriptorBinding;
 
 namespace vt::d3d12
 {
+	constexpr inline auto COMPARISON_FILTER_LOOKUP = [] {
+		LookupTable<Filter, D3D12_FILTER> _;
+		using enum Filter;
+
+		_[MinMagMipNearest]				 = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
+		_[MinMagNearestMipLinear]		 = D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
+		_[MinNearestMagLinearMipNearest] = D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
+		_[MinNearestMagMipLinear]		 = D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
+		_[MinLinearMagMipNearest]		 = D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+		_[MinLinearMagNearestMipLinear]	 = D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+		_[MinMagLinearMipNearest]		 = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+		_[MinMagMipLinear]				 = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
+		_[Anisotropic]					 = D3D12_FILTER_COMPARISON_ANISOTROPIC;
+		return _;
+	}();
+
+	constexpr inline auto FILTER_LOOKUP = [] {
+		LookupTable<Filter, D3D12_FILTER> _;
+		using enum Filter;
+
+		_[MinMagMipNearest]				 = D3D12_FILTER_MIN_MAG_MIP_POINT;
+		_[MinMagNearestMipLinear]		 = D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
+		_[MinNearestMagLinearMipNearest] = D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
+		_[MinNearestMagMipLinear]		 = D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
+		_[MinLinearMagMipNearest]		 = D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
+		_[MinLinearMagNearestMipLinear]	 = D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
+		_[MinMagLinearMipNearest]		 = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
+		_[MinMagMipLinear]				 = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+		_[Anisotropic]					 = D3D12_FILTER_ANISOTROPIC;
+		return _;
+	}();
+
 	D3D12_FILTER convert_filter(Filter filter, bool enable_compare)
 	{
-		using enum Filter;
 		if(enable_compare)
-			switch(filter)
-			{ // clang-format off
-				case MinMagMipNearest:				return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_POINT;
-				case MinMagNearestMipLinear:		return D3D12_FILTER_COMPARISON_MIN_MAG_POINT_MIP_LINEAR;
-				case MinNearestMagLinearMipNearest:	return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_LINEAR_MIP_POINT;
-				case MinNearestMagMipLinear:		return D3D12_FILTER_COMPARISON_MIN_POINT_MAG_MIP_LINEAR;
-				case MinLinearMagMipNearest:		return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
-				case MinLinearMagNearestMipLinear:	return D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
-				case MinMagLinearMipNearest:		return D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-				case MinMagMipLinear:				return D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
-				case Anisotropic:					return D3D12_FILTER_COMPARISON_ANISOTROPIC;
-			}
+			return COMPARISON_FILTER_LOOKUP[filter];
 		else
-			switch(filter)
-			{
-				case MinMagMipNearest:				return D3D12_FILTER_MIN_MAG_MIP_POINT;
-				case MinMagNearestMipLinear:		return D3D12_FILTER_MIN_MAG_POINT_MIP_LINEAR;
-				case MinNearestMagLinearMipNearest:	return D3D12_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT;
-				case MinNearestMagMipLinear:		return D3D12_FILTER_MIN_POINT_MAG_MIP_LINEAR;
-				case MinLinearMagMipNearest:		return D3D12_FILTER_MIN_LINEAR_MAG_MIP_POINT;
-				case MinLinearMagNearestMipLinear:	return D3D12_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR;
-				case MinMagLinearMipNearest:		return D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
-				case MinMagMipLinear:				return D3D12_FILTER_MIN_MAG_MIP_LINEAR;
-				case Anisotropic:					return D3D12_FILTER_ANISOTROPIC;
-			}
-		VT_UNREACHABLE();
+			return FILTER_LOOKUP[filter];
 	}
 
-	D3D12_TEXTURE_ADDRESS_MODE convert_address_mode(AddressMode mode)
-	{
+	constexpr inline auto ADDRESS_MODE_LOOKUP = [] {
+		LookupTable<AddressMode, D3D12_TEXTURE_ADDRESS_MODE> _;
 		using enum AddressMode;
-		switch(mode)
-		{ 
-			case Repeat:		 return D3D12_TEXTURE_ADDRESS_MODE_WRAP;
-			case MirroredRepeat: return D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
-			case ClampToEdge:	 return D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-			case ClampToBorder:	 return D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-		} 
-		VT_UNREACHABLE();
-	}
 
-	export D3D12_COMPARISON_FUNC convert_compare_op(CompareOp op)
-	{
+		_[Repeat]		  = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+		_[MirroredRepeat] = D3D12_TEXTURE_ADDRESS_MODE_MIRROR;
+		_[ClampToEdge]	  = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+		_[ClampToBorder]  = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		return _;
+	}();
+
+	export constexpr inline auto COMPARE_OP_LOOKUP = [] {
+		LookupTable<CompareOp, D3D12_COMPARISON_FUNC> _;
 		using enum CompareOp;
-		switch(op)
-		{
-			case Never:			 return D3D12_COMPARISON_FUNC_NEVER;
-			case Less:			 return D3D12_COMPARISON_FUNC_LESS;
-			case Equal:			 return D3D12_COMPARISON_FUNC_EQUAL;
-			case LessOrEqual:	 return D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			case Greater:		 return D3D12_COMPARISON_FUNC_GREATER;
-			case NotEqual:		 return D3D12_COMPARISON_FUNC_NOT_EQUAL;
-			case GreaterOrEqual: return D3D12_COMPARISON_FUNC_GREATER_EQUAL;
-			case Always:		 return D3D12_COMPARISON_FUNC_ALWAYS;
-		}
-		VT_UNREACHABLE();
-	}
 
-	Float4 convert_border_color(BorderColor color)
-	{
+		_[Never]		  = D3D12_COMPARISON_FUNC_NEVER;
+		_[Less]			  = D3D12_COMPARISON_FUNC_LESS;
+		_[Equal]		  = D3D12_COMPARISON_FUNC_EQUAL;
+		_[LessOrEqual]	  = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		_[Greater]		  = D3D12_COMPARISON_FUNC_GREATER;
+		_[NotEqual]		  = D3D12_COMPARISON_FUNC_NOT_EQUAL;
+		_[GreaterOrEqual] = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+		_[Always]		  = D3D12_COMPARISON_FUNC_ALWAYS;
+		return _;
+	}();
+
+	constexpr inline auto BORDER_COLOR_LOOKUP = [] {
+		LookupTable<BorderColor, Float4> _;
 		using enum BorderColor;
-		switch(color)
-		{
-			case Transparent: return {0, 0, 0, 0};
-			case OpaqueBlack: return {0, 0, 0, 1};
-			case OpaqueWhite: return {1, 1, 1, 1};
-		}
-		VT_UNREACHABLE();
-	}
 
-	export D3D12_SHADER_VISIBILITY convert_shader_stage(ShaderStage stage)
-	{
+		_[Transparent] = {0, 0, 0, 0};
+		_[OpaqueBlack] = {0, 0, 0, 1};
+		_[OpaqueWhite] = {1, 1, 1, 1};
+		return _;
+	}();
+
+	export constexpr inline auto SHADER_STAGE_LOOKUP = [] {
+		LookupTable<ShaderStage, D3D12_SHADER_VISIBILITY> _;
 		using enum ShaderStage;
-		switch(stage)
-		{
-			case Vertex:   return D3D12_SHADER_VISIBILITY_VERTEX;
-			case Hull:	   return D3D12_SHADER_VISIBILITY_HULL;
-			case Domain:   return D3D12_SHADER_VISIBILITY_DOMAIN;
-			case Fragment: return D3D12_SHADER_VISIBILITY_PIXEL;
-			case Task:	   return D3D12_SHADER_VISIBILITY_AMPLIFICATION;
-			case Mesh:	   return D3D12_SHADER_VISIBILITY_MESH;
-			case Render:
-			case Compute:
-			case RayGen:
-			case AnyHit:
-			case ClosestHit:
-			case Miss:
-			case Intersection:
-			case Callable: return D3D12_SHADER_VISIBILITY_ALL;
-		} // clang-format on
-		VT_UNREACHABLE();
-	}
+
+		_[Vertex]		= D3D12_SHADER_VISIBILITY_VERTEX;
+		_[Hull]			= D3D12_SHADER_VISIBILITY_HULL;
+		_[Domain]		= D3D12_SHADER_VISIBILITY_DOMAIN;
+		_[Fragment]		= D3D12_SHADER_VISIBILITY_PIXEL;
+		_[Task]			= D3D12_SHADER_VISIBILITY_AMPLIFICATION;
+		_[Mesh]			= D3D12_SHADER_VISIBILITY_MESH;
+		_[Render]		= D3D12_SHADER_VISIBILITY_ALL;
+		_[Compute]		= _[Render];
+		_[RayGen]		= _[Render];
+		_[AnyHit]		= _[Render];
+		_[ClosestHit]	= _[Render];
+		_[Miss]			= _[Render];
+		_[Intersection] = _[Render];
+		_[Callable]		= _[Render];
+		return _;
+	}();
 
 	D3D12_SAMPLER_DESC convert_dynamic_sampler_spec(SamplerSpecification const& spec)
 	{
-		auto border = convert_border_color(spec.border_color);
+		auto border = BORDER_COLOR_LOOKUP[spec.border_color];
 		return {
 			.Filter			= convert_filter(spec.filter, spec.enable_compare),
-			.AddressU		= convert_address_mode(spec.u_address_mode),
-			.AddressV		= convert_address_mode(spec.v_address_mode),
-			.AddressW		= convert_address_mode(spec.w_address_mode),
+			.AddressU		= ADDRESS_MODE_LOOKUP[spec.u_address_mode],
+			.AddressV		= ADDRESS_MODE_LOOKUP[spec.v_address_mode],
+			.AddressW		= ADDRESS_MODE_LOOKUP[spec.w_address_mode],
 			.MipLODBias		= spec.mip_lod_bias,
 			.MaxAnisotropy	= spec.max_anisotropy,
-			.ComparisonFunc = convert_compare_op(spec.compare_op),
+			.ComparisonFunc = COMPARE_OP_LOOKUP[spec.compare_op],
 			.BorderColor {
 				border.r,
 				border.g,
@@ -162,7 +163,7 @@ namespace vt::d3d12
 			.MaxLOD			  = desc.MaxLOD,
 			.ShaderRegister	  = shader_register,
 			.RegisterSpace	  = 0, // will be set during root signature creation
-			.ShaderVisibility = convert_shader_stage(visibility),
+			.ShaderVisibility = SHADER_STAGE_LOOKUP[visibility],
 		};
 	}
 

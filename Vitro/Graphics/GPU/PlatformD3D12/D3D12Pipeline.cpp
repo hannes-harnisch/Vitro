@@ -5,205 +5,184 @@ export module vt.Graphics.D3D12.Pipeline;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
+import vt.Core.LookupTable;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Sampler;
 import vt.Graphics.PipelineSpecification;
+import vt.Graphics.Shader;
 
 namespace vt::d3d12
 {
-	char const* convert_vertex_data_type_semantic(VertexDataType type)
-	{
+	constexpr inline auto VERTEX_DATA_TYPE_SEMANTIC_LOOKUP = [] {
+		LookupTable<VertexDataType, char const*> _;
 		using enum VertexDataType;
-		switch(type)
-		{ // clang-format off
-			case Position:			  return "POSITION";
-			case TransformedPosition: return "POSITIONT";
-			case TextureCoordinates:  return "TEXCOORD";
-			case Normal:			  return "NORMAL";
-			case Binormal:			  return "BINORMAL";
-			case Tangent:			  return "TANGENT";
-			case Color:				  return "COLOR";
-			case BlendIndices:		  return "BLENDINDICES";
-			case BlendWeight:		  return "BLENDWEIGHT";
-			case PointSize:			  return "PSIZE";
-		}
-		VT_UNREACHABLE();
-	}
 
-	DXGI_FORMAT convert_vertex_data_type_format(VertexDataType type)
-	{
+		_[Position]			   = "POSITION";
+		_[TransformedPosition] = "POSITIONT";
+		_[TextureCoordinates]  = "TEXCOORD";
+		_[Normal]			   = "NORMAL";
+		_[Binormal]			   = "BINORMAL";
+		_[Tangent]			   = "TANGENT";
+		_[Color]			   = "COLOR";
+		_[BlendIndices]		   = "BLENDINDICES";
+		_[BlendWeight]		   = "BLENDWEIGHT";
+		_[PointSize]		   = "PSIZE";
+		return _;
+	}();
+
+	constexpr inline auto VERTEX_DATA_TYPE_LOOKUP = [] {
+		LookupTable<VertexDataType, DXGI_FORMAT> _;
 		using enum VertexDataType;
-		switch(type)
-		{
-			case Position:
-			case TransformedPosition:
-			case TextureCoordinates:
-			case Normal:
-			case Binormal:
-			case Tangent:
-			case Color:		   return DXGI_FORMAT_R32G32B32A32_FLOAT;
-			case PointSize:
-			case BlendWeight:  return DXGI_FORMAT_R32_FLOAT;
-			case BlendIndices: return DXGI_FORMAT_R32_UINT;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_INPUT_CLASSIFICATION convert_input_rate(VertexBufferInputRate rate)
-	{
-		switch(rate)
-		{
-			case VertexBufferInputRate::PerVertex:	 return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-			case VertexBufferInputRate::PerInstance: return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
-		}
-		VT_UNREACHABLE();
-	}
+		_[Position]			   = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		_[TransformedPosition] = _[Position];
+		_[TextureCoordinates]  = _[Position];
+		_[Normal]			   = _[Position];
+		_[Binormal]			   = _[Position];
+		_[Tangent]			   = _[Position];
+		_[Color]			   = _[Position];
+		_[PointSize]		   = DXGI_FORMAT_R32_FLOAT;
+		_[BlendWeight]		   = DXGI_FORMAT_R32_FLOAT;
+		_[BlendIndices]		   = DXGI_FORMAT_R32_UINT;
+		return _;
+	}();
 
-	D3D12_FILL_MODE convert_fill_mode(PolygonFillMode mode)
-	{
-		switch(mode)
-		{
-			case PolygonFillMode::Wireframe: return D3D12_FILL_MODE_WIREFRAME;
-			case PolygonFillMode::Solid:	 return D3D12_FILL_MODE_SOLID;
-		}
-		VT_UNREACHABLE();
-	}
+	constexpr inline auto FILL_MODE_LOOKUP = [] {
+		LookupTable<PolygonFillMode, D3D12_FILL_MODE> _;
+		using enum PolygonFillMode;
 
-	D3D12_CULL_MODE convert_cull_mode(CullMode mode)
-	{
+		_[Wireframe] = D3D12_FILL_MODE_WIREFRAME;
+		_[Solid]	 = D3D12_FILL_MODE_SOLID;
+		return _;
+	}();
+
+	constexpr inline auto CULL_MODE_LOOKUP = [] {
+		LookupTable<CullMode, D3D12_CULL_MODE> _;
 		using enum CullMode;
-		switch(mode)
-		{
-			case None:  return D3D12_CULL_MODE_NONE;
-			case Front: return D3D12_CULL_MODE_FRONT;
-			case Back:  return D3D12_CULL_MODE_BACK;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_STENCIL_OP convert_stencil_op(StencilOp op)
-	{
+		_[None]	 = D3D12_CULL_MODE_NONE;
+		_[Front] = D3D12_CULL_MODE_FRONT;
+		_[Back]	 = D3D12_CULL_MODE_BACK;
+		return _;
+	}();
+
+	constexpr inline auto STENCIL_OP_LOOKUP = [] {
+		LookupTable<StencilOp, D3D12_STENCIL_OP> _;
 		using enum StencilOp;
-		switch(op)
-		{
-			case Keep:			 return D3D12_STENCIL_OP_KEEP;
-			case Zero:			 return D3D12_STENCIL_OP_ZERO;
-			case Replace:		 return D3D12_STENCIL_OP_REPLACE;
-			case IncrementClamp: return D3D12_STENCIL_OP_INCR_SAT;
-			case DecrementClamp: return D3D12_STENCIL_OP_DECR_SAT;
-			case Invert:		 return D3D12_STENCIL_OP_INVERT;
-			case IncrementWrap:	 return D3D12_STENCIL_OP_INCR;
-			case DecrementWrap:	 return D3D12_STENCIL_OP_DECR;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_LOGIC_OP convert_logic_op(LogicOp op)
-	{
+		_[Keep]			  = D3D12_STENCIL_OP_KEEP;
+		_[Zero]			  = D3D12_STENCIL_OP_ZERO;
+		_[Replace]		  = D3D12_STENCIL_OP_REPLACE;
+		_[IncrementClamp] = D3D12_STENCIL_OP_INCR_SAT;
+		_[DecrementClamp] = D3D12_STENCIL_OP_DECR_SAT;
+		_[Invert]		  = D3D12_STENCIL_OP_INVERT;
+		_[IncrementWrap]  = D3D12_STENCIL_OP_INCR;
+		_[DecrementWrap]  = D3D12_STENCIL_OP_DECR;
+		return _;
+	}();
+
+	constexpr inline auto LOGIC_OP_LOOKUP = [] {
+		LookupTable<LogicOp, D3D12_LOGIC_OP> _;
 		using enum LogicOp;
-		switch(op)
-		{
-			case Clear:		   return D3D12_LOGIC_OP_CLEAR;
-			case Set:		   return D3D12_LOGIC_OP_SET;
-			case Copy:		   return D3D12_LOGIC_OP_COPY;
-			case CopyInverted: return D3D12_LOGIC_OP_COPY_INVERTED;
-			case NoOp:		   return D3D12_LOGIC_OP_NOOP;
-			case Invert:	   return D3D12_LOGIC_OP_INVERT;
-			case And:		   return D3D12_LOGIC_OP_AND;
-			case Nand:		   return D3D12_LOGIC_OP_NAND;
-			case Or:		   return D3D12_LOGIC_OP_OR;
-			case Nor:		   return D3D12_LOGIC_OP_NOR;
-			case Xor:		   return D3D12_LOGIC_OP_XOR;
-			case Equivalent:   return D3D12_LOGIC_OP_EQUIV;
-			case AndReverse:   return D3D12_LOGIC_OP_AND_REVERSE;
-			case AndInverted:  return D3D12_LOGIC_OP_AND_INVERTED;
-			case OrReverse:	   return D3D12_LOGIC_OP_OR_REVERSE;
-			case OrInverted:   return D3D12_LOGIC_OP_OR_INVERTED;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_BLEND convert_blend_factor(BlendFactor factor)
-	{
+		_[Clear]		= D3D12_LOGIC_OP_CLEAR;
+		_[Set]			= D3D12_LOGIC_OP_SET;
+		_[Copy]			= D3D12_LOGIC_OP_COPY;
+		_[CopyInverted] = D3D12_LOGIC_OP_COPY_INVERTED;
+		_[NoOp]			= D3D12_LOGIC_OP_NOOP;
+		_[Invert]		= D3D12_LOGIC_OP_INVERT;
+		_[And]			= D3D12_LOGIC_OP_AND;
+		_[Nand]			= D3D12_LOGIC_OP_NAND;
+		_[Or]			= D3D12_LOGIC_OP_OR;
+		_[Nor]			= D3D12_LOGIC_OP_NOR;
+		_[Xor]			= D3D12_LOGIC_OP_XOR;
+		_[Equivalent]	= D3D12_LOGIC_OP_EQUIV;
+		_[AndReverse]	= D3D12_LOGIC_OP_AND_REVERSE;
+		_[AndInverted]	= D3D12_LOGIC_OP_AND_INVERTED;
+		_[OrReverse]	= D3D12_LOGIC_OP_OR_REVERSE;
+		_[OrInverted]	= D3D12_LOGIC_OP_OR_INVERTED;
+		return _;
+	}();
+
+	constexpr inline auto BLEND_FACTOR_LOOKUP = [] {
+		LookupTable<BlendFactor, D3D12_BLEND> _;
 		using enum BlendFactor;
-		switch(factor)
-		{
-			case Zero:			   return D3D12_BLEND_ZERO;
-			case One:			   return D3D12_BLEND_ONE;
-			case SrcColor:		   return D3D12_BLEND_SRC_COLOR;
-			case SrcColorInv:	   return D3D12_BLEND_INV_SRC_COLOR;
-			case SrcAlpha:		   return D3D12_BLEND_SRC_ALPHA;
-			case SrcAlphaInv:	   return D3D12_BLEND_INV_SRC_ALPHA;
-			case DstAlpha:		   return D3D12_BLEND_DEST_ALPHA;
-			case DstAlphaInv:	   return D3D12_BLEND_INV_DEST_ALPHA;
-			case DstColor:		   return D3D12_BLEND_DEST_COLOR;
-			case DstColorInv:	   return D3D12_BLEND_INV_DEST_COLOR;
-			case SrcAlphaSaturate: return D3D12_BLEND_SRC_ALPHA_SAT;
-			case Src1Color:		   return D3D12_BLEND_SRC1_COLOR;
-			case Src1ColorInv:	   return D3D12_BLEND_INV_SRC1_COLOR;
-			case Src1Alpha:		   return D3D12_BLEND_SRC1_ALPHA;
-			case Src1AlphaInv:	   return D3D12_BLEND_INV_SRC1_ALPHA;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_BLEND_OP convert_blend_op(BlendOp op)
-	{
+		_[Zero]				= D3D12_BLEND_ZERO;
+		_[One]				= D3D12_BLEND_ONE;
+		_[SrcColor]			= D3D12_BLEND_SRC_COLOR;
+		_[SrcColorInv]		= D3D12_BLEND_INV_SRC_COLOR;
+		_[SrcAlpha]			= D3D12_BLEND_SRC_ALPHA;
+		_[SrcAlphaInv]		= D3D12_BLEND_INV_SRC_ALPHA;
+		_[DstAlpha]			= D3D12_BLEND_DEST_ALPHA;
+		_[DstAlphaInv]		= D3D12_BLEND_INV_DEST_ALPHA;
+		_[DstColor]			= D3D12_BLEND_DEST_COLOR;
+		_[DstColorInv]		= D3D12_BLEND_INV_DEST_COLOR;
+		_[SrcAlphaSaturate] = D3D12_BLEND_SRC_ALPHA_SAT;
+		_[Src1Color]		= D3D12_BLEND_SRC1_COLOR;
+		_[Src1ColorInv]		= D3D12_BLEND_INV_SRC1_COLOR;
+		_[Src1Alpha]		= D3D12_BLEND_SRC1_ALPHA;
+		_[Src1AlphaInv]		= D3D12_BLEND_INV_SRC1_ALPHA;
+		return _;
+	}();
+
+	constexpr inline auto BLEND_OP_LOOKUP = [] {
+		LookupTable<BlendOp, D3D12_BLEND_OP> _;
 		using enum BlendOp;
-		switch(op)
-		{
-			case Add:			  return D3D12_BLEND_OP_ADD;
-			case Subtract:		  return D3D12_BLEND_OP_SUBTRACT;
-			case ReverseSubtract: return D3D12_BLEND_OP_REV_SUBTRACT;
-			case Min:			  return D3D12_BLEND_OP_MIN;
-			case Max:			  return D3D12_BLEND_OP_MAX;
-		}
-		VT_UNREACHABLE();
-	}
 
-	D3D12_PRIMITIVE_TOPOLOGY_TYPE categorize_primitive_topology(PrimitiveTopology topology)
-	{
+		_[Add]			   = D3D12_BLEND_OP_ADD;
+		_[Subtract]		   = D3D12_BLEND_OP_SUBTRACT;
+		_[ReverseSubtract] = D3D12_BLEND_OP_REV_SUBTRACT;
+		_[Min]			   = D3D12_BLEND_OP_MIN;
+		_[Max]			   = D3D12_BLEND_OP_MAX;
+		return _;
+	}();
+
+	constexpr inline auto PRIMITIVE_TOPOLOGY_CATEGORIES = [] {
+		LookupTable<PrimitiveTopology, D3D12_PRIMITIVE_TOPOLOGY_TYPE> _;
 		using enum PrimitiveTopology;
-		switch(topology)
-		{
-			case PointList:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-			case LineList:
-			case LineStrip:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
-			case TriangleList:
-			case TriangleStrip:	return D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-			case PatchList:		return D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-		}
-		VT_UNREACHABLE();
-	}
+
+		_[PointList]	 = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+		_[LineList]		 = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		_[LineStrip]	 = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		_[TriangleList]	 = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		_[TriangleStrip] = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+		_[PatchList]	 = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+		return _;
+	}();
+
+	constexpr inline auto PRIMITIVE_TOPOLOGY_LOOKUP = [] {
+		LookupTable<PrimitiveTopology, D3D_PRIMITIVE_TOPOLOGY> _;
+		using enum PrimitiveTopology;
+
+		_[PointList]	 = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		_[LineList]		 = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		_[LineStrip]	 = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+		_[TriangleList]	 = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		_[TriangleStrip] = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		return _;
+	}();
 
 	D3D_PRIMITIVE_TOPOLOGY convert_primitive_topology(PrimitiveTopology topology, unsigned control_point_count)
 	{
-		using enum PrimitiveTopology;
-		switch(topology)
+		if(topology != PrimitiveTopology::PatchList)
+			return PRIMITIVE_TOPOLOGY_LOOKUP[topology];
+		else
 		{
-			case PointList:		return D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
-			case LineList:		return D3D_PRIMITIVE_TOPOLOGY_LINELIST;
-			case LineStrip:		return D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
-			case TriangleList:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-			case TriangleStrip:	return D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP; // clang-format on
-			case PatchList:
-			{
-				VT_ASSERT(control_point_count > 0 && control_point_count <= MAX_PATCH_LIST_CONTROL_POINTS,
-						  "The number of control points is out of bounds.");
-				unsigned patch_list_topology = D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST - 1 + control_point_count;
-				return static_cast<D3D_PRIMITIVE_TOPOLOGY>(patch_list_topology);
-			}
+			VT_ASSERT(control_point_count > 0 && control_point_count <= MAX_PATCH_LIST_CONTROL_POINTS,
+					  "The number of control points is out of bounds.");
+			unsigned patch_list_topology = D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST - 1 + control_point_count;
+			return static_cast<D3D_PRIMITIVE_TOPOLOGY>(patch_list_topology);
 		}
-		VT_UNREACHABLE();
 	}
 
 	D3D12_DEPTH_STENCILOP_DESC convert_stencil_op_state(StencilOpState op_state)
 	{
 		return {
-			.StencilFailOp		= convert_stencil_op(op_state.fail_op),
-			.StencilDepthFailOp = convert_stencil_op(op_state.depth_fail_op),
-			.StencilPassOp		= convert_stencil_op(op_state.pass_op),
-			.StencilFunc		= convert_compare_op(op_state.compare_op),
+			.StencilFailOp		= STENCIL_OP_LOOKUP[op_state.fail_op],
+			.StencilDepthFailOp = STENCIL_OP_LOOKUP[op_state.depth_fail_op],
+			.StencilPassOp		= STENCIL_OP_LOOKUP[op_state.pass_op],
+			.StencilFunc		= COMPARE_OP_LOOKUP[op_state.compare_op],
 		};
 	}
 
@@ -213,13 +192,13 @@ namespace vt::d3d12
 		return {
 			.BlendEnable		   = state.enable_blend,
 			.LogicOpEnable		   = blend.enable_logic_op,
-			.SrcBlend			   = convert_blend_factor(state.src_color_factor),
-			.DestBlend			   = convert_blend_factor(state.dst_color_factor),
-			.BlendOp			   = convert_blend_op(state.color_op),
-			.SrcBlendAlpha		   = convert_blend_factor(state.src_alpha_factor),
-			.DestBlendAlpha		   = convert_blend_factor(state.dst_alpha_factor),
-			.BlendOpAlpha		   = convert_blend_op(state.alpha_op),
-			.LogicOp			   = convert_logic_op(blend.logic_op),
+			.SrcBlend			   = BLEND_FACTOR_LOOKUP[state.src_color_factor],
+			.DestBlend			   = BLEND_FACTOR_LOOKUP[state.dst_color_factor],
+			.BlendOp			   = BLEND_OP_LOOKUP[state.color_op],
+			.SrcBlendAlpha		   = BLEND_FACTOR_LOOKUP[state.src_alpha_factor],
+			.DestBlendAlpha		   = BLEND_FACTOR_LOOKUP[state.dst_alpha_factor],
+			.BlendOpAlpha		   = BLEND_OP_LOOKUP[state.alpha_op],
+			.LogicOp			   = LOGIC_OP_LOOKUP[blend.logic_op],
 			.RenderTargetWriteMask = static_cast<UINT8>(state.write_mask),
 		};
 	}
@@ -376,6 +355,14 @@ namespace vt::d3d12
 		};
 	};
 
+	D3D12_SHADER_BYTECODE get_optional_bytecode(Shader const* shader)
+	{
+		if(shader)
+			return shader->d3d12.get_bytecode();
+
+		return {};
+	}
+
 	export class D3D12RenderPipeline : public Pipeline
 	{
 	public:
@@ -387,15 +374,25 @@ namespace vt::d3d12
 			UINT index = 0;
 			for(auto& buffer_binding : spec.vertex_buffer_bindings)
 			{
-				auto   input_rate = convert_input_rate(buffer_binding.input_rate);
-				UINT   step_rate  = buffer_binding.input_rate == VertexBufferInputRate::PerInstance ? 1u : 0u;
-				size_t offset	  = 0;
+				D3D12_INPUT_CLASSIFICATION input_rate;
+				UINT					   step_rate;
+				if(buffer_binding.input_rate == VertexBufferInputRate::PerVertex)
+				{
+					input_rate = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+					step_rate  = 0;
+				}
+				else
+				{
+					input_rate = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+					step_rate  = 1;
+				}
+				size_t offset = 0;
 				for(auto attribute : buffer_binding.attributes)
 				{
 					input_element_descs.emplace_back(D3D12_INPUT_ELEMENT_DESC {
-						.SemanticName		  = convert_vertex_data_type_semantic(attribute.type),
+						.SemanticName		  = VERTEX_DATA_TYPE_SEMANTIC_LOOKUP[attribute.type],
 						.SemanticIndex		  = attribute.semantic_index,
-						.Format				  = convert_vertex_data_type_format(attribute.type),
+						.Format				  = VERTEX_DATA_TYPE_LOOKUP[attribute.type],
 						.InputSlot			  = index,
 						.AlignedByteOffset	  = static_cast<UINT>(offset),
 						.InputSlotClass		  = input_rate,
@@ -414,13 +411,11 @@ namespace vt::d3d12
 				.type_1					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS,
 				.vertex_shader_bytecode	  = spec.vertex_shader.d3d12.get_bytecode(),
 				.type_2					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS,
-				.fragment_shader_bytecode = spec.fragment_shader ? spec.fragment_shader->d3d12.get_bytecode()
-																 : D3D12_SHADER_BYTECODE(),
+				.fragment_shader_bytecode = get_optional_bytecode(spec.fragment_shader),
 				.type_3					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS,
-				.domain_shader_bytecode	  = spec.domain_shader ? spec.domain_shader->d3d12.get_bytecode()
-															   : D3D12_SHADER_BYTECODE(),
+				.domain_shader_bytecode	  = get_optional_bytecode(spec.domain_shader),
 				.type_4					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS,
-				.hull_shader_bytecode	  = spec.hull_shader ? spec.hull_shader->d3d12.get_bytecode() : D3D12_SHADER_BYTECODE(),
+				.hull_shader_bytecode	  = get_optional_bytecode(spec.hull_shader),
 				.type_5					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND,
 				.blend_desc {
 					.AlphaToCoverageEnable	= spec.multisample.enable_alpha_to_coverage,
@@ -430,8 +425,8 @@ namespace vt::d3d12
 				.sample_mask = spec.multisample.sample_mask,
 				.type_7		 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER,
 				.rasterizer_desc {
-					.FillMode			   = convert_fill_mode(spec.rasterizer.fill_mode),
-					.CullMode			   = convert_cull_mode(spec.rasterizer.cull_mode),
+					.FillMode			   = FILL_MODE_LOOKUP[spec.rasterizer.fill_mode],
+					.CullMode			   = CULL_MODE_LOOKUP[spec.rasterizer.cull_mode],
 					.FrontCounterClockwise = spec.rasterizer.winding_order == WindingOrder::CounterClockwise,
 					.DepthBias			   = spec.rasterizer.depth_bias,
 					.DepthBiasClamp		   = spec.rasterizer.depth_bias_clamp,
@@ -448,7 +443,7 @@ namespace vt::d3d12
 				.index_buffer_strip_cut_value = spec.enable_primitive_restart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
 																			  : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
 				.type_10					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY,
-				.primitive_topology_type	  = categorize_primitive_topology(spec.primitive_topology),
+				.primitive_topology_type	  = PRIMITIVE_TOPOLOGY_CATEGORIES[spec.primitive_topology],
 				.type_11					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS,
 				.render_target_formats {
 					.NumRenderTargets = spec.blend.attachment_states.count(),
@@ -466,7 +461,7 @@ namespace vt::d3d12
 					.DepthEnable		   = spec.depth_stencil.enable_depth_test,
 					.DepthWriteMask		   = spec.depth_stencil.enable_depth_write ? D3D12_DEPTH_WRITE_MASK_ALL
 																				   : D3D12_DEPTH_WRITE_MASK_ZERO,
-					.DepthFunc			   = convert_compare_op(spec.depth_stencil.depth_compare_op),
+					.DepthFunc			   = COMPARE_OP_LOOKUP[spec.depth_stencil.depth_compare_op],
 					.StencilEnable		   = spec.depth_stencil.enable_stencil_test,
 					.StencilReadMask	   = spec.depth_stencil.stencil_read_mask,
 					.StencilWriteMask	   = spec.depth_stencil.stencil_write_mask,

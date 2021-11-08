@@ -245,7 +245,7 @@ namespace vt::vulkan
 			if(contains(surface_formats, preferred_format))
 				surface_format = preferred_format;
 
-			image_format = canonicalize_image_format(surface_format.format);
+			image_format = VULKAN_FORMAT_LOOKUP[surface_format.format];
 		}
 
 		void check_vsync_support()

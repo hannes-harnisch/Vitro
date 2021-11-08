@@ -117,7 +117,6 @@ namespace vt
 		DepthStencilReadOnly,
 		ShaderResource,
 		FragmentShaderResource,
-		NonFragmentShaderResource,
 		UnorderedAccess,
 		Presentable,
 	};
@@ -128,7 +127,17 @@ namespace vt
 		Image3D,
 	};
 
-	export enum class ImageUsage : uint8_t {};
+	export enum class ImageUsage : uint8_t {
+		CopySrc			= bit(0),
+		CopyDst			= bit(1),
+		Sampled			= bit(2),
+		Storage			= bit(3),
+		ColorAttachment = bit(4),
+		DepthStencil	= bit(5),
+		Transient		= bit(6),
+		InputAttachment = bit(7),
+	};
+	export template<> constexpr inline bool ENABLE_BIT_OPERATORS_FOR<ImageUsage> = true;
 
 	// Describes the properties of an image to be created. If the dimension is 2D, expanse depth will be interpreted as the
 	// count of an image array.
@@ -138,6 +147,7 @@ namespace vt
 		Explicit<ImageFormat>	 format;
 		uint8_t					 mip_count	  = calc_default_mip_count();
 		uint8_t					 sample_count = 1;
+		Explicit<ImageUsage>	 usage;
 		Explicit<Expanse>		 expanse;
 
 		uint8_t calc_default_mip_count() const
