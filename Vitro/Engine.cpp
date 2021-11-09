@@ -50,7 +50,7 @@ namespace vt
 
 	private:
 		static constexpr Version	 ENGINE_VERSION		= {0, 0, 1};
-		static constexpr char const* CVAR_DEBUG_GPU_API = "-debug-gpu-api";
+		static constexpr char const* CVAR_DEBUG_GPU_API = "--debug-gpu-api";
 
 		std::atomic_bool			  is_running;
 		std::vector<std::string_view> command_line_args;

@@ -145,6 +145,9 @@ namespace vt::vulkan
 			return VulkanSwapChain(queue_families.render, window, buffer_count, sync_tokens, *api);
 		}
 
+		void update_descriptors(ArrayView<DescriptorUpdate>)
+		{}
+
 		void* map(Buffer const& buffer) override
 		{
 			return map_resource(buffer);
@@ -278,15 +281,14 @@ namespace vt::vulkan
 
 		RenderTarget make_platform_render_target(RenderTargetSpecification const& spec) override
 		{
-			return {VulkanRenderTarget(spec, *api), spec.width, spec.height};
+			return {VulkanRenderTarget(spec, *api), {spec.width, spec.height}};
 		}
 
 		RenderTarget make_platform_render_target(SharedRenderTargetSpecification const& spec,
 												 SwapChain const&						swap_chain,
 												 unsigned								back_buffer_index) override
 		{
-			return {VulkanRenderTarget(spec, swap_chain, back_buffer_index, *api), swap_chain->get_width(),
-					swap_chain->get_height()};
+			return {VulkanRenderTarget(spec, swap_chain, back_buffer_index, *api), swap_chain->get_size()};
 		}
 
 		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override
@@ -448,7 +450,7 @@ namespace vt::vulkan
 				.preferredLargeHeapBlockSize	= 0, // Uses the default block size.
 				.pAllocationCallbacks			= nullptr,
 				.pDeviceMemoryCallbacks			= nullptr,
-				.frameInUseCount				= 0, // TODO: change this
+				.frameInUseCount				= 0, // TODO: This probably needs to be changed.
 				.pHeapSizeLimit					= nullptr,
 				.pVulkanFunctions				= &functions,
 				.pRecordSettings				= nullptr,
@@ -472,10 +474,11 @@ namespace vt::vulkan
 
 		SyncToken submit(VkQueue queue, ArrayView<CommandListHandle> cmds, ConstSpan<SyncToken> gpu_wait_tokens)
 		{
-			SmallList<VkSemaphore> wait_semaphores;
-			wait_semaphores.reserve(gpu_wait_tokens.size());
+			SmallList<VkSemaphore> wait_semaphores(gpu_wait_tokens.size());
+
+			auto semaphore = wait_semaphores.begin();
 			for(auto& token : gpu_wait_tokens)
-				wait_semaphores.emplace_back(token.vulkan.semaphore);
+				*semaphore++ = token.vulkan.semaphore;
 
 			auto token = sync_tokens.acquire_token(*api);
 

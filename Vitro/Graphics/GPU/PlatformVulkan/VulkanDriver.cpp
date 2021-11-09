@@ -17,6 +17,26 @@ import vt.Trace.Log;
 
 namespace vt::vulkan
 {
+	VKAPI_ATTR VkBool32 VKAPI_CALL log_vulkan_validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
+														 VkDebugUtilsMessageTypeFlagsEXT,
+														 VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
+														 void*)
+	{
+		auto msg = callback_data->pMessage;
+
+		constexpr int INSTANCE_DEBUG_EXTENSION_MSG = 0x822806FA;
+		if(callback_data->messageIdNumber == INSTANCE_DEBUG_EXTENSION_MSG)
+			return false;
+
+		switch(severity)
+		{
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: Log().info(msg, "\n"); break;
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: Log().warn(msg, "\n"); break;
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: Log().error(msg, "\n"); break;
+		}
+		return false;
+	}
+
 	export class VulkanDriver final : public DriverBase
 	{
 	public:
@@ -30,8 +50,7 @@ namespace vt::vulkan
 
 			VkDebugUtilsMessengerCreateInfoEXT const messenger_info {
 				.sType			 = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-				.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-								   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+				.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
 								   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
 				.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
 							   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
@@ -102,8 +121,9 @@ namespace vt::vulkan
 				api->vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_prop);
 
 				size_t vram = 0;
-				for(auto heap : std::views::take(mem_prop.memoryHeaps, mem_prop.memoryHeapCount))
-					vram += heap.size;
+				for(auto heap : mem_prop.memoryHeaps | std::views::take(mem_prop.memoryHeapCount))
+					if(heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+						vram += heap.size;
 
 				adapters.emplace_back(VulkanAdapter(physical_device), device_prop.deviceName, vram);
 			}
@@ -170,21 +190,6 @@ namespace vt::vulkan
 		std::unique_ptr<InstanceApiTable> api;
 		UniqueVkInstance				  instance;
 		UniqueVkDebugUtilsMessengerEXT	  messenger;
-
-		static VKAPI_ATTR VkBool32 VKAPI_CALL log_vulkan_validation(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
-																	VkDebugUtilsMessageTypeFlagsEXT,
-																	VkDebugUtilsMessengerCallbackDataEXT const* callback_data,
-																	void*)
-		{
-			auto msg = callback_data->pMessage;
-			switch(severity)
-			{
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: Log().info(msg, "\n"); break;
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: Log().warn(msg, "\n"); break;
-				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: Log().error(msg, "\n"); break;
-			}
-			return false;
-		}
 
 		void ensure_instance_extensions_exist() const
 		{

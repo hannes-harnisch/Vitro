@@ -19,33 +19,23 @@ namespace vt::vulkan
 	{
 	public:
 		VulkanRootSignature(RootSignatureSpecification const& spec, DeviceApiTable const& api) :
-			push_constant_stages(SHADER_STAGE_LOOKUP[spec.push_constants_visibility])
+			render_push_constant_stages(derive_render_push_constant_stages(spec))
 		{
-			SmallList<VkDescriptorSetLayout> set_layouts;
-			set_layouts.reserve(spec.layouts.size());
+			SmallList<VkDescriptorSetLayout> layout_handles(spec.layouts.size());
 
-			unsigned index = 0;
+			unsigned index	   = 0;
+			auto	 handle_it = layout_handles.begin();
 			for(auto& layout : spec.layouts)
 			{
-				auto handle = layout.vulkan.get_handle();
-				set_layouts.emplace_back(handle);
+				auto handle	 = layout.vulkan.get_handle();
+				*handle_it++ = handle;
 				layout_indices.try_emplace(handle, index++);
 			}
 
-			VkPushConstantRange const push_constants {
-				.stageFlags = push_constant_stages,
-				.offset		= 0,
-				.size		= spec.push_constants_byte_size,
-			};
-			VkPipelineLayoutCreateInfo const layout_info {
-				.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-				.setLayoutCount			= count(set_layouts),
-				.pSetLayouts			= set_layouts.data(),
-				.pushConstantRangeCount = 1,
-				.pPushConstantRanges	= &push_constants,
-			};
-			auto result = api.vkCreatePipelineLayout(api.device, &layout_info, nullptr, std::out_ptr(pipeline_layout, api));
-			VT_CHECK_RESULT(result, "Failed to create Vulkan pipeline layout.");
+			// We're creating two pipeline layouts because this is the only way to allow specifying ShaderStage::All as a
+			// push constant range visibility for render push constants without overwriting push constants set to compute.
+			initialize_layout(render_pipeline_layout, render_push_constant_stages, spec, api, layout_handles);
+			initialize_layout(compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, spec, api, layout_handles);
 		}
 
 		unsigned get_layout_index(VkDescriptorSetLayout layout) const
@@ -53,19 +43,55 @@ namespace vt::vulkan
 			return layout_indices.find(layout)->second;
 		}
 
-		VkShaderStageFlags get_push_constant_stages() const
+		VkShaderStageFlags get_render_push_constant_stages() const
 		{
-			return push_constant_stages;
+			return render_push_constant_stages;
 		}
 
-		VkPipelineLayout get_handle() const
+		VkPipelineLayout get_render_layout_handle() const
 		{
-			return pipeline_layout.get();
+			return render_pipeline_layout.get();
+		}
+
+		VkPipelineLayout get_compute_layout_handle() const
+		{
+			return compute_pipeline_layout.get();
 		}
 
 	private:
-		UniqueVkPipelineLayout								pipeline_layout;
+		UniqueVkPipelineLayout								render_pipeline_layout;
+		UniqueVkPipelineLayout								compute_pipeline_layout;
 		std::unordered_map<VkDescriptorSetLayout, unsigned> layout_indices;
-		VkShaderStageFlags									push_constant_stages;
+		VkShaderStageFlags									render_push_constant_stages;
+
+		static VkShaderStageFlags derive_render_push_constant_stages(RootSignatureSpecification const& spec)
+		{
+			auto stage = SHADER_STAGE_LOOKUP[spec.push_constants_visibility];
+
+			// If all shader stages were specified, we want to remove the compute stage.
+			return stage ^ VK_SHADER_STAGE_COMPUTE_BIT;
+		}
+
+		static void initialize_layout(UniqueVkPipelineLayout&			pipeline_layout,
+									  VkShaderStageFlags				stages,
+									  RootSignatureSpecification const& spec,
+									  DeviceApiTable const&				api,
+									  ConstSpan<VkDescriptorSetLayout>	layouts)
+		{
+			VkPushConstantRange const push_constants {
+				.stageFlags = stages,
+				.offset		= 0,
+				.size		= spec.push_constants_byte_size,
+			};
+			VkPipelineLayoutCreateInfo const layout_info {
+				.sType					= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+				.setLayoutCount			= count(layouts),
+				.pSetLayouts			= layouts.data(),
+				.pushConstantRangeCount = 1,
+				.pPushConstantRanges	= &push_constants,
+			};
+			auto result = api.vkCreatePipelineLayout(api.device, &layout_info, nullptr, std::out_ptr(pipeline_layout, api));
+			VT_CHECK_RESULT(result, "Failed to create Vulkan pipeline layout.");
+		}
 	};
 }

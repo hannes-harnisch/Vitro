@@ -21,8 +21,8 @@ namespace vt
 	{
 	public:
 		// This constructor is for internal use only.
-		RenderTarget(PlatformRenderTarget&& platform_render_target, unsigned width, unsigned height) :
-			PlatformRenderTarget(std::move(platform_render_target)), width(width), height(height)
+		RenderTarget(PlatformRenderTarget&& platform_render_target, Extent size) :
+			PlatformRenderTarget(std::move(platform_render_target)), width(size.width), height(size.height)
 		{}
 
 		unsigned get_width() const

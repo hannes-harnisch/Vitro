@@ -8,7 +8,9 @@ module;
 export module vt.Graphics.D3D12.DescriptorPool;
 
 import vt.Core.Array;
-import vt.Core.FixedList;
+import vt.Core.SmallList;
+import vt.Graphics.D3D12.DescriptorSet;
+import vt.Graphics.D3D12.DescriptorSetLayout;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSet;
@@ -62,6 +64,16 @@ namespace vt::d3d12
 				it->unit_count -= unit_count;
 			}
 			return {handle, unit_count};
+		}
+
+		// Only valid for shader-visible descriptor heaps. Allocates a given amount of descriptors and returns the
+		// GPU-visible descriptor equivalent of the start of the allocation.
+		D3D12_GPU_DESCRIPTOR_HANDLE allocate_shader_visible(size_t count)
+		{
+			VT_ASSERT(gpu_heap_start.ptr, "This method cannot validly be called on a non-shader-visible descriptor heap.");
+
+			auto alloc = allocate(count);
+			return {alloc.handle.ptr - get_cpu_heap_start().ptr + gpu_heap_start.ptr};
 		}
 
 		void deallocate(DescriptorAllocation const alloc)
@@ -125,14 +137,6 @@ namespace vt::d3d12
 			return gpu_heap_start;
 		}
 
-		// Only valid for shader-visible descriptor heaps. Calculates the value of the GPU descriptor equivalent to the given
-		// CPU descriptor on this heap.
-		D3D12_GPU_DESCRIPTOR_HANDLE mirror_descriptor(D3D12_CPU_DESCRIPTOR_HANDLE descriptor) const
-		{
-			VT_ASSERT(gpu_heap_start.ptr, "This method cannot validly be called on a non-shader-visible descriptor heap.");
-			return {descriptor.ptr - get_cpu_heap_start().ptr + gpu_heap_start.ptr};
-		}
-
 		ID3D12DescriptorHeap* get_handle() const
 		{
 			return heap.get();
@@ -141,8 +145,8 @@ namespace vt::d3d12
 	private:
 		std::deque<DescriptorAllocation> free_blocks;
 		ComUnique<ID3D12DescriptorHeap>	 heap;
-		D3D12_GPU_DESCRIPTOR_HANDLE		 gpu_heap_start;
 		unsigned						 stride;
+		D3D12_GPU_DESCRIPTOR_HANDLE		 gpu_heap_start;
 	};
 
 	// Acts as an owner for all D3D12 descriptor heaps, so as to easily allocate various types of descriptors from one object
@@ -159,6 +163,17 @@ namespace vt::d3d12
 			gpu_sampler_heap(device, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, MAX_DYNAMIC_SAMPLER_ON_GPU, true)
 		{
 			initialize_render_target_null_descriptor(device);
+		}
+
+		SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts)
+		{
+			SmallList<DescriptorSet> final_sets;
+			final_sets.reserve(set_layouts.size());
+
+			for(auto& set_layout : set_layouts)
+				final_sets.emplace_back(make_descriptor_set(set_layout.d3d12));
+
+			return final_sets;
 		}
 
 		DescriptorAllocation allocate_render_target_views(size_t count)
@@ -209,9 +224,9 @@ namespace vt::d3d12
 		}
 
 	private:
-		static constexpr unsigned MAX_RENDER_TARGET_VIEWS	 = 120; // Arbitrarily chosen.
-		static constexpr unsigned MAX_DEPTH_STENCIL_VIEWS	 = 40;	// Arbitrarily chosen.
-		static constexpr unsigned MAX_CBV_SRV_UAVS_ON_GPU	 = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
+		static constexpr unsigned MAX_RENDER_TARGET_VIEWS	 = 120;	  // Arbitrarily chosen.
+		static constexpr unsigned MAX_DEPTH_STENCIL_VIEWS	 = 40;	  // Arbitrarily chosen.
+		static constexpr unsigned MAX_CBV_SRV_UAVS_ON_GPU	 = 10000; // D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_2;
 		static constexpr unsigned MAX_DYNAMIC_SAMPLER_ON_GPU = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
 
 		DescriptorHeap rtv_heap;
@@ -223,9 +238,8 @@ namespace vt::d3d12
 
 		void initialize_render_target_null_descriptor(ID3D12Device4& device)
 		{
-			// Guaranteed to return the start of the heap.
-			auto alloc = rtv_heap.allocate(1);
-
+			auto alloc = rtv_heap.allocate(1); // Guaranteed to return the start of the heap because this method should get
+											   // called right after creating the individual heaps.
 			D3D12_RENDER_TARGET_VIEW_DESC const rtv_desc {
 				.Format		   = DXGI_FORMAT_R8G8B8A8_UNORM, // TODO: Should another format be chosen? Unknown is not permitted.
 				.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D,
@@ -235,6 +249,39 @@ namespace vt::d3d12
 				},
 			};
 			device.CreateRenderTargetView(nullptr, &rtv_desc, alloc.handle);
+		}
+
+		D3D12DescriptorSet make_descriptor_set(D3D12DescriptorSetLayout const& layout)
+		{
+			if(layout.is_descriptor_table())
+				return make_descriptor_set_with_descriptor_table(layout);
+			else
+				return {layout.get_id(), layout.get_root_parameter_type()};
+		}
+
+		D3D12DescriptorSet make_descriptor_set_with_descriptor_table(D3D12DescriptorSetLayout const& layout)
+		{
+			unsigned views	  = 0;
+			unsigned samplers = 0;
+
+			auto ranges = layout.get_descriptor_table_ranges();
+			for(auto& range : ranges)
+			{
+				if(range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER)
+					samplers += range.NumDescriptors;
+				else
+					views += range.NumDescriptors;
+			}
+
+			auto view_descriptor_table_start	= views ? gpu_view_heap.allocate_shader_visible(views)
+														: D3D12_GPU_DESCRIPTOR_HANDLE();
+			auto sampler_descriptor_table_start = samplers ? gpu_sampler_heap.allocate_shader_visible(samplers)
+														   : D3D12_GPU_DESCRIPTOR_HANDLE();
+			return {
+				layout.get_id(),
+				view_descriptor_table_start,
+				sampler_descriptor_table_start,
+			};
 		}
 	};
 }

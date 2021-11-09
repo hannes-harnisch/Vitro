@@ -30,8 +30,8 @@ workspace 'Vitro'
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
-	--	buildcommands	'C:/VulkanSDK/1.2.189.2//Bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
-		buildcommands	'"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc" %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
+		buildcommands	'C:/VulkanSDK/1.2.189.2//Bin/dxc %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
+	--	buildcommands	'"C:/Program Files (x86)/Windows Kits/10/bin/10.0.19041.0/x64/fxc" %{file.relpath} -O3 /Fo %{cfg.targetdir}/%{file.basename}^'
 
 	filter { 'files:**.hlsl', 'platforms:D3D12' }
 		buildcommands	'.cso /D VT_GPU_API_D3D12 ^'
@@ -73,8 +73,9 @@ project 'Vitro'
 	links				{
 							'tinyobjloader',
 						}
+
 	filter 'Debug or Development'
-		debugargs		{ '-debug-gpu-api' }
+		debugargs		{ '--debug-gpu-api' }
 
 	-- filter 'Release'
 		-- kind			'WindowedApp'
@@ -142,10 +143,8 @@ project 'D3D12MemoryAllocator'
 	location			(deploc)
 	warnings			'Off'
 	kind				'None'
-	files				{
-							(depsubmoddir .. '/src/D3D12MemAlloc.cpp'),
-							(depsubmoddir .. '/src/D3D12MemAlloc.h'),
-						}
+	includedirs			(depsubmoddir .. '/include')
+	files				(depsubmoddir .. '/src/D3D12MemAlloc.cpp')
 
 	filter 'platforms:D3D12 or D3D12+Vulkan'
 		kind			'StaticLib'

@@ -1,5 +1,6 @@
 module;
 #include <algorithm>
+#include <atomic>
 #include <bitset>
 #include <climits>
 #include <concepts>
@@ -46,15 +47,40 @@ namespace vt
 			return Base::operator[](static_cast<size_t>(index));
 		}
 
-		bool test(E position) const
+		bool test(E index) const
 		{
-			return Base::test(static_cast<size_t>(position));
+			return Base::test(static_cast<size_t>(index));
 		}
 
-		void set(E position, bool value = true)
+		void set(E index, bool value = true)
 		{
-			Base::set(static_cast<size_t>(position), value);
+			Base::set(static_cast<size_t>(index), value);
 		}
+	};
+
+	// Like EnumBitArray but with methods that only allow correct atomic operations.
+	export template<typename E> class AtomicEnumBitArray
+	{
+	public:
+		bool operator[](E index) const
+		{
+			return bits.load()[index];
+		}
+
+		void set(E index, bool value = true)
+		{
+			bool written;
+			do
+			{
+				auto expected = bits.load();
+				auto desired  = expected;
+				desired.set(index, value);
+				written = bits.compare_exchange_strong(expected, desired, std::memory_order_acq_rel, std::memory_order_acquire);
+			} while(!written);
+		}
+
+	private:
+		std::atomic<EnumBitArray<E>> bits;
 	};
 
 	// Returns a number with the bit set at the given position.

@@ -1,7 +1,3 @@
-module;
-#include <algorithm>
-#include <array>
-#include <type_traits>
 export module vt.Core.LookupTable;
 
 import vt.Core.Enum;

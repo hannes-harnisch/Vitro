@@ -37,7 +37,7 @@ namespace vt::vulkan
 		LookupTable<ShaderStage, VkShaderStageFlags> _;
 		using enum ShaderStage;
 
-		_[Render]		= VK_SHADER_STAGE_ALL_GRAPHICS;
+		_[All]			= VK_SHADER_STAGE_ALL;
 		_[Vertex]		= VK_SHADER_STAGE_VERTEX_BIT;
 		_[Hull]			= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 		_[Domain]		= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;

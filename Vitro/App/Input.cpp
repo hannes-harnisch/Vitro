@@ -18,12 +18,12 @@ namespace vt
 	public:
 		static bool is_down(KeyCode key)
 		{
-			return get().key_down_states.load()[key];
+			return get().key_down_states[key];
 		}
 
 		static bool is_down(MouseCode button)
 		{
-			return get().mouse_down_states.load()[button];
+			return get().mouse_down_states[button];
 		}
 
 		static Int2 mouse_position()
@@ -32,9 +32,9 @@ namespace vt
 		}
 
 	private:
-		std::atomic<EnumBitArray<KeyCode>>	 key_down_states;
-		std::atomic<EnumBitArray<MouseCode>> mouse_down_states;
-		std::atomic<Int2>					 mouse_pos;
+		AtomicEnumBitArray<KeyCode>	  key_down_states;
+		AtomicEnumBitArray<MouseCode> mouse_down_states;
+		std::atomic<Int2>			  mouse_pos;
 
 		Input()
 		{
@@ -44,43 +44,27 @@ namespace vt
 
 		void on_key_down(KeyDownEvent& event)
 		{
-			set_key_state(event.key, true);
+			key_down_states.set(event.key, true);
 		}
 
 		void on_key_up(KeyUpEvent& event)
 		{
-			set_key_state(event.key, false);
+			key_down_states.set(event.key, false);
 		}
 
 		void on_mouse_down(MouseDownEvent& event)
 		{
-			set_mouse_state(event.button, true);
+			mouse_down_states.set(event.button, true);
 		}
 
 		void on_mouse_up(MouseUpEvent& event)
 		{
-			set_mouse_state(event.button, false);
+			mouse_down_states.set(event.button, false);
 		}
 
 		void on_mouse_move(MouseMoveEvent& event)
 		{
 			mouse_pos = event.position;
-		}
-
-		void set_key_state(KeyCode key, bool state)
-		{
-			// TODO: synchronize
-			auto states = key_down_states.load();
-			states.set(key, state);
-			key_down_states.store(states);
-		}
-
-		void set_mouse_state(MouseCode button, bool state)
-		{
-			// TODO: synchronize
-			auto states = mouse_down_states.load();
-			states.set(button, state);
-			mouse_down_states.store(states);
 		}
 	};
 }

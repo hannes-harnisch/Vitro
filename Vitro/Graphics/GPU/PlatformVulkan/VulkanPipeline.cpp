@@ -216,7 +216,7 @@ namespace vt::vulkan
 				.dynamicStateCount = count(DYNAMIC_STATES),
 				.pDynamicStates	   = DYNAMIC_STATES,
 			};
-			pipeline_layout = spec.root_signature.vulkan.get_handle();
+			pipeline_layout = spec.root_signature.vulkan.get_render_layout_handle();
 			render_pass		= spec.render_pass.vulkan.get_handle();
 			subpass_index	= spec.subpass_index;
 		}
@@ -327,7 +327,7 @@ namespace vt::vulkan
 		{
 			rasterization = VkPipelineRasterizationStateCreateInfo {
 				.sType					 = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-				.depthClampEnable		 = spec.rasterizer.enable_depth_clip,
+				.depthClampEnable		 = spec.rasterizer.depth_bias_clamp != 0,
 				.polygonMode			 = FILL_MODE_LOOKUP[spec.rasterizer.fill_mode],
 				.cullMode				 = CULL_MODE_LOOKUP[spec.rasterizer.cull_mode],
 				.frontFace				 = WINDING_ORDER_LOOKUP[spec.rasterizer.winding_order],
@@ -345,7 +345,7 @@ namespace vt::vulkan
 
 			multisample = VkPipelineMultisampleStateCreateInfo {
 				.sType				   = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-				.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(spec.multisample.rasterizer_sample_count.get()),
+				.rasterizationSamples  = static_cast<VkSampleCountFlagBits>(spec.multisample.sample_count.get()),
 				.sampleShadingEnable   = false,
 				.minSampleShading	   = 0.0f,
 				.pSampleMask		   = sample_masks,
@@ -368,7 +368,7 @@ namespace vt::vulkan
 				.front				   = convert_stencil_op_state(ds.front, ds.stencil_read_mask, ds.stencil_write_mask),
 				.back				   = convert_stencil_op_state(ds.back, ds.stencil_read_mask, ds.stencil_write_mask),
 				.minDepthBounds		   = 0.0f,
-				.maxDepthBounds		   = 1.0f, // TODO: test whether this needs to be set despite dynamic state
+				.maxDepthBounds		   = 1.0f, // TODO: Test whether this needs to be set despite dynamic state.
 			};
 		}
 
@@ -408,7 +408,7 @@ namespace vt::vulkan
 				.pName				 = "main",
 				.pSpecializationInfo = nullptr,
 			},
-			.layout				= spec.root_signature.vulkan.get_handle(),
+			.layout				= spec.root_signature.vulkan.get_compute_layout_handle(),
 			.basePipelineHandle = nullptr,
 			.basePipelineIndex	= 0,
 		};

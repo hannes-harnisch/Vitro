@@ -3,6 +3,7 @@ module;
 #include <stdexcept>
 export module vt.Graphics.RenderTargetSpecification;
 
+import vt.Core.Ref;
 import vt.Core.FixedList;
 import vt.Core.Specification;
 import vt.Graphics.AssetResource;
@@ -14,7 +15,7 @@ namespace vt
 {
 	export struct RenderTargetSpecification
 	{
-		using ColorAttachmentList = FixedList<Image const*, MAX_COLOR_ATTACHMENTS>;
+		using ColorAttachmentList = FixedList<CRef<Image>, MAX_COLOR_ATTACHMENTS>;
 
 		Explicit<ColorAttachmentList> color_attachments;
 		Image const*				  depth_stencil_attachment = nullptr;
@@ -26,7 +27,7 @@ namespace vt
 	// Specifies render targets shared between renderers.
 	export struct SharedRenderTargetSpecification
 	{
-		using ColorAttachmentList = FixedList<Image const*, MAX_COLOR_ATTACHMENTS - 1>;
+		using ColorAttachmentList = FixedList<CRef<Image>, MAX_COLOR_ATTACHMENTS - 1>;
 
 		ColorAttachmentList color_attachments;
 		Image const*		depth_stencil_attachment = nullptr;
@@ -38,10 +39,6 @@ namespace vt
 	{
 		if(spec.color_attachments.empty())
 			throw std::invalid_argument("A render target needs at least one color attachment.");
-
-		for(auto attachment : spec.color_attachments)
-			if(!attachment)
-				throw std::invalid_argument("Attachments must not be nullptr.");
 	}
 
 	export void validate_shared_target_spec(SharedRenderTargetSpecification const& spec,
@@ -53,9 +50,5 @@ namespace vt
 
 		if(spec.shared_img_dst_index > spec.color_attachments.size())
 			throw std::invalid_argument("Invalid swap chain image destination index.");
-
-		for(auto attachment : spec.color_attachments)
-			if(!attachment)
-				throw std::invalid_argument("Attachments must not be nullptr.");
 	}
 }

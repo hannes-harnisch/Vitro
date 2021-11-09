@@ -78,7 +78,7 @@ namespace vt
 	{
 		unsigned width	= 0;
 		unsigned height = 0;
-		unsigned depth	= 0;
+		unsigned depth	= 1;
 
 		unsigned volume() const
 		{

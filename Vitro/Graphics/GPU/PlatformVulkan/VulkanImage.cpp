@@ -47,7 +47,7 @@ namespace vt::vulkan
 		_[Rg16UInt]			 = VK_FORMAT_R16G16_UINT;
 		_[Rg16SNorm]		 = VK_FORMAT_R16G16_SNORM;
 		_[Rg16SInt]			 = VK_FORMAT_R16G16_SINT;
-		_[R32Typeless]		 = VK_FORMAT_D32_SFLOAT;
+		_[R32Typeless]		 = VK_FORMAT_R32_SFLOAT;
 		_[D32Float]			 = VK_FORMAT_D32_SFLOAT;
 		_[R32Float]			 = VK_FORMAT_R32_SFLOAT;
 		_[R32UInt]			 = VK_FORMAT_R32_UINT;
@@ -177,11 +177,153 @@ namespace vt::vulkan
 		return _;
 	}();
 
+	constexpr inline auto IMAGE_DIMENSION_LOOKUP = [] {
+		LookupTable<ImageDimension, VkImageType> _;
+		using enum ImageDimension;
+
+		_[Image1D]	 = VK_IMAGE_TYPE_1D;
+		_[Image2D]	 = VK_IMAGE_TYPE_2D;
+		_[Image3D]	 = VK_IMAGE_TYPE_3D;
+		_[Cube]		 = VK_IMAGE_TYPE_2D;
+		_[Array1D]	 = VK_IMAGE_TYPE_1D;
+		_[Array2D]	 = VK_IMAGE_TYPE_2D;
+		_[CubeArray] = VK_IMAGE_TYPE_2D;
+		return _;
+	}();
+
+	VkImageCreateFlags derive_image_creation_flags(ImageDimension dimension)
+	{
+		if(dimension == ImageDimension::Cube || dimension == ImageDimension::CubeArray)
+			return VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		else
+			return 0;
+	}
+
+	VkImageUsageFlags convert_image_usage(ImageUsage usage)
+	{
+		VkImageUsageFlags flags = 0;
+
+		using enum ImageUsage;
+		if(usage & CopySrc)
+			flags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+		if(usage & CopyDst)
+			flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		if(usage & Sampled)
+			flags |= VK_IMAGE_USAGE_SAMPLED_BIT;
+		if(usage & Storage)
+			flags |= VK_IMAGE_USAGE_STORAGE_BIT;
+		if(usage & ColorAttachment)
+			flags |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		if(usage & DepthStencil)
+			flags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+		if(usage & Transient)
+			flags |= VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT;
+		if(usage & InputAttachment)
+			flags |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+
+		return flags;
+	}
+
+	constexpr inline auto IMAGE_VIEW_TYPE_LOOKUP = [] {
+		LookupTable<ImageDimension, VkImageViewType> _;
+		using enum ImageDimension;
+
+		_[Image1D]	 = VK_IMAGE_VIEW_TYPE_1D;
+		_[Image2D]	 = VK_IMAGE_VIEW_TYPE_2D;
+		_[Image3D]	 = VK_IMAGE_VIEW_TYPE_3D;
+		_[Cube]		 = VK_IMAGE_VIEW_TYPE_CUBE;
+		_[Array1D]	 = VK_IMAGE_VIEW_TYPE_1D_ARRAY;
+		_[Array2D]	 = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+		_[CubeArray] = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+		return _;
+	}();
+
+	export constexpr inline auto IMAGE_ASPECT_FLAGS_LOOKUP = [] {
+		LookupTable<ImageFormat, VkImageAspectFlags> _;
+		using enum ImageFormat;
+
+		constexpr VkImageAspectFlags COLOR = VK_IMAGE_ASPECT_COLOR_BIT;
+
+		_[Unknown]			 = 0;
+		_[Rgba32Float]		 = COLOR;
+		_[Rgba32UInt]		 = COLOR;
+		_[Rgba32SInt]		 = COLOR;
+		_[Rgb32Float]		 = COLOR;
+		_[Rgb32UInt]		 = COLOR;
+		_[Rgb32SInt]		 = COLOR;
+		_[Rgba16Float]		 = COLOR;
+		_[Rgba16UNorm]		 = COLOR;
+		_[Rgba16UInt]		 = COLOR;
+		_[Rgba16SNorm]		 = COLOR;
+		_[Rgba16SInt]		 = COLOR;
+		_[Rg32Float]		 = COLOR;
+		_[Rg32UInt]			 = COLOR;
+		_[Rg32SInt]			 = COLOR;
+		_[R32G8X24Typeless]	 = COLOR;
+		_[D32FloatS8X24UInt] = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		_[Rgb10A2UNorm]		 = COLOR;
+		_[Rgb10A2UInt]		 = COLOR;
+		_[Rg11B10Float]		 = COLOR;
+		_[Rgba8UNorm]		 = COLOR;
+		_[Rgba8UNormSrgb]	 = COLOR;
+		_[Rgba8UInt]		 = COLOR;
+		_[Rgba8SNorm]		 = COLOR;
+		_[Rgba8SInt]		 = COLOR;
+		_[Bgra8UNorm]		 = COLOR;
+		_[Bgra8UNormSrgb]	 = COLOR;
+		_[Rg16Float]		 = COLOR;
+		_[Rg16UNorm]		 = COLOR;
+		_[Rg16UInt]			 = COLOR;
+		_[Rg16SNorm]		 = COLOR;
+		_[Rg16SInt]			 = COLOR;
+		_[R32Typeless]		 = COLOR;
+		_[D32Float]			 = VK_IMAGE_ASPECT_DEPTH_BIT;
+		_[R32Float]			 = COLOR;
+		_[R32UInt]			 = COLOR;
+		_[R32SInt]			 = COLOR;
+		_[R24G8Typeless]	 = COLOR;
+		_[D24UNormS8UInt]	 = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+		_[Rg8UNorm]			 = COLOR;
+		_[Rg8UInt]			 = COLOR;
+		_[Rg8SNorm]			 = COLOR;
+		_[Rg8SInt]			 = COLOR;
+		_[R16Typeless]		 = COLOR;
+		_[R16Float]			 = COLOR;
+		_[D16UNorm]			 = VK_IMAGE_ASPECT_DEPTH_BIT;
+		_[R16UNorm]			 = COLOR;
+		_[R16UInt]			 = COLOR;
+		_[R16SNorm]			 = COLOR;
+		_[R16SInt]			 = COLOR;
+		_[R8UNorm]			 = COLOR;
+		_[R8UInt]			 = COLOR;
+		_[R8SNorm]			 = COLOR;
+		_[R8SInt]			 = COLOR;
+		_[Bc1UNorm]			 = COLOR;
+		_[Bc1UNormSrgb]		 = COLOR;
+		_[Bc2UNorm]			 = COLOR;
+		_[Bc2UNormSrgb]		 = COLOR;
+		_[Bc3UNorm]			 = COLOR;
+		_[Bc3UNormSrgb]		 = COLOR;
+		_[Bc4UNorm]			 = COLOR;
+		_[Bc4SNorm]			 = COLOR;
+		_[Bc5UNorm]			 = COLOR;
+		_[Bc5SNorm]			 = COLOR;
+		_[Bc6HUFloat16]		 = COLOR;
+		_[Bc6HSFloat16]		 = COLOR;
+		_[Bc7UNorm]			 = COLOR;
+		_[Bc7UNormSrgb]		 = COLOR;
+		return _;
+	}();
+
 	export class VulkanImage
 	{
 	public:
 		VulkanImage(ImageSpecification const& spec, DeviceApiTable const& api, VmaAllocator allocator)
-		{}
+		{
+			initialize_image(spec, allocator);
+			image.get_deleter().api = &api;
+			initialize_image_view(spec, api);
+		}
 
 		VkImage get_handle() const
 		{
@@ -216,5 +358,67 @@ namespace vt::vulkan
 		using UniqueVkImage = std::unique_ptr<VkImage, ImageDeleter>;
 
 		UniqueVkImage image;
+
+		void initialize_image(ImageSpecification const& spec, VmaAllocator allocator)
+		{
+			VmaAllocationCreateInfo const allocation_info {
+				.flags			= 0,
+				.usage			= VMA_MEMORY_USAGE_GPU_ONLY,
+				.requiredFlags	= 0,
+				.preferredFlags = 0,
+				.memoryTypeBits = 0,
+				.pool			= nullptr,
+				.pUserData		= nullptr,
+				.priority		= 0,
+			};
+			VkImageCreateInfo const image_info {
+				.sType	   = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+				.flags	   = derive_image_creation_flags(spec.dimension),
+				.imageType = IMAGE_DIMENSION_LOOKUP[spec.dimension],
+				.format	   = IMAGE_FORMAT_LOOKUP[spec.format],
+				.extent {
+					.width	= spec.expanse.width,
+					.height = spec.expanse.height,
+					.depth	= spec.expanse.depth,
+				},
+				.mipLevels			   = spec.mip_count,
+				.arrayLayers		   = spec.expanse.depth,
+				.samples			   = static_cast<VkSampleCountFlagBits>(spec.sample_count),
+				.tiling				   = VK_IMAGE_TILING_OPTIMAL,
+				.usage				   = convert_image_usage(spec.usage),
+				.sharingMode		   = VK_SHARING_MODE_EXCLUSIVE,
+				.queueFamilyIndexCount = 0,
+				.pQueueFamilyIndices   = nullptr,
+				.initialLayout		   = VK_IMAGE_LAYOUT_UNDEFINED,
+			};
+			auto result = vmaCreateImage(allocator, &image_info, &allocation_info, std::out_ptr(image),
+										 &image.get_deleter().allocation, nullptr);
+			VT_CHECK_RESULT(result, "Failed to create Vulkan image.");
+		}
+
+		void initialize_image_view(ImageSpecification const& spec, DeviceApiTable const& api)
+		{
+			VkImageViewCreateInfo const image_view_info {
+				.sType	  = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.image	  = image.get(),
+				.viewType = IMAGE_VIEW_TYPE_LOOKUP[spec.dimension],
+				.format	  = IMAGE_FORMAT_LOOKUP[spec.format],
+				.components {
+					.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+				},
+				.subresourceRange {
+					.aspectMask		= IMAGE_ASPECT_FLAGS_LOOKUP[spec.format],
+					.baseMipLevel	= 0,
+					.levelCount		= spec.mip_count,
+					.baseArrayLayer = 0,
+					.layerCount		= spec.expanse.depth,
+				},
+			};
+			auto result = api.vkCreateImageView(api.device, &image_view_info, nullptr, &image.get_deleter().image_view);
+			VT_CHECK_RESULT(result, "Failed to create Vulkan image view.");
+		}
 	};
 }

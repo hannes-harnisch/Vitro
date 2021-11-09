@@ -215,7 +215,7 @@ namespace vt::d3d12
 		ComUnique<ID3D12PipelineState> pipeline;
 	};
 
-	// TODO: Make subobject types get default-initialized with the correct value instead of later. MSVC crashes when trying it.
+	// TODO: Wait for compiler fix, then make subobject types get default-initialized with the correct value instead of later.
 	struct RenderPipelineStream
 	{
 		union
@@ -431,8 +431,8 @@ namespace vt::d3d12
 					.DepthBias			   = spec.rasterizer.depth_bias,
 					.DepthBiasClamp		   = spec.rasterizer.depth_bias_clamp,
 					.SlopeScaledDepthBias  = spec.rasterizer.depth_bias_slope,
-					.DepthClipEnable	   = spec.rasterizer.enable_depth_clip,
-					.ForcedSampleCount	   = spec.multisample.rasterizer_sample_count,
+					.DepthClipEnable	   = false,
+					.ForcedSampleCount	   = 0,
 				},
 				.type_8 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT,
 				.input_layout_desc {

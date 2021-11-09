@@ -19,7 +19,7 @@ namespace vt::vulkan
 		VulkanRenderTarget(RenderTargetSpecification const& spec, DeviceApiTable const& api)
 		{
 			auto attachments = fill_image_views(spec);
-			initialize_framebuffer(spec.render_pass, attachments, spec.width, spec.height, api);
+			initialize_framebuffer(spec.render_pass, attachments, {spec.width, spec.height}, api);
 		}
 
 		VulkanRenderTarget(SharedRenderTargetSpecification const& spec,
@@ -33,7 +33,7 @@ namespace vt::vulkan
 			auto swap_chain_img_view = swap_chain.vulkan.get_back_buffer_view(back_buffer_index);
 			attachments.emplace(swap_chain_img_dst, swap_chain_img_view);
 
-			initialize_framebuffer(spec.render_pass, attachments, swap_chain->get_width(), swap_chain->get_height(), api);
+			initialize_framebuffer(spec.render_pass, attachments, swap_chain->get_size(), api);
 		}
 
 		VkFramebuffer get_handle() const
@@ -49,8 +49,8 @@ namespace vt::vulkan
 			FixedList<VkImageView, MAX_ATTACHMENTS> image_views(spec.color_attachments.size());
 
 			auto image_view = image_views.begin();
-			for(auto attachment : spec.color_attachments)
-				*image_view++ = attachment->vulkan.get_view();
+			for(Image const& attachment : spec.color_attachments)
+				*image_view++ = attachment.vulkan.get_view();
 
 			if(spec.depth_stencil_attachment)
 				image_views.emplace_back(spec.depth_stencil_attachment->vulkan.get_view());
@@ -60,8 +60,7 @@ namespace vt::vulkan
 
 		void initialize_framebuffer(RenderPass const&							   render_pass,
 									FixedList<VkImageView, MAX_ATTACHMENTS> const& attachments,
-									unsigned									   width,
-									unsigned									   height,
+									Extent										   size,
 									DeviceApiTable const&						   api)
 		{
 			VkFramebufferCreateInfo const framebuffer_info {
@@ -69,8 +68,8 @@ namespace vt::vulkan
 				.renderPass		 = render_pass.vulkan.get_handle(),
 				.attachmentCount = count(attachments),
 				.pAttachments	 = attachments.data(),
-				.width			 = width,
-				.height			 = height,
+				.width			 = size.width,
+				.height			 = size.height,
 				.layers			 = 1,
 			};
 			auto result = api.vkCreateFramebuffer(api.device, &framebuffer_info, nullptr, std::out_ptr(framebuffer, api));

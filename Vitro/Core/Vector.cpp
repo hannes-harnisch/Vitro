@@ -384,7 +384,7 @@ namespace vt
 
 	export template<typename T, int D> constexpr auto sqrt(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) {
+		return apply(vec, [](T component) {
 			return std::sqrt(component);
 		});
 	}
@@ -396,21 +396,21 @@ namespace vt
 
 	export template<typename T, int D> constexpr auto sin(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) {
+		return apply(vec, [](T component) {
 			return std::sin(component);
 		});
 	}
 
 	export template<typename T, int D> constexpr auto cos(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) {
+		return apply(vec, [](T component) {
 			return std::cos(component);
 		});
 	}
 
 	export template<typename T, int D> constexpr auto abs(Vector<T, D> vec)
 	{
-		return apply(vec, [](auto component) {
+		return apply(vec, [](T component) {
 			return std::abs(component);
 		});
 	}

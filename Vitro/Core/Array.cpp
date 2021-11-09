@@ -53,7 +53,7 @@ namespace vt
 		ArrayView(std::ranges::contiguous_range auto const&&) = delete;
 
 	private:
-		static void on_zero_size()
+		[[noreturn]] static void on_zero_size()
 		{
 			throw std::invalid_argument("ArrayView cannot be of size zero.");
 		}
@@ -67,7 +67,7 @@ namespace vt
 	public:
 		using Base::Base;
 
-		ConstSpan() // TODO: remove after MSVC linker bug fix
+		ConstSpan() // TODO: wait for linker fix, then remove
 		{}
 
 		ConstSpan(T const& object) noexcept : Base(&object, 1)

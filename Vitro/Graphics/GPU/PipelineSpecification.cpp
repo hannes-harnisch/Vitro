@@ -151,10 +151,9 @@ namespace vt
 		PolygonFillMode		   fill_mode = PolygonFillMode::Solid;
 		Explicit<CullMode>	   cull_mode;
 		Explicit<WindingOrder> winding_order;
-		bool				   enable_depth_clip = true;
-		int					   depth_bias		 = 0;
-		float				   depth_bias_clamp	 = 0.0f;
-		float				   depth_bias_slope	 = 0.0f;
+		int					   depth_bias		= 0;
+		float				   depth_bias_clamp = 0.0f;
+		float				   depth_bias_slope = 0.0f;
 	};
 
 	export struct StencilOpState
@@ -182,7 +181,6 @@ namespace vt
 	{
 		unsigned		  sample_mask			   = ~0u;
 		Positive<uint8_t> sample_count			   = 1;
-		uint8_t			  rasterizer_sample_count  = 0;
 		bool			  enable_alpha_to_coverage = false;
 	};
 

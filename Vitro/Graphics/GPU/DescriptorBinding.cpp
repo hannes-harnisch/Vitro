@@ -22,7 +22,7 @@ namespace vt
 	};
 
 	export enum class ShaderStage : uint8_t {
-		Render, // Represents all stages of a render pipeline.
+		All,
 		Vertex,
 		Hull,
 		Domain,
@@ -93,8 +93,8 @@ namespace vt
 	{
 		Explicit<uint8_t>			shader_register;
 		Explicit<DescriptorType>	type;
-		ShaderStage					static_sampler_visibility = ShaderStage::Render; // Ignored if static_sampler_spec is null.
-		Positive<unsigned>			count					  = 1; // Ignored if static_sampler_spec is not null.
+		ShaderStage					static_sampler_visibility = ShaderStage::All; // Ignored if static_sampler_spec is null.
+		Positive<unsigned>			count					  = 1;				  // Ignored if static_sampler_spec is not null.
 		SamplerSpecification const* static_sampler_spec		  = nullptr;
 	};
 

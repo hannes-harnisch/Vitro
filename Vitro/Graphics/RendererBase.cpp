@@ -43,7 +43,7 @@ namespace vt
 		void recreate_shared_render_targets(SwapChain& swap_chain)
 		{
 			// First allow renderer to resize its own render targets.
-			on_render_target_resize(swap_chain->get_width(), swap_chain->get_height());
+			on_render_target_resize(swap_chain->get_size());
 
 			auto spec = specify_shared_render_target();
 
@@ -73,7 +73,7 @@ namespace vt
 		virtual SharedRenderTargetSpecification specify_shared_render_target() const = 0;
 
 		// Allows the renderer to respond to swap chain resizing, such as resizing intermediate render targets.
-		virtual void on_render_target_resize(unsigned width, unsigned height) = 0;
+		virtual void on_render_target_resize(Extent size) = 0;
 
 	private:
 		FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS> shared_targets;

@@ -2,8 +2,8 @@ module;
 #include "Core/Macros.hpp"
 #include "D3D12API.hpp"
 
+#include <algorithm>
 #include <atomic>
-#include <vector>
 export module vt.Graphics.D3D12.DescriptorSetLayout;
 
 import vt.Core.Array;
@@ -18,15 +18,15 @@ namespace vt::d3d12
 		using enum DescriptorType;
 
 		_[Sampler]			   = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
-		_[Texture]			   = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-		_[Buffer]			   = _[Texture];
-		_[StructuredBuffer]	   = _[Texture];
-		_[ByteAddressBuffer]   = _[Texture];
-		_[RwTexture]		   = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
-		_[RwBuffer]			   = _[RwTexture];
-		_[RwStructuredBuffer]  = _[RwTexture];
-		_[RwByteAddressBuffer] = _[RwTexture];
-		_[InputAttachment]	   = _[RwTexture];
+		_[Buffer]			   = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		_[Texture]			   = _[Buffer];
+		_[StructuredBuffer]	   = _[Buffer];
+		_[ByteAddressBuffer]   = _[Buffer];
+		_[RwBuffer]			   = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+		_[RwTexture]		   = _[RwBuffer];
+		_[RwStructuredBuffer]  = _[RwBuffer];
+		_[RwByteAddressBuffer] = _[RwBuffer];
+		_[InputAttachment]	   = _[RwBuffer];
 		_[UniformBuffer]	   = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 		return _;
 	}();
@@ -35,81 +35,17 @@ namespace vt::d3d12
 	{
 	public:
 		D3D12DescriptorSetLayout(DescriptorSetLayoutSpecification const& spec) :
-			parameter_type(determine_parameter_type(spec.bindings)), visibility(SHADER_STAGE_LOOKUP[spec.visibility])
+			id(id_counter++),
+			visibility(SHADER_STAGE_LOOKUP[spec.visibility]),
+			parameter_type(determine_parameter_type(spec)),
+			static_samplers(count_static_samplers(spec)),
+			descriptor_table_ranges(determine_descriptor_table_range_count(spec))
 		{
-			for(auto& binding : spec.bindings)
-				if(binding.static_sampler_spec)
-					static_samplers.emplace_back(convert_static_sampler_spec(*binding.static_sampler_spec,
-																			 binding.shader_register,
-																			 binding.static_sampler_visibility));
-
-			if(holds_descriptor_table())
-			{
-				std::construct_at(&table_ranges);
-				for(auto& binding : spec.bindings)
-				{
-					if(binding.static_sampler_spec)
-						continue;
-
-					table_ranges.emplace_back(D3D12_DESCRIPTOR_RANGE1 {
-						.RangeType						   = DESCRIPTOR_TYPE_LOOKUP[binding.type],
-						.NumDescriptors					   = binding.count,
-						.BaseShaderRegister				   = binding.shader_register,
-						.RegisterSpace					   = 0, // will be set during root signature creation
-						.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
-						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
-					});
-				}
-			}
+			initialize_static_samplers(spec);
+			if(is_descriptor_table())
+				initialize_descriptor_table_ranges(spec);
 			else
-			{
-				auto binding = spec.bindings[0];
-
-				D3D12_ROOT_DESCRIPTOR1 descriptor {
-					.ShaderRegister = binding.shader_register,
-					.RegisterSpace	= 0, // will be set during root signature creation
-					.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
-				};
-				std::construct_at(&root_descriptor, descriptor);
-			}
-		}
-
-		D3D12DescriptorSetLayout(D3D12DescriptorSetLayout&& that) noexcept :
-			id(that.id),
-			parameter_type(that.parameter_type),
-			visibility(that.visibility),
-			static_samplers(std::move(that.static_samplers))
-		{
-			if(holds_descriptor_table())
-				std::construct_at(&table_ranges, std::move(that.table_ranges));
-			else
-				std::construct_at(&root_descriptor, std::move(that.root_descriptor));
-		}
-
-		~D3D12DescriptorSetLayout()
-		{
-			if(holds_descriptor_table())
-				std::destroy_at(&table_ranges);
-		}
-
-		D3D12DescriptorSetLayout& operator=(D3D12DescriptorSetLayout&& that) noexcept
-		{
-			id				= that.id;
-			parameter_type	= that.parameter_type;
-			visibility		= that.visibility;
-			static_samplers = std::move(that.static_samplers);
-
-			if(holds_descriptor_table())
-				table_ranges = std::move(that.table_ranges);
-			else
-				root_descriptor = std::move(that.root_descriptor);
-
-			return *this;
-		}
-
-		bool holds_descriptor_table() const
-		{
-			return parameter_type == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+				root_descriptor_register = spec.bindings[0].shader_register;
 		}
 
 		unsigned get_id() const
@@ -122,25 +58,46 @@ namespace vt::d3d12
 			return visibility;
 		}
 
+		bool is_descriptor_table() const
+		{
+			return parameter_type == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		}
+
+		D3D12_ROOT_PARAMETER_TYPE get_root_parameter_type() const
+		{
+			return parameter_type;
+		}
+
 		ConstSpan<D3D12_STATIC_SAMPLER_DESC> get_static_sampler_descs() const
 		{
 			return static_samplers;
 		}
 
-		ConstSpan<D3D12_DESCRIPTOR_RANGE1> get_descriptor_ranges() const
+		ConstSpan<D3D12_DESCRIPTOR_RANGE1> get_descriptor_table_ranges() const
 		{
-			VT_ASSERT(holds_descriptor_table(), "This method should not be called on descriptor set layouts that hold "
-												"root descriptors.");
-			return table_ranges;
+			VT_ASSERT(is_descriptor_table(), "This method should not be called on descriptor set layouts that hold "
+											 "root descriptors.");
+			return descriptor_table_ranges;
+		}
+
+		size_t count_descriptor_table_ranges() const
+		{
+			VT_ASSERT(is_descriptor_table(), "This method should not be called on descriptor set layouts that hold "
+											 "root descriptors.");
+			return descriptor_table_ranges.size();
 		}
 
 		D3D12_ROOT_PARAMETER1 get_root_descriptor_parameter() const
 		{
-			VT_ASSERT(!holds_descriptor_table(), "This method should not be called on descriptor set layouts that hold "
-												 "descriptor tables.");
+			VT_ASSERT(!is_descriptor_table(), "This method should not be called on descriptor set layouts that hold "
+											  "descriptor tables.");
 			return {
-				.ParameterType	  = parameter_type,
-				.Descriptor		  = root_descriptor,
+				.ParameterType = parameter_type,
+				.Descriptor {
+					.ShaderRegister = root_descriptor_register,
+					.RegisterSpace	= 0, // Not the final value, will be set when creating root signature.
+					.Flags			= D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC,
+				},
 				.ShaderVisibility = visibility,
 			};
 		}
@@ -148,28 +105,25 @@ namespace vt::d3d12
 	private:
 		static inline std::atomic_uint id_counter = 0;
 
-		unsigned				  id = id_counter++;
-		D3D12_ROOT_PARAMETER_TYPE parameter_type : sizeof(char); // TODO: Replace with enum reflection when possible.
-		D3D12_SHADER_VISIBILITY	  visibility : sizeof(char);
-		std::vector<D3D12_STATIC_SAMPLER_DESC> static_samplers;
-		union
-		{
-			std::vector<D3D12_DESCRIPTOR_RANGE1> table_ranges;
-			D3D12_ROOT_DESCRIPTOR1				 root_descriptor;
-		};
+		unsigned						 id;
+		D3D12_SHADER_VISIBILITY			 visibility;
+		D3D12_ROOT_PARAMETER_TYPE		 parameter_type;
+		UINT							 root_descriptor_register;
+		Array<D3D12_STATIC_SAMPLER_DESC> static_samplers;
+		Array<D3D12_DESCRIPTOR_RANGE1>	 descriptor_table_ranges;
 
-		static D3D12_ROOT_PARAMETER_TYPE determine_parameter_type(ArrayView<DescriptorBinding> bindings)
+		static D3D12_ROOT_PARAMETER_TYPE determine_parameter_type(DescriptorSetLayoutSpecification const& spec)
 		{
 			// A resource binding is any binding that isn't a sampler.
 			auto is_resource_binding = [](DescriptorBinding const& binding) {
 				return binding.type != DescriptorType::Sampler;
 			};
-			auto candidate = std::find_if(bindings.begin(), bindings.end(), is_resource_binding);
-			if(candidate == bindings.end()) // If there are only sampler bindings, it can't be a root descriptor.
+			auto candidate = std::find_if(spec.bindings.begin(), spec.bindings.end(), is_resource_binding);
+			if(candidate == spec.bindings.end()) // If there are only sampler bindings, it can't be a root descriptor.
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
-			auto second = std::find_if(candidate, bindings.end(), is_resource_binding);
-			if(second != bindings.end()) // If there are multiple bindings of any type, it can't be a root descriptor.
+			auto second = std::find_if(candidate, spec.bindings.end(), is_resource_binding);
+			if(second != spec.bindings.end()) // If there are multiple bindings of any type, it can't be a root descriptor.
 				return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 
 			if(candidate->count != 1) // If a binding specifies multiple descriptors, it can't be a root descriptor.
@@ -189,6 +143,53 @@ namespace vt::d3d12
 				case InputAttachment: return D3D12_ROOT_PARAMETER_TYPE_UAV;
 			}
 			return D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		}
+
+		static size_t count_static_samplers(DescriptorSetLayoutSpecification const& spec)
+		{
+			size_t count = 0;
+
+			for(auto& binding : spec.bindings)
+				if(binding.static_sampler_spec)
+					++count;
+
+			return count;
+		}
+
+		size_t determine_descriptor_table_range_count(DescriptorSetLayoutSpecification const& spec) const
+		{
+			if(is_descriptor_table())
+				return spec.bindings.size() - static_samplers.size(); // Every binding that isn't a static sampler is suitable.
+			else
+				return 0;
+		}
+
+		void initialize_static_samplers(DescriptorSetLayoutSpecification const& spec)
+		{
+			auto sampler = static_samplers.begin();
+			for(auto& binding : spec.bindings)
+				if(binding.static_sampler_spec)
+					*sampler++ = convert_static_sampler_spec(*binding.static_sampler_spec, binding.shader_register,
+															 binding.static_sampler_visibility);
+		}
+
+		void initialize_descriptor_table_ranges(DescriptorSetLayoutSpecification const& spec)
+		{
+			auto range = descriptor_table_ranges.begin();
+			for(auto& binding : spec.bindings)
+			{
+				if(binding.static_sampler_spec)
+					continue;
+
+				*range++ = D3D12_DESCRIPTOR_RANGE1 {
+					.RangeType						   = DESCRIPTOR_TYPE_LOOKUP[binding.type],
+					.NumDescriptors					   = binding.count,
+					.BaseShaderRegister				   = binding.shader_register,
+					.RegisterSpace					   = 0, // Not the final value, will be set when creating root signature.
+					.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
+					.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
+				};
+			}
 		}
 	};
 }

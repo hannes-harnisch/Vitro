@@ -10,9 +10,9 @@ import vt.App.EventSystem;
 import vt.App.Window;
 import vt.App.WindowEvent;
 import vt.App.Windows.Window;
-import vt.Core.Array;
 import vt.Core.LookupTable;
 import vt.Core.Rect;
+import vt.Core.SmallList;
 import vt.Core.Vector;
 import vt.Core.Windows.Utils;
 import vt.Trace.Log;
@@ -337,7 +337,7 @@ namespace vt::windows
 			UINT result = ::GetRawInputData(input_handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
 			VT_ENSURE(result != -1, "Failed to query raw input data size.");
 
-			Array<BYTE> bytes(size);
+			SmallList<BYTE> bytes(size);
 			result = ::GetRawInputData(input_handle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
 			VT_ENSURE(result != -1, "Failed to read raw input data.");
 

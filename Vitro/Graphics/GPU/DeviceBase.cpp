@@ -4,7 +4,9 @@ export module vt.Graphics.DeviceBase;
 
 import vt.App.Window;
 import vt.Core.Array;
+import vt.Core.Ref;
 import vt.Core.SmallList;
+import vt.Core.Specification;
 import vt.Graphics.AssetResource;
 import vt.Graphics.CommandList;
 import vt.Graphics.DescriptorBinding;
@@ -21,6 +23,20 @@ import vt.Graphics.SwapChain;
 
 namespace vt
 {
+	// Describes an update to a single binding of one descriptor set. Multiple descriptors in the same binding can be update
+	export struct DescriptorUpdate
+	{
+		DescriptorSet&	   set;
+		Explicit<unsigned> binding;
+		unsigned		   start_array_index = 0;
+		union
+		{
+			ConstSpan<CRef<Image>>	 images;
+			ConstSpan<CRef<Sampler>> samplers;
+			ConstSpan<CRef<Buffer>>	 buffers;
+		};
+	};
+
 	export class DeviceBase
 	{
 	public:
@@ -68,6 +84,9 @@ namespace vt
 
 		// Makes a swap chain associated with the given window.
 		virtual SwapChain make_swap_chain(Window& window, uint8_t buffer_count = SwapChain::DEFAULT_BUFFERS) = 0;
+
+		// Update descriptor sets, associating them with new resources.
+		virtual void update_descriptors(ArrayView<DescriptorUpdate> updates) = 0;
 
 		// Returns a writable pointer to the GPU memory backing the given buffer.
 		virtual void* map(Buffer const& buffer) = 0;
@@ -144,7 +163,8 @@ namespace vt
 									unsigned							   back_buffer_index)
 		{
 			recreate_platform_render_target(render_target, spec, swap_chain, back_buffer_index);
-			update_render_target_size(render_target, swap_chain->get_width(), swap_chain->get_height());
+			auto [width, height] = swap_chain->get_size();
+			update_render_target_size(render_target, width, height);
 		}
 
 	private:

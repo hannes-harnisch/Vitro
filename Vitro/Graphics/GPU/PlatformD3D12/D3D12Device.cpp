@@ -83,9 +83,9 @@ namespace vt::d3d12
 			return pipelines;
 		}
 
-		SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout>) override
+		SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts) override
 		{
-			return {};
+			return descriptor_pool.make_descriptor_sets(set_layouts);
 		}
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
@@ -117,6 +117,9 @@ namespace vt::d3d12
 		{
 			return D3D12SwapChain(render_queue, *factory, window, buffer_count);
 		}
+
+		void update_descriptors(ArrayView<DescriptorUpdate>) override
+		{}
 
 		void* map(Buffer const& buffer) override
 		{
@@ -234,15 +237,14 @@ namespace vt::d3d12
 
 		RenderTarget make_platform_render_target(RenderTargetSpecification const& spec) override
 		{
-			return {D3D12RenderTarget(spec, *device, descriptor_pool), spec.width, spec.height};
+			return {D3D12RenderTarget(spec, *device, descriptor_pool), {spec.width, spec.height}};
 		}
 
 		RenderTarget make_platform_render_target(SharedRenderTargetSpecification const& spec,
 												 SwapChain const&						swap_chain,
 												 unsigned								back_buffer_index) override
 		{
-			return {D3D12RenderTarget(spec, swap_chain, back_buffer_index, *device, descriptor_pool), swap_chain->get_width(),
-					swap_chain->get_height()};
+			return {D3D12RenderTarget(spec, swap_chain, back_buffer_index, *device, descriptor_pool), swap_chain->get_size()};
 		}
 
 		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override

@@ -31,13 +31,13 @@ namespace vt::vulkan
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		VulkanRootSignature const* bound_compute_layout = nullptr;
+		VulkanRootSignature const* bound_compute_signature = nullptr;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		VulkanRootSignature const* bound_render_layout = nullptr;
+		VulkanRootSignature const* bound_render_signature = nullptr;
 	};
 
 	export template<CommandType TYPE>
@@ -105,14 +105,14 @@ namespace vt::vulkan
 		{
 			VkImageCopy const copy {
 				.srcSubresource {
-					.aspectMask		= extract_image_aspect_flags(src),
+					.aspectMask		= IMAGE_ASPECT_FLAGS_LOOKUP[src.get_format()],
 					.mipLevel		= 0,
 					.baseArrayLayer = 0,
 					.layerCount		= 1,
 				},
 				.srcOffset = {0, 0, 0},
 				.dstSubresource {
-					.aspectMask		= extract_image_aspect_flags(dst),
+					.aspectMask		= IMAGE_ASPECT_FLAGS_LOOKUP[dst.get_format()],
 					.mipLevel		= 0,
 					.baseArrayLayer = 0,
 					.layerCount		= 1,
@@ -135,7 +135,7 @@ namespace vt::vulkan
 				.bufferRowLength   = 0, // Zero here means the layout is the same as the destination image extent.
 				.bufferImageHeight = 0,
 				.imageSubresource {
-					.aspectMask		= extract_image_aspect_flags(dst),
+					.aspectMask		= IMAGE_ASPECT_FLAGS_LOOKUP[dst.get_format()],
 					.mipLevel		= 0,
 					.baseArrayLayer = 0,
 					.layerCount		= 1,
@@ -170,7 +170,7 @@ namespace vt::vulkan
 		{
 			VkImageCopy const copy {
 				.srcSubresource {
-					.aspectMask		= extract_image_aspect_flags(src),
+					.aspectMask		= IMAGE_ASPECT_FLAGS_LOOKUP[src.get_format()],
 					.mipLevel		= region.src_mip,
 					.baseArrayLayer = region.src_array_index,
 					.layerCount		= 1,
@@ -181,7 +181,7 @@ namespace vt::vulkan
 					.z = static_cast<int>(region.src_offset.z),
 				},
 				.dstSubresource {
-					.aspectMask		= extract_image_aspect_flags(dst),
+					.aspectMask		= IMAGE_ASPECT_FLAGS_LOOKUP[dst.get_format()],
 					.mipLevel		= region.dst_mip,
 					.baseArrayLayer = region.dst_array_index,
 					.layerCount		= 1,
@@ -208,18 +208,22 @@ namespace vt::vulkan
 
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
-			this->bound_compute_layout = &root_signature.vulkan;
+			this->bound_compute_signature = &root_signature.vulkan;
 		}
 
 		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_COMPUTE, *this->bound_compute_layout, descriptor_sets);
+			auto& signature = *this->bound_compute_signature;
+			auto  layout	= signature.get_compute_layout_handle();
+			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_COMPUTE, signature, layout, descriptor_sets);
 		}
 
 		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			api->vkCmdPushConstants(cmd, this->bound_compute_layout->get_handle(), VK_SHADER_STAGE_COMPUTE_BIT,
-									static_cast<uint32_t>(byte_offset), static_cast<uint32_t>(byte_size), data);
+			auto	 layout = this->bound_compute_signature->get_compute_layout_handle();
+			uint32_t offset = static_cast<uint32_t>(byte_offset);
+			uint32_t size	= static_cast<uint32_t>(byte_size);
+			api->vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_COMPUTE_BIT, offset, size, data);
 		}
 
 		void dispatch(unsigned x_count, unsigned y_count, unsigned z_count)
@@ -273,19 +277,23 @@ namespace vt::vulkan
 
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
-			this->bound_render_layout = &root_signature.vulkan;
+			this->bound_render_signature = &root_signature.vulkan;
 		}
 
 		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_GRAPHICS, *this->bound_render_layout, descriptor_sets);
+			auto& signature = *this->bound_render_signature;
+			auto  layout	= signature.get_render_layout_handle();
+			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_GRAPHICS, signature, layout, descriptor_sets);
 		}
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			auto stages = this->bound_render_layout->get_push_constant_stages();
-			api->vkCmdPushConstants(cmd, this->bound_render_layout->get_handle(), stages, static_cast<uint32_t>(byte_offset),
-									static_cast<uint32_t>(byte_size), data);
+			auto	 layout = this->bound_render_signature->get_render_layout_handle();
+			auto	 stages = this->bound_render_signature->get_render_push_constant_stages();
+			uint32_t offset = static_cast<uint32_t>(byte_offset);
+			uint32_t size	= static_cast<uint32_t>(byte_size);
+			api->vkCmdPushConstants(cmd, layout, stages, offset, size, data);
 		}
 
 		void bind_vertex_buffers(unsigned first_buffer, ArrayView<Buffer> buffers, ArrayView<size_t> byte_offsets)
@@ -325,7 +333,7 @@ namespace vt::vulkan
 
 		void set_scissors(ArrayView<Rectangle> scissors)
 		{
-			// static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>); // TODO: await type trait fix in MSVC
+			// static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>); // TODO: Wait for compiler fix, then uncomment
 
 			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());
 			api->vkCmdSetScissor(cmd, 0, count(scissors), data);
@@ -375,12 +383,6 @@ namespace vt::vulkan
 		UniqueVkCommandPool	  pool;
 		VkCommandBuffer		  cmd;
 
-		static VkImageAspectFlags extract_image_aspect_flags(Image const& image)
-		{
-			return image.is_depth_stencil() ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT
-											: VK_IMAGE_ASPECT_COLOR_BIT;
-		}
-
 		static VkIndexType get_index_type_from_stride(unsigned stride)
 		{
 			switch(stride)
@@ -393,11 +395,11 @@ namespace vt::vulkan
 
 		void bind_descriptor_sets(VkPipelineBindPoint		 bind_point,
 								  VulkanRootSignature const& root_signature,
+								  VkPipelineLayout			 layout,
 								  ArrayView<DescriptorSet>	 descriptor_sets) const
 		{
 			SmallList<VkDescriptorSet> sets;
 			sets.reserve(descriptor_sets.size());
-			auto layout = root_signature.get_handle();
 
 			sets.emplace_back(descriptor_sets[0].vulkan.get_handle());
 			uint32_t start_index = root_signature.get_layout_index(descriptor_sets[0].vulkan.get_layout());

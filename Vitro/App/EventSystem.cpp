@@ -11,6 +11,7 @@ module;
 export module vt.App.EventSystem;
 
 import vt.Core.ConcurrentQueue;
+import vt.Core.Reflect;
 import vt.Core.Singleton;
 import vt.Trace.Log;
 
@@ -26,16 +27,15 @@ namespace vt
 	public:
 		template<typename T, typename... Ts> static void notify(Ts&&... ts)
 		{
-			get().dispatch_event(T {std::forward<Ts>(ts)...}, typeid(T));
+			T event {std::forward<Ts>(ts)...};
+			// Log().verbose(name_of(event), ": ", event);
+			get().dispatch_event(std::move(event), typeid(T));
 		}
 
 		template<typename T, typename... Ts> static void notify_async(Ts&&... ts)
 		{
 			static_assert(ALLOW_ASYNC_DISPATCH_FOR<T>, "This type is not allowed to be used as an async event.");
-
-			T event {std::forward<Ts>(ts)...};
-			Log().verbose(event);
-			get().enqueue_async_event(std::move(event));
+			get().enqueue_async_event(T {std::forward<Ts>(ts)...});
 		}
 
 	private:

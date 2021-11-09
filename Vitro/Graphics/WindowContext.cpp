@@ -59,9 +59,9 @@ namespace vt
 		{
 			device->flush_render_queue();
 			swap_chain->resize(window_size);
-			window.enable_resize();
-
 			renderer->recreate_shared_render_targets(swap_chain);
+
+			window.enable_resize();
 			swap_chain_invalid = false;
 		}
 	};

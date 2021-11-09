@@ -81,7 +81,7 @@ namespace vt
 		}
 
 	private:
-		static const inline Float3 DEFAULT_RIGHT   = {1, 0, 0}; // TODO: change to constexpr once compiler fixed
+		static const inline Float3 DEFAULT_RIGHT   = {1, 0, 0}; // TODO: wait for compiler fix, then change to constexpr
 		static const inline Float3 DEFAULT_UP	   = {0, 1, 0};
 		static const inline Float3 DEFAULT_FORWARD = {0, 0, 1};
 

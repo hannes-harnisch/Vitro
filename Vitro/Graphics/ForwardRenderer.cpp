@@ -111,8 +111,11 @@ namespace vt
 			};
 		}
 
-		void on_render_target_resize(unsigned, unsigned) override
-		{}
+		void on_render_target_resize(Extent size) override
+		{
+			depth_images.clear();
+			initialize_depth_image(size);
+		}
 
 	private:
 		Camera							 cam;
@@ -153,7 +156,7 @@ namespace vt
 						.format			= ImageFormat::D32Float,
 						.load_op		= ImageLoadOp::Clear,
 						.store_op		= ImageStoreOp::Store,
-						.initial_layout = ImageLayout::DepthStencilAttachment,
+						.initial_layout = ImageLayout::Undefined,
 						.final_layout	= ImageLayout::DepthStencilAttachment,
 					},
 				},
@@ -166,7 +169,7 @@ namespace vt
 		{
 			RootSignatureSpecification const root_sig_spec {
 				.push_constants_byte_size  = sizeof(Float4) + sizeof(Float4x4),
-				.push_constants_visibility = ShaderStage::Render,
+				.push_constants_visibility = ShaderStage::All,
 			};
 			auto& sig = root_signatures.emplace_back(device->make_root_signature(root_sig_spec));
 
@@ -193,7 +196,7 @@ namespace vt
 				.primitive_topology = PrimitiveTopology::TriangleList,
 				.subpass_index		= 0,
 				.rasterizer {
-					.cull_mode	   = CullMode::None,
+					.cull_mode	   = CullMode::Back,
 					.winding_order = WindingOrder::Clockwise,
 				},
 				.blend {
@@ -259,11 +262,11 @@ namespace vt
 		void initialize_depth_image(Extent size)
 		{
 			ImageSpecification const spec {
+				.expanse   = {size.width, size.height},
 				.dimension = ImageDimension::Image2D,
 				.format	   = ImageFormat::D32Float,
-				.mip_count = 0,
+				.mip_count = 1,
 				.usage	   = ImageUsage::DepthStencil,
-				.expanse   = {size.width, size.height, 1},
 			};
 			depth_images.emplace_back(device->make_image(spec));
 		}

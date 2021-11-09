@@ -13,7 +13,7 @@ namespace vt
 {
 	export void on_failure(std::string_view message)
 	{
-		auto text = std::format("Fatal error: {}", message);
+		auto text = std::format("\n\n\nFatal error: {}", message);
 		std::puts(text.data());
 		VT_SYSTEM_NAME::show_error_message_box("Fatal error", message);
 	}

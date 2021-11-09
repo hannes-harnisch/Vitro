@@ -254,7 +254,7 @@ namespace vt
 
 		std::string to_string() const
 		{
-			// TODO: stringstream?
+			// TODO: wait for linker fix, then stringstream
 			auto str = std::format("[{}", rows[0].to_string());
 
 			for(int r = 1; r != R; ++r)

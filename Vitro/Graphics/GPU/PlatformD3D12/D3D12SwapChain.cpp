@@ -81,14 +81,9 @@ namespace vt::d3d12
 			return buffer_count;
 		}
 
-		unsigned get_width() const override
+		Extent get_size() const override
 		{
-			return buffer_size.width;
-		}
-
-		unsigned get_height() const override
-		{
-			return buffer_size.height;
+			return buffer_size;
 		}
 
 		void resize(Extent size) override

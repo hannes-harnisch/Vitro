@@ -125,6 +125,10 @@ namespace vt
 		Image1D,
 		Image2D,
 		Image3D,
+		Cube,
+		Array1D,
+		Array2D,
+		CubeArray,
 	};
 
 	export enum class ImageUsage : uint8_t {
@@ -143,12 +147,12 @@ namespace vt
 	// count of an image array.
 	export struct ImageSpecification
 	{
+		Explicit<Expanse>		 expanse;
 		Explicit<ImageDimension> dimension;
 		Explicit<ImageFormat>	 format;
-		uint8_t					 mip_count	  = calc_default_mip_count();
+		Positive<uint8_t>		 mip_count	  = calc_default_mip_count();
 		uint8_t					 sample_count = 1;
 		Explicit<ImageUsage>	 usage;
-		Explicit<Expanse>		 expanse;
 
 		uint8_t calc_default_mip_count() const
 		{

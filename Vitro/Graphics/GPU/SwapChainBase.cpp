@@ -20,8 +20,7 @@ namespace vt
 		virtual unsigned	get_current_image_index() const = 0;
 		virtual unsigned	count_presents() const			= 0;
 		virtual unsigned	count_buffers() const			= 0;
-		virtual unsigned	get_width() const				= 0;
-		virtual unsigned	get_height() const				= 0;
+		virtual Extent		get_size() const				= 0;
 		virtual void		resize(Extent size)				= 0;
 		virtual void		enable_vsync()					= 0;
 		virtual void		disable_vsync()					= 0;

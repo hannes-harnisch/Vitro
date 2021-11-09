@@ -35,16 +35,13 @@ namespace vt::vulkan
 		return _;
 	}();
 
-	export class VulkanRenderPass
+	// Helper struct for initializing and representing the list of Vulkan attachment descriptions, which can't be larger than
+	// the maximum number of attachments.
+	struct AttachmentDescriptionList : FixedList<VkAttachmentDescription, MAX_ATTACHMENTS>
 	{
-	public:
-		VulkanRenderPass(RenderPassSpecification const& spec, DeviceApiTable const& api)
+		AttachmentDescriptionList(RenderPassSpecification const& spec) : FixedList(spec.attachments.size())
 		{
-			bool const uses_depth_stencil = spec.uses_depth_stencil_attachment();
-
-			FixedList<VkAttachmentDescription, MAX_ATTACHMENTS> attachments(spec.attachments.size());
-
-			auto attachment_desc = attachments.begin();
+			auto attachment_desc = begin();
 			for(auto attachment : spec.attachments)
 				*attachment_desc++ = VkAttachmentDescription {
 					.format			= IMAGE_FORMAT_LOOKUP[attachment.format],
@@ -56,26 +53,26 @@ namespace vt::vulkan
 					.initialLayout	= IMAGE_LAYOUT_LOOKUP[attachment.initial_layout],
 					.finalLayout	= IMAGE_LAYOUT_LOOKUP[attachment.final_layout],
 				};
+		}
+	};
 
+	export class VulkanRenderPass
+	{
+	public:
+		VulkanRenderPass(RenderPassSpecification const& spec, DeviceApiTable const& api)
+		{
+			bool const uses_depth_stencil = spec.uses_depth_stencil_attachment();
+
+			AttachmentDescriptionList		 attachments(spec);
 			SmallList<VkSubpassDescription>	 subpasses(spec.subpasses.size());
 			SmallList<VkAttachmentReference> refs(count_attachment_refs(spec)); // Pointers to elements in this must stay valid.
 			SmallList<uint32_t>				 preserves(count_preserve_attachments(spec));
-
-			SmallList<VkSubpassDependency> dependencies(spec.subpasses.size() + 1);
-			dependencies[0] = VkSubpassDependency {
-				.srcSubpass		 = VK_SUBPASS_EXTERNAL,
-				.dstSubpass		 = 0,
-				.srcStageMask	 = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				.dstStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				.srcAccessMask	 = VK_ACCESS_MEMORY_READ_BIT,
-				.dstAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
-			};
+			SmallList<VkSubpassDependency>	 dependencies;
+			assign_initial_external_dependencies(dependencies);
 
 			auto subpass_desc = subpasses.begin();
 			auto ref		  = refs.begin();
 			auto preserve	  = preserves.begin();
-			auto dependency	  = dependencies.begin() + 1; // Assigning must begin after the one that was already assigned.
 
 			uint32_t subpass_index		  = 0;
 			uint32_t attachment_ref_count = 0;
@@ -142,9 +139,9 @@ namespace vt::vulkan
 					else
 						layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-					*ref++ = VkAttachmentReference {count(uses) - 1, layout};
+					*ref = VkAttachmentReference {count(uses) - 1, layout};
 					++attachment_ref_count;
-					depth_stencil = &*ref;
+					depth_stencil = &*ref++;
 				}
 
 				uint32_t preserve_count_begin = preserve_count;
@@ -166,40 +163,12 @@ namespace vt::vulkan
 					.pPreserveAttachments	 = preserves.data() + preserve_count_begin,
 				};
 				if(requires_self_dependency)
-					*dependency++ = VkSubpassDependency {
-						.srcSubpass		 = subpass_index,
-						.dstSubpass		 = subpass_index,
-						.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-						.dstStageMask	 = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-						.srcAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-						.dstAccessMask	 = VK_ACCESS_SHADER_READ_BIT,
-						.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
-					};
-
+					dependencies.emplace_back(get_self_dependency(subpass_index));
 				if(subpass_index) // Skip assigning dependency on the first iteration.
-					*dependency++ = VkSubpassDependency {
-						.srcSubpass		 = subpass_index - 1,
-						.dstSubpass		 = subpass_index,
-						.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-						.dstStageMask	 = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-						.srcAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-						.dstAccessMask	 = VK_ACCESS_SHADER_READ_BIT,
-						.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
-					};
-
+					dependencies.emplace_back(get_regular_dependency(subpass_index));
 				++subpass_index;
 			}
-
-			// Assign final subpass dependency towards the external subpass.
-			*dependency++ = VkSubpassDependency {
-				.srcSubpass		 = subpass_index - 1,
-				.dstSubpass		 = VK_SUBPASS_EXTERNAL,
-				.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				.dstStageMask	 = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				.srcAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-				.dstAccessMask	 = VK_ACCESS_MEMORY_READ_BIT,
-				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
-			};
+			dependencies.emplace_back(get_final_external_dependency(subpass_index));
 
 			VkRenderPassCreateInfo const render_pass_info {
 				.sType			 = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -240,6 +209,68 @@ namespace vt::vulkan
 				count += subpass.preserve_attachments.size();
 
 			return count;
+		}
+
+		static void assign_initial_external_dependencies(SmallList<VkSubpassDependency>& dependencies)
+		{
+			dependencies.emplace_back(VkSubpassDependency {
+				.srcSubpass		 = VK_SUBPASS_EXTERNAL,
+				.dstSubpass		 = 0,
+				.srcStageMask	 = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				.dstStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.srcAccessMask	 = VK_ACCESS_MEMORY_READ_BIT,
+				.dstAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
+			});
+			dependencies.emplace_back(VkSubpassDependency {
+				.srcSubpass		 = VK_SUBPASS_EXTERNAL,
+				.dstSubpass		 = 0,
+				.srcStageMask	 = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+				.dstStageMask	 = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+				.srcAccessMask	 = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				.dstAccessMask	 = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
+			});
+		}
+
+		static VkSubpassDependency get_final_external_dependency(uint32_t subpass_index)
+		{
+			return {
+				.srcSubpass		 = subpass_index - 1,
+				.dstSubpass		 = VK_SUBPASS_EXTERNAL,
+				.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.dstStageMask	 = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				.srcAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				.dstAccessMask	 = VK_ACCESS_MEMORY_READ_BIT,
+				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
+			};
+		}
+
+		static VkSubpassDependency get_self_dependency(uint32_t subpass_index)
+		{
+			return {
+				.srcSubpass		 = subpass_index,
+				.dstSubpass		 = subpass_index,
+				.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.dstStageMask	 = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				.srcAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				.dstAccessMask	 = VK_ACCESS_SHADER_READ_BIT,
+				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
+			};
+		}
+
+		// TODO: Can this be refined to be more fine-grained towards how attachments are written and read between subpasses?
+		static VkSubpassDependency get_regular_dependency(uint32_t subpass_index)
+		{
+			return {
+				.srcSubpass		 = subpass_index - 1,
+				.dstSubpass		 = subpass_index,
+				.srcStageMask	 = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+				.dstStageMask	 = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+				.srcAccessMask	 = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+				.dstAccessMask	 = VK_ACCESS_SHADER_READ_BIT,
+				.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT,
+			};
 		}
 	};
 }

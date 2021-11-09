@@ -87,12 +87,19 @@ namespace vt::d3d12
 	// Used only while creating a D3D12 render pass. Tracks what state a resource is expected to be in when a subpass begins.
 	struct ResourceStateList : FixedList<D3D12_RESOURCE_STATES, MAX_ATTACHMENTS>
 	{
-		ResourceStateList(RenderPassSpecification const& spec) :
-			FixedList<D3D12_RESOURCE_STATES, MAX_ATTACHMENTS>(spec.attachments.size())
+		ResourceStateList(RenderPassSpecification const& spec) : FixedList(spec.attachments.size())
 		{
-			auto current_layout = begin();
+			auto current_state = begin();
 			for(auto attachment : spec.attachments)
-				*current_layout++ = IMAGE_LAYOUT_LOOKUP[attachment.initial_layout];
+			{
+				D3D12_RESOURCE_STATES state;
+				if(attachment.final_layout == ImageLayout::DepthStencilAttachment)
+					state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+				else
+					state = IMAGE_LAYOUT_LOOKUP[attachment.initial_layout];
+
+				*current_state++ = state;
+			}
 		}
 	};
 

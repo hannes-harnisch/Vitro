@@ -95,14 +95,14 @@ namespace vt::d3d12
 		_[Fragment]		= D3D12_SHADER_VISIBILITY_PIXEL;
 		_[Task]			= D3D12_SHADER_VISIBILITY_AMPLIFICATION;
 		_[Mesh]			= D3D12_SHADER_VISIBILITY_MESH;
-		_[Render]		= D3D12_SHADER_VISIBILITY_ALL;
-		_[Compute]		= _[Render];
-		_[RayGen]		= _[Render];
-		_[AnyHit]		= _[Render];
-		_[ClosestHit]	= _[Render];
-		_[Miss]			= _[Render];
-		_[Intersection] = _[Render];
-		_[Callable]		= _[Render];
+		_[All]			= D3D12_SHADER_VISIBILITY_ALL;
+		_[Compute]		= _[All];
+		_[RayGen]		= _[All];
+		_[AnyHit]		= _[All];
+		_[ClosestHit]	= _[All];
+		_[Miss]			= _[All];
+		_[Intersection] = _[All];
+		_[Callable]		= _[All];
 		return _;
 	}();
 

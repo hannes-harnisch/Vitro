@@ -210,7 +210,12 @@ namespace vt::d3d12
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						cmd->SetComputeRootDescriptorTable(index, set.d3d12.get_table_handle());
+						auto view_table	   = set.d3d12.get_view_table_start();
+						auto sampler_table = set.d3d12.get_sampler_table_start();
+						if(view_table.ptr)
+							cmd->SetComputeRootDescriptorTable(index, view_table);
+						if(sampler_table.ptr)
+							cmd->SetComputeRootDescriptorTable(index, sampler_table);
 						break;
 					case D3D12_ROOT_PARAMETER_TYPE_CBV:
 						cmd->SetComputeRootConstantBufferView(index, set.d3d12.get_gpu_address());
@@ -317,7 +322,12 @@ namespace vt::d3d12
 				switch(set.d3d12.get_parameter_type())
 				{
 					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						cmd->SetGraphicsRootDescriptorTable(index, set.d3d12.get_table_handle());
+						auto view_table	   = set.d3d12.get_view_table_start();
+						auto sampler_table = set.d3d12.get_sampler_table_start();
+						if(view_table.ptr)
+							cmd->SetGraphicsRootDescriptorTable(index, view_table);
+						if(sampler_table.ptr)
+							cmd->SetGraphicsRootDescriptorTable(index, sampler_table);
 						break;
 					case D3D12_ROOT_PARAMETER_TYPE_CBV:
 						cmd->SetGraphicsRootConstantBufferView(index, set.d3d12.get_gpu_address());

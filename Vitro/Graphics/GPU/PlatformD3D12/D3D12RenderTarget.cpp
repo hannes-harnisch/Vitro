@@ -5,6 +5,7 @@ module;
 #include <ranges>
 export module vt.Graphics.D3D12.RenderTarget;
 
+import vt.Core.Ref;
 import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.AssetResource;
@@ -156,10 +157,10 @@ namespace vt::d3d12
 			return descriptor_allocation.get_deleter().depth_stencil_view;
 		}
 
-		void initialize_resource_ptrs(ConstSpan<Image const*> color_attachments)
+		void initialize_resource_ptrs(ConstSpan<CRef<Image>> color_attachments)
 		{
-			for(auto attachment : color_attachments)
-				resources[increment()] = attachment->d3d12.get_resource();
+			for(Image const& attachment : color_attachments)
+				resources[increment()] = attachment.d3d12.get_resource();
 		}
 
 		void emplace_swap_chain_resource(SwapChain const& swap_chain, unsigned back_buffer_index, unsigned dst_index)

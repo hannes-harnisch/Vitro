@@ -2,7 +2,7 @@
 
 #if VT_GPU_API_D3D12
 
-	#define PUSH_CONST(TYPE, NAME) ConstantBuffer<TYPE> NAME : register(b0, space0)
+	#define PUSH_CONST(TYPE, NAME) ConstantBuffer<TYPE> NAME : register(b0, space4294967279)
 	#define INPUT_ATTACHMENT(TYPE)
 
 #elif VT_GPU_API_VULKAN

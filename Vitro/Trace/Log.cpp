@@ -88,22 +88,22 @@ namespace vt
 	public:
 		static void disable_channel(LogChannel channel)
 		{
-			get().atomically_set_disabled_channels(channel, true);
+			get().disabled_channels.set(channel, true);
 		}
 
 		static void enable_channel(LogChannel channel)
 		{
-			get().atomically_set_disabled_channels(channel, false);
+			get().disabled_channels.set(channel, false);
 		}
 
 		static void disable_level(LogLevel level)
 		{
-			get().atomically_set_disabled_levels(level, true);
+			get().disabled_levels.set(level, true);
 		}
 
 		static void enable_level(LogLevel level)
 		{
-			get().atomically_set_disabled_levels(level, false);
+			get().disabled_levels.set(level, false);
 		}
 
 		Logger() : con_token(queue), log_worker(&Logger::run_log_processing, this)
@@ -123,18 +123,18 @@ namespace vt
 			stdc::system_clock::duration time;
 			std::string					 message;
 		};
-		ConcurrentQueue<Entry>				  queue;
-		ConsumerToken						  con_token;
-		std::mutex							  mutex;
-		std::condition_variable				  condition;
-		std::atomic<EnumBitArray<LogChannel>> disabled_channels;
-		std::atomic<EnumBitArray<LogLevel>>	  disabled_levels;
-		std::atomic_bool					  is_accepting_logs = true;
-		std::jthread						  log_worker;
+		ConcurrentQueue<Entry>		   queue;
+		ConsumerToken				   con_token;
+		std::mutex					   mutex;
+		std::condition_variable		   condition;
+		AtomicEnumBitArray<LogChannel> disabled_channels;
+		AtomicEnumBitArray<LogLevel>   disabled_levels;
+		std::atomic_bool			   is_accepting_logs = true;
+		std::jthread				   log_worker;
 
 		template<typename... Ts> static std::string make_message(Ts&&... ts)
 		{
-			// TODO: switch to stringstream after linker fix
+			// TODO: wait for linker fix, then stringstream
 			std::string str;
 			((str += prepare_argument(std::forward<Ts>(ts))), ...);
 			return str;
@@ -166,30 +166,14 @@ namespace vt
 			condition.notify_one();
 		}
 
-		void atomically_set_disabled_channels(LogChannel channel, bool value)
-		{
-			// TODO: this can tear
-			auto channels = disabled_channels.load();
-			channels.set(channel, value);
-			disabled_channels.store(channels);
-		}
-
-		void atomically_set_disabled_levels(LogLevel level, bool value)
-		{
-			// TODO: this can tear
-			auto levels = disabled_levels.load();
-			levels.set(level, value);
-			disabled_levels.store(levels);
-		}
-
 		bool is_channel_disabled(LogChannel channel) const
 		{
-			return disabled_channels.load().test(channel);
+			return disabled_channels[channel];
 		}
 
 		bool is_level_disabled(LogLevel level) const
 		{
-			return disabled_levels.load().test(level);
+			return disabled_levels[level];
 		}
 
 		void run_log_processing()
@@ -253,7 +237,7 @@ namespace vt
 	export class Log
 	{
 	public:
-		// TODO false compiler error because of consteval
+		// TODO: wait for compiler fix, then uncomment to actually get the right source file category.
 		Log(/*LogChannel channel = extract_channel_from_path(std::source_location::current())*/) :
 			channel(extract_channel_from_path(std::source_location::current()))
 		{}

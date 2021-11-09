@@ -103,14 +103,9 @@ namespace vt::vulkan
 			return count(images);
 		}
 
-		unsigned get_width() const override
+		Extent get_size() const override
 		{
-			return width;
-		}
-
-		unsigned get_height() const override
-		{
-			return height;
+			return buffer_size;
 		}
 
 		void resize(Extent size) override
@@ -126,13 +121,13 @@ namespace vt::vulkan
 		void enable_vsync() override
 		{
 			present_mode = mailbox_supported ? VK_PRESENT_MODE_MAILBOX_KHR : VK_PRESENT_MODE_FIFO_KHR;
-			resize({width, height});
+			resize(buffer_size);
 		}
 
 		void disable_vsync() override
 		{
 			present_mode = tearing_supported ? VK_PRESENT_MODE_IMMEDIATE_KHR : VK_PRESENT_MODE_FIFO_KHR;
-			resize({width, height});
+			resize(buffer_size);
 		}
 
 		std::optional<SyncToken> request_frame() override
@@ -192,8 +187,7 @@ namespace vt::vulkan
 	private:
 		DeviceApiTable const*		 api;
 		SyncTokenPool*				 sync_token_pool;
-		unsigned					 width;
-		unsigned					 height;
+		Extent						 buffer_size;
 		UniqueVkSurfaceKHR			 surface;
 		VkSurfaceFormatKHR			 surface_format;
 		ImageFormat					 image_format;
@@ -286,8 +280,7 @@ namespace vt::vulkan
 			else
 				extent = clamp_extent(size, capabilities);
 
-			width  = extent.width;
-			height = extent.height;
+			buffer_size = {extent.width, extent.height};
 
 			VkSwapchainCreateInfoKHR const swapchain_info {
 				.sType				   = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,

@@ -55,7 +55,8 @@ namespace vt
 			width(static_cast<uint16_t>(spec.expanse.width)),
 			height(static_cast<uint16_t>(spec.expanse.height)),
 			depth(static_cast<uint16_t>(spec.expanse.depth)),
-			mips(spec.mip_count)
+			mips(spec.mip_count),
+			format(spec.format)
 		{}
 
 		uint16_t get_width() const
@@ -78,17 +79,17 @@ namespace vt
 			return mips;
 		}
 
-		bool is_depth_stencil() const
+		ImageFormat get_format() const
 		{
-			return is_depth_stencil_image;
+			return format;
 		}
 
 	private:
-		uint16_t width;
-		uint16_t height;
-		uint16_t depth;
-		uint8_t	 mips;
-		bool	 is_depth_stencil_image = false;
+		uint16_t	width;
+		uint16_t	height;
+		uint16_t	depth;
+		uint8_t		mips;
+		ImageFormat format;
 	};
 
 	using PlatformComputePipeline = ResourceVariant<VT_GPU_API_VARIANT_ARGS(ComputePipeline)>;
