@@ -1,6 +1,6 @@
 module;
-#include "Core/Macros.hpp"
-#include "Core/PlatformWindows/WindowsAPI.hpp"
+#include "VitroCore/Macros.hpp"
+#include "VitroCore/PlatformWindows/WindowsAPI.hpp"
 
 #include <any>
 export module vt.App.Windows.AppContext;
@@ -162,7 +162,7 @@ namespace vt::windows
 	export class WindowsAppContext : public AppContextBase
 	{
 	protected:
-		WindowsAppContext() : AppContextBase(::GetModuleHandle(nullptr))
+		WindowsAppContext() : AppContextBase(query_module_handle())
 		{
 			WNDCLASS const window_class {
 				.style		   = CS_DBLCLKS,
@@ -176,7 +176,8 @@ namespace vt::windows
 				.lpszMenuName  = nullptr,
 				.lpszClassName = WindowsWindow::WINDOW_CLASS_NAME,
 			};
-			call_win32<::RegisterClass>("Failed to register window class.", &window_class);
+			auto atom = ::RegisterClass(&window_class);
+			check_winapi_error(atom, "Failed to register window class.");
 
 			RAWINPUTDEVICE const raw_input_device {
 				.usUsagePage = 0x01, // Usage page constant for generic desktop controls
@@ -184,8 +185,8 @@ namespace vt::windows
 				.dwFlags	 = 0,
 				.hwndTarget	 = nullptr,
 			};
-			call_win32<::RegisterRawInputDevices>("Failed to register raw input device.", &raw_input_device, 1,
-												  static_cast<UINT>(sizeof(RAWINPUTDEVICE)));
+			auto succeeded = ::RegisterRawInputDevices(&raw_input_device, 1, sizeof(RAWINPUTDEVICE));
+			check_winapi_error(succeeded, "Failed to register raw input device.");
 		}
 
 		void pump_system_events()
@@ -202,6 +203,13 @@ namespace vt::windows
 		unsigned key_repeats		 = 0;
 		KeyCode	 last_key_code		 = KeyCode::None;
 		Int2	 last_mouse_position = {};
+
+		static HMODULE query_module_handle()
+		{
+			auto handle = ::GetModuleHandle(nullptr);
+			check_winapi_error(handle, "Failed to get module handle.");
+			return handle;
+		}
 
 		static WindowsAppContext& get()
 		{

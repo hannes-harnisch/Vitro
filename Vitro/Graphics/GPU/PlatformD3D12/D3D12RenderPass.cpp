@@ -1,6 +1,6 @@
 module;
-#include "Core/Macros.hpp"
 #include "D3D12API.hpp"
+#include "VitroCore/Macros.hpp"
 
 #include <vector>
 export module vt.Graphics.D3D12.RenderPass;

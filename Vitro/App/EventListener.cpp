@@ -1,5 +1,4 @@
 module;
-#include <any>
 #include <type_traits>
 export module vt.App.EventListener;
 
@@ -64,13 +63,10 @@ namespace vt
 		{
 			using Handler = EventHandlerTraits<decltype(HANDLER)>;
 
-			auto func = [](EventListener& listener, std::any& stored_event) {
-				// The logic within event system guarantees that the stored event will have the type that it is being casted to
-				// here. Therefore the pointer version of any_cast is used, which returns nullptr if the cast fails. Since it is
-				// dereferenced immediately, the optimizer can assume that it cannot possibly be nullptr, which allows it to
-				// eliminate the type check, since nullptr can only be returned if the check fails. This prevents generation of
-				// an unneeded branch and instructions related to exception handling.
-				auto& event	 = *std::any_cast<Handler::EventType>(&stored_event);
+			auto func = [](EventListener& listener, void* event_ptr) {
+				// The logic within event system guarantees that the event passed into the lambda will have the type that it is
+				// being casted to here.
+				auto& event	 = *static_cast<Handler::EventType*>(event_ptr);
 				auto& object = static_cast<Handler::ClassType&>(listener);
 
 				if constexpr(std::is_same_v<Handler::ReturnType, void>)

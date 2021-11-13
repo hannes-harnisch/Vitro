@@ -46,7 +46,7 @@
 		{                                                                                                                      \
 			VT_DEBUG_BREAK();                                                                                                  \
 			std::abort();                                                                                                      \
-		} while(false)
+		} while(0)
 
 	#define VT_ASSERT(CONDITION, MESSAGE)                                                                                      \
 		do                                                                                                                     \
@@ -56,7 +56,7 @@
 				VT_DEBUG_BREAK();                                                                                              \
 				std::abort();                                                                                                  \
 			}                                                                                                                  \
-		} while(false)
+		} while(0)
 
 	#define VT_ASSERT_PURE(CONDITION, MESSAGE) VT_ASSERT(CONDITION, MESSAGE)
 
@@ -68,7 +68,7 @@
 				VT_DEBUG_BREAK();                                                                                              \
 				throw std::runtime_error(MESSAGE);                                                                             \
 			}                                                                                                                  \
-		} while(false)
+		} while(0)
 
 #else
 
@@ -82,7 +82,9 @@
 		{                                                                                                                      \
 			if(!(CONDITION))                                                                                                   \
 				throw std::runtime_error(MESSAGE);                                                                             \
-		} while(false)
+		} while(0)
+
+	#define VT_DEBUG_BREAK()
 
 #endif
 
@@ -96,7 +98,7 @@
 #define VT_STRINGIFY(TOKEN)		 VT_STRINGIFY_IMPL(TOKEN)
 
 #define VT_EXPAND_MACRO(MACRO) MACRO
-#define VT_SYSTEM_HEADER	   <Core/VT_PASTE(Platform, VT_SYSTEM_MODULE)/##VT_EXPAND_MACRO(VT_SYSTEM_MODULE)##API.hpp>
+#define VT_SYSTEM_HEADER	   <VitroCore/VT_PASTE(Platform, VT_SYSTEM_MODULE)/##VT_EXPAND_MACRO(VT_SYSTEM_MODULE)##API.hpp>
 
 #if VT_DYNAMIC_GPU_API
 

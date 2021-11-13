@@ -1,5 +1,5 @@
 module;
-#include "Core/Macros.hpp"
+#include "VitroCore/Macros.hpp"
 
 #include <string_view>
 export module vt.Graphics.Handle;

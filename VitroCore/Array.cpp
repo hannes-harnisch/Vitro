@@ -1,5 +1,5 @@
 module;
-#include "Core/Macros.hpp"
+#include "VitroCore/Macros.hpp"
 
 #if VT_DEBUG
 	#define DEBUG 1
@@ -14,7 +14,7 @@ export module vt.Core.Array;
 
 namespace vt
 {
-	export template<typename T> using Array = hh::Array<T>;
+	export using hh::Array;
 
 	// Helper for API calls that expect array sizes as unsigned int instead of size_t.
 	export constexpr unsigned count(auto const& container) noexcept

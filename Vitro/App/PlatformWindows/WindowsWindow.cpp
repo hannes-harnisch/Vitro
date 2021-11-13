@@ -1,6 +1,6 @@
 module;
-#include "Core/Macros.hpp"
-#include "Core/PlatformWindows/WindowsAPI.hpp"
+#include "VitroCore/Macros.hpp"
+#include "VitroCore/PlatformWindows/WindowsAPI.hpp"
 
 #include <memory>
 #include <string_view>
@@ -53,7 +53,8 @@ namespace vt::windows
 			while(::ShowCursor(true) < 0)
 			{}
 
-			call_win32<::ClipCursor>("Failed to clip cursor.", nullptr);
+			auto succeeded = ::ClipCursor(nullptr);
+			check_winapi_error(succeeded, "Failed to clip cursor.");
 		}
 
 		void disable_cursor()
@@ -62,10 +63,15 @@ namespace vt::windows
 			{}
 
 			RECT rect;
-			call_win32<::GetClientRect>("Failed to get window client rect.", window.get(), &rect);
-			call_win32<::MapWindowPoints>("Failed to map window points.", window.get(), nullptr,
-										  reinterpret_cast<POINT*>(&rect), static_cast<UINT>(sizeof(RECT) / sizeof(POINT)));
-			call_win32<::ClipCursor>("Failed to clip cursor.", &rect);
+			auto succeeded = ::GetClientRect(window.get(), &rect);
+			check_winapi_error(succeeded, "Failed to get window client rect.");
+
+			::SetLastError(0);
+			succeeded = ::MapWindowPoints(window.get(), nullptr, reinterpret_cast<POINT*>(&rect), sizeof(RECT) / sizeof(POINT));
+			check_winapi_error(succeeded, "Failed to map window points.");
+
+			succeeded = ::ClipCursor(&rect);
+			check_winapi_error(succeeded, "Failed to clip cursor.");
 		}
 
 		void enable_resize()
@@ -81,7 +87,10 @@ namespace vt::windows
 		Extent get_size() const
 		{
 			RECT rect;
-			call_win32<::GetWindowRect>("Failed to get window rect.", window.get(), &rect);
+
+			auto succeeded = ::GetWindowRect(window.get(), &rect);
+			check_winapi_error(succeeded, "Failed to get window rect.");
+
 			return {
 				.width	= static_cast<unsigned>(rect.right - rect.left),
 				.height = static_cast<unsigned>(rect.bottom - rect.top),
@@ -90,14 +99,17 @@ namespace vt::windows
 
 		void set_size(Extent size)
 		{
-			call_win32<::SetWindowPos>("Failed to set window position.", window.get(), nullptr, 0, 0, size.width, size.height,
-									   SWP_NOMOVE | SWP_NOZORDER);
+			auto succeeded = ::SetWindowPos(window.get(), nullptr, 0, 0, size.width, size.height, SWP_NOMOVE | SWP_NOZORDER);
+			check_winapi_error(succeeded, "Failed to set window size.");
 		}
 
 		Int2 get_position() const
 		{
 			RECT rect;
-			call_win32<::GetWindowRect>("Failed to get window rect.", window.get(), &rect);
+
+			auto succeeded = ::GetWindowRect(window.get(), &rect);
+			check_winapi_error(succeeded, "Failed to get window rect.");
+
 			return {
 				.x = rect.left,
 				.y = rect.top,
@@ -106,16 +118,19 @@ namespace vt::windows
 
 		void set_position(Int2 position)
 		{
-			call_win32<::SetWindowPos>("Failed to set window position.", window.get(), nullptr, position.x, position.y, 0, 0,
-									   SWP_NOSIZE | SWP_NOZORDER);
+			auto succeeded = ::SetWindowPos(window.get(), nullptr, position.x, position.y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+			check_winapi_error(succeeded, "Failed to set window position.");
 		}
 
 		std::string get_title() const
 		{
-			int length = call_win32<::GetWindowTextLength>("Failed to get window title length.", window.get());
+			::SetLastError(0);
+			int length = ::GetWindowTextLength(window.get());
+			check_winapi_error(length, "Failed to get window title length.");
 
 			std::wstring title(length, L'\0');
-			call_win32<::GetWindowText>("Failed to get window title.", window.get(), title.data(), length + 1);
+			length = ::GetWindowText(window.get(), title.data(), length + 1);
+			check_winapi_error(length, "Failed to get window title.");
 
 			return narrow_string(title);
 		}
@@ -123,13 +138,18 @@ namespace vt::windows
 		void set_title(std::string_view title)
 		{
 			auto widened_title = widen_string(title);
-			call_win32<::SetWindowText>("Failed to set window title.", window.get(), widened_title.data());
+
+			auto succeeded = ::SetWindowText(window.get(), widened_title.data());
+			check_winapi_error(succeeded, "Failed to set window title.");
 		}
 
 		Rectangle client_area() const
 		{
 			RECT rect;
-			call_win32<::GetClientRect>("Failed to get window client rect.", window.get(), &rect);
+
+			auto succeeded = ::GetClientRect(window.get(), &rect);
+			check_winapi_error(succeeded, "Failed to get window client rect.");
+
 			return {
 				.x		= rect.left,
 				.y		= rect.top,
@@ -149,7 +169,8 @@ namespace vt::windows
 			using pointer = HWND;
 			void operator()(HWND hwnd) const
 			{
-				call_win32<::DestroyWindow>("Failed to destroy window.", hwnd);
+				auto succeeded = ::DestroyWindow(hwnd);
+				check_winapi_error(succeeded, "Failed to destroy window.");
 			}
 		};
 		std::unique_ptr<HWND, WindowDeleter> window;
@@ -159,20 +180,25 @@ namespace vt::windows
 			auto widened_title = widen_string(title);
 			auto instance	   = AppContextBase::get_system_window_owner();
 
-			return call_win32<::CreateWindowEx>("Failed to create window.", WS_EX_APPWINDOW, WINDOW_CLASS_NAME,
-												widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x, rect.y, rect.width,
-												rect.height, nullptr, nullptr, instance, nullptr);
+			auto hwnd = ::CreateWindowEx(WS_EX_APPWINDOW, WINDOW_CLASS_NAME, widened_title.data(), WS_OVERLAPPEDWINDOW, rect.x,
+										 rect.y, rect.width, rect.height, nullptr, nullptr, instance, nullptr);
+			check_winapi_error(hwnd, "Failed to create window.");
+			return hwnd;
 		}
 
 		void make_resizable(bool enable) const
 		{
-			auto style = call_win32<::GetWindowLongPtr>("Failed to get Windows window attributes.", window.get(), GWL_STYLE);
+			auto style = ::GetWindowLongPtr(window.get(), GWL_STYLE);
+			check_winapi_error(style, "Failed to get Windows window attributes.");
+
 			if(enable)
 				style |= WS_THICKFRAME;
 			else
 				style ^= WS_THICKFRAME;
 
-			call_win32<::SetWindowLongPtr>("Failed to set Windows window attributes.", window.get(), GWL_STYLE, style);
+			::SetLastError(0);
+			auto result = ::SetWindowLongPtr(window.get(), GWL_STYLE, style);
+			check_winapi_error(result, "Failed to set Windows window attributes.");
 		}
 	};
 }

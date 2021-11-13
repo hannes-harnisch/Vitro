@@ -3,7 +3,6 @@ module;
 #include <atomic>
 #include <bitset>
 #include <climits>
-#include <concepts>
 #include <string>
 #include <type_traits>
 #include <utility>

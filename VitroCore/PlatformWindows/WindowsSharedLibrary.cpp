@@ -1,5 +1,5 @@
 module;
-#include "Core/Macros.hpp"
+#include "VitroCore/Macros.hpp"
 #include "WindowsAPI.hpp"
 
 #include <memory>
@@ -20,7 +20,9 @@ namespace vt::windows
 
 		void* load_symbol(char const name[]) const
 		{
-			return ::GetProcAddress(library.get(), name);
+			auto symbol = ::GetProcAddress(library.get(), name);
+			check_winapi_error(symbol, "Failed to load symbol from shared library.");
+			return symbol;
 		}
 
 		void unload()
@@ -30,7 +32,8 @@ namespace vt::windows
 
 		void try_reload()
 		{
-			auto module = call_win32<::LoadLibrary>("Failed to find shared library.", path.data());
+			auto module = ::LoadLibrary(path.data());
+			check_winapi_error(module, "Failed to find shared library.");
 			library.reset(module);
 		}
 
@@ -40,16 +43,17 @@ namespace vt::windows
 		}
 
 	private:
-		std::wstring path;
-
 		struct LibraryDeleter
 		{
 			using pointer = HMODULE;
 			void operator()(HMODULE module) const
 			{
-				call_win32<::FreeLibrary>("Failed to free shared library.", module);
+				auto succeeded = ::FreeLibrary(module);
+				check_winapi_error(succeeded, "Failed to free shared library.");
 			}
 		};
+
+		std::wstring							 path;
 		std::unique_ptr<HMODULE, LibraryDeleter> library;
 	};
 }

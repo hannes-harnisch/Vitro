@@ -29,7 +29,7 @@ namespace vt
 		{
 			T event {std::forward<Ts>(ts)...};
 			// Log().verbose(name_of(event), ": ", event);
-			get().dispatch_event(std::move(event), typeid(T));
+			get().dispatch_event(&event, typeid(T));
 		}
 
 		template<typename T, typename... Ts> static void notify_async(Ts&&... ts)
@@ -39,7 +39,7 @@ namespace vt
 		}
 
 	private:
-		using Callback = bool (*)(class EventListener&, std::any&);
+		using Callback = bool (*)(class EventListener&, void*);
 		struct EventHandler
 		{
 			Callback	   callback;
@@ -49,7 +49,7 @@ namespace vt
 
 		ConsumerToken			  con_token;
 		ConcurrentQueue<std::any> async_events; // TODO: replace with custom any-like type, since any_cast never fails within
-												// event listener
+		// event listener
 
 		EventSystem() : con_token(async_events)
 		{}
@@ -60,7 +60,7 @@ namespace vt
 			async_events.enqueue(pro_token, std::move(event));
 		}
 
-		void dispatch_event(std::any event, std::type_index type) const
+		void dispatch_event(void* event, std::type_index type) const
 		{
 			auto handlers_for_type = handlers.find(type);
 			if(handlers_for_type == handlers.end())

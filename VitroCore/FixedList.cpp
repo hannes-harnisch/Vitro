@@ -1,5 +1,5 @@
 module;
-#include "Core/Macros.hpp"
+#include "VitroCore/Macros.hpp"
 
 #if VT_DEBUG
 	#define DEBUG 1

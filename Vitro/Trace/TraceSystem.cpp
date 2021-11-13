@@ -1,5 +1,5 @@
 module;
-#include "Core/Macros.hpp"
+#include "VitroCore/Macros.hpp"
 export module vt.Trace.TraceSystem;
 
 import vt.Trace.CrashHandler;

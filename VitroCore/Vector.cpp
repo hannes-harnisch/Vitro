@@ -8,7 +8,7 @@ export module vt.Core.Vector;
 namespace vt
 {
 	export template<typename From, typename To>
-	concept LosslesslyConvertibleTo = requires(From from)
+	concept LosslesslyConvertibleTo = std::is_fundamental_v<From> && std::is_fundamental_v<To> && requires(From from)
 	{
 		To {from};
 	};

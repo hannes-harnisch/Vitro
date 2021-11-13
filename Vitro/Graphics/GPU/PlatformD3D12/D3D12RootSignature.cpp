@@ -1,6 +1,6 @@
 module;
-#include "Core/Macros.hpp"
 #include "D3D12API.hpp"
+#include "VitroCore/Macros.hpp"
 
 #include <format>
 #include <stdexcept>
@@ -110,7 +110,7 @@ namespace vt::d3d12
 				.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
 				.Constants {
 					.ShaderRegister = 0,
-					.RegisterSpace	= D3D12_DRIVER_RESERVED_REGISTER_SPACE_VALUES_START - 1,
+					.RegisterSpace	= INT_MAX,
 					.Num32BitValues = static_cast<UINT>(spec.push_constants_byte_size / sizeof(DWORD)),
 				},
 				.ShaderVisibility = SHADER_STAGE_LOOKUP[spec.push_constants_visibility],

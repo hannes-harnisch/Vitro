@@ -1,6 +1,6 @@
 module;
-#include "Core/Macros.hpp"
-#include "Core/PlatformWindows/WindowsAPI.hpp"
+#include "VitroCore/Macros.hpp"
+#include "VitroCore/PlatformWindows/WindowsAPI.hpp"
 
 #include <csignal>
 export module vt.Trace.Windows.TraceContext;
@@ -39,15 +39,19 @@ namespace vt::windows
 
 		static void enable_ansi_color_sequences()
 		{
-			auto std_out = call_win32<::GetStdHandle>("Failed to get standard output handle.", STD_OUTPUT_HANDLE);
+			auto std_out = ::GetStdHandle(STD_OUTPUT_HANDLE);
+			check_winapi_error(std_out, "Failed to get standard output handle.", INVALID_HANDLE_VALUE);
+
 			if(!std_out)
-				return; // Will be null if there is no console attached, such as in release mode.
+				return; // Will be null if there is no console attached, such as in release mode, so just return.
 
 			DWORD mode;
-			call_win32<::GetConsoleMode>("Failed to query current console mode.", std_out, &mode);
+			auto  succeeded = ::GetConsoleMode(std_out, &mode);
+			check_winapi_error(succeeded, "Failed to query current console mode.");
 
 			mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-			call_win32<::SetConsoleMode>("Failed to enable virtual terminal processing.", std_out, mode);
+			succeeded = ::SetConsoleMode(std_out, mode);
+			check_winapi_error(succeeded, "Failed to enable virtual terminal processing.");
 		}
 	};
 }
