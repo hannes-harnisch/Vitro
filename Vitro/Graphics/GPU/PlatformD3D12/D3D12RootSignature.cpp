@@ -19,27 +19,33 @@ import vt.Graphics.DescriptorSetLayout;
 
 namespace vt::d3d12
 {
-	export class RootSignatureParameterMap
+	export class RootParameterMap
 	{
 	public:
-		void emplace(unsigned layout_id, UINT index)
+		struct IndexPair
 		{
-			map.try_emplace(layout_id, index);
+			uint8_t view_index;
+			uint8_t sampler_table_index;
+		};
+
+		void emplace(unsigned layout_id, uint8_t view_index, uint8_t sampler_table_index)
+		{
+			map.try_emplace(layout_id, view_index, sampler_table_index);
 		}
 
-		UINT find(unsigned layout_id) const
+		IndexPair find(unsigned layout_id) const
 		{
 			return map.find(layout_id)->second;
 		}
 
 	private:
-		std::unordered_map<unsigned, UINT> map;
+		std::unordered_map<unsigned, IndexPair> map;
 	};
 
 	export class D3D12RootSignature
 	{
 	public:
-		D3D12RootSignature(ID3D12Device4& device, RootSignatureSpecification const& spec)
+		D3D12RootSignature(RootSignatureSpecification const& spec, ID3D12Device4& device)
 		{
 			if(spec.push_constants_byte_size % sizeof(DWORD) != 0)
 				throw std::invalid_argument(std::format("Push constants byte size must be divisible by {}.", sizeof(DWORD)));
@@ -52,15 +58,21 @@ namespace vt::d3d12
 			ranges.reserve(count_ranges(spec)); // This reserve is crucial to not have dangling pointers.
 			SmallList<D3D12_STATIC_SAMPLER_DESC> static_samplers;
 
-			for(UINT index = 0; auto& layout : spec.layouts)
+			for(uint8_t index = 0; auto& layout : spec.layouts)
 			{
-				if(layout.d3d12.is_descriptor_table())
-					parameters.emplace_back(get_descriptor_table_parameter(ranges, layout, index));
-				else
+				if(layout.d3d12.has_root_descriptor())
 				{
 					auto& new_parameter = parameters.emplace_back(layout.d3d12.get_root_descriptor_parameter());
 					new_parameter.Descriptor.RegisterSpace = index;
 				}
+				else
+				{
+					auto view_ranges = layout.d3d12.get_view_descriptor_table_ranges();
+					parameters.emplace_back(get_descriptor_table_parameter(ranges, layout, view_ranges, index));
+				}
+				auto sampler_ranges = layout.d3d12.get_sampler_descriptor_table_ranges();
+				if(!sampler_ranges.empty())
+					parameters.emplace_back(get_descriptor_table_parameter(ranges, layout, sampler_ranges, index));
 
 				auto descs		= layout.d3d12.get_static_sampler_descs();
 				auto desc_begin = static_samplers.insert(static_samplers.end(), descs.begin(), descs.end());
@@ -68,7 +80,9 @@ namespace vt::d3d12
 					it->RegisterSpace = index;
 
 				// Pre-increment to be offset by 1, because index 0 is reserved for push constants.
-				parameter_indices.emplace(layout.d3d12.get_id(), ++index);
+				uint8_t view_table_index	= ++index;
+				uint8_t sampler_table_index = sampler_ranges.empty() ? 0 : ++index;
+				parameter_indices.emplace(layout.d3d12.get_id(), view_table_index, sampler_table_index);
 			}
 
 			D3D12_VERSIONED_ROOT_SIGNATURE_DESC const desc {
@@ -90,7 +104,7 @@ namespace vt::d3d12
 			VT_CHECK_RESULT(result, "Failed to create D3D12 root signature.");
 		}
 
-		RootSignatureParameterMap const& get_parameter_map() const
+		RootParameterMap const& get_parameter_map() const
 		{
 			return parameter_indices;
 		}
@@ -102,7 +116,7 @@ namespace vt::d3d12
 
 	private:
 		ComUnique<ID3D12RootSignature> root_signature;
-		RootSignatureParameterMap	   parameter_indices;
+		RootParameterMap			   parameter_indices;
 
 		static D3D12_ROOT_PARAMETER1 get_push_constant_range(RootSignatureSpecification const& spec)
 		{
@@ -127,19 +141,19 @@ namespace vt::d3d12
 			return count;
 		}
 
-		static D3D12_ROOT_PARAMETER1 get_descriptor_table_parameter(SmallList<D3D12_DESCRIPTOR_RANGE1>& ranges,
+		static D3D12_ROOT_PARAMETER1 get_descriptor_table_parameter(SmallList<D3D12_DESCRIPTOR_RANGE1>& tracked,
 																	DescriptorSetLayout const&			layout,
+																	ConstSpan<D3D12_DESCRIPTOR_RANGE1>	table_ranges,
 																	UINT								index)
 		{
-			auto layout_ranges = layout.d3d12.get_descriptor_table_ranges();
-			auto range_begin   = ranges.insert(ranges.end(), layout_ranges.begin(), layout_ranges.end());
-			for(auto it = range_begin; it != ranges.end(); ++it)
+			auto range_begin = tracked.insert(tracked.end(), table_ranges.begin(), table_ranges.end());
+			for(auto it = range_begin; it != tracked.end(); ++it)
 				it->RegisterSpace = index;
 
 			return {
 				.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
 				.DescriptorTable {
-					.NumDescriptorRanges = count(layout_ranges),
+					.NumDescriptorRanges = count(table_ranges),
 					.pDescriptorRanges	 = &*range_begin,
 				},
 				.ShaderVisibility = layout.d3d12.get_visibility(),

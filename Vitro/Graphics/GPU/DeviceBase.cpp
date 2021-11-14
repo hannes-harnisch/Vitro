@@ -23,12 +23,19 @@ import vt.Graphics.SwapChain;
 
 namespace vt
 {
+	export enum class DescriptorUpdateType : uint8_t {
+		Image,
+		Sampler,
+		Buffer,
+	};
+
 	// Describes an update to a single binding of one descriptor set. Multiple descriptors in the same binding can be update
 	export struct DescriptorUpdate
 	{
-		DescriptorSet&	   set;
-		Explicit<unsigned> binding;
-		unsigned		   start_array_index = 0;
+		DescriptorSet&				   set;
+		Explicit<unsigned>			   binding;
+		unsigned					   start_array_index = 0;
+		Explicit<DescriptorUpdateType> type;
 		union
 		{
 			ConstSpan<CRef<Image>>	 images;
@@ -64,8 +71,10 @@ namespace vt
 		virtual std::vector<RenderPipeline> make_render_pipelines(ArrayView<RenderPipelineSpecification> specs) = 0;
 
 		// Makes descriptor sets that do not yet represent any resources (empty descriptor sets). It can be more efficient to
-		// create many at once.
-		virtual SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts) = 0;
+		// create many at once, so do that. The variable_counts parameter must be an array with the same size as set_layouts,
+		// each value providing the variable descriptor count of a binding at the same index.
+		virtual SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts,
+															  unsigned const				 dynamic_counts[]) = 0;
 
 		// Makes a descriptor set layout from a specification.
 		virtual DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) = 0;
@@ -87,6 +96,9 @@ namespace vt
 
 		// Update descriptor sets, associating them with new resources.
 		virtual void update_descriptors(ArrayView<DescriptorUpdate> updates) = 0;
+
+		// Resets the internal allocators used for descriptor sets, invalidating all descriptor sets.
+		virtual void reset_descriptors() = 0;
 
 		// Returns a writable pointer to the GPU memory backing the given buffer.
 		virtual void* map(Buffer const& buffer) = 0;
@@ -132,6 +144,12 @@ namespace vt
 
 		// Makes the CPU wait until all currently submitted workloads are finished on the GPU.
 		virtual void flush() = 0;
+
+		// Returns the maximum number of resource descriptors that can be bound at once.
+		virtual unsigned get_max_resource_descriptors_per_stage() const = 0;
+
+		// Returns the maximum number of samplers that can be bound at once.
+		virtual unsigned get_max_sampler_descriptors_per_stage() const = 0;
 
 		// Makes a render target from a specification.
 		RenderTarget make_render_target(RenderTargetSpecification const& spec)

@@ -12,6 +12,7 @@ import vt.Core.SmallList;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.Vulkan.Handle;
 import vt.Graphics.Vulkan.Sampler;
+import vttool.HlslBuilder.VulkanRegisterShiftOffsets;
 
 namespace vt::vulkan
 {
@@ -58,7 +59,9 @@ namespace vt::vulkan
 		VulkanDescriptorSetLayout(DescriptorSetLayoutSpecification const& spec, DeviceApiTable const& api)
 		{
 			SmallList<VkDescriptorSetLayoutBinding> bindings;
+			SmallList<VkDescriptorBindingFlags>		flags;
 			bindings.reserve(spec.bindings.size());
+			flags.reserve(spec.bindings.size());
 
 			auto visibility = SHADER_STAGE_LOOKUP[spec.visibility];
 			for(auto& binding : spec.bindings)
@@ -75,11 +78,22 @@ namespace vt::vulkan
 																	  : visibility,
 					.pImmutableSamplers = binding.static_sampler_spec ? &static_sampler : nullptr,
 				});
+
+				if(binding.count == UINT_MAX)
+					flags.emplace_back(VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT);
+				else
+					flags.emplace_back(0);
 			}
 
+			VkDescriptorSetLayoutBindingFlagsCreateInfo const flags_info {
+				.sType		   = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+				.bindingCount  = count(bindings),
+				.pBindingFlags = flags.data(),
+			};
 			VkDescriptorSetLayoutCreateInfo const layout_info {
 				.sType		  = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-				.bindingCount = count(bindings),
+				.pNext		  = &flags_info,
+				.bindingCount = flags_info.bindingCount,
 				.pBindings	  = bindings.data(),
 			};
 			auto result = api.vkCreateDescriptorSetLayout(api.device, &layout_info, nullptr, std::out_ptr(layout, api));

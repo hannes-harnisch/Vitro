@@ -89,6 +89,7 @@ namespace vt
 		BorderColor			  border_color	 = BorderColor::Transparent;
 	};
 
+	// Set count to UINT_MAX to indicate a variable descriptor count for use with bindless resources.
 	export struct DescriptorBinding
 	{
 		Explicit<uint8_t>			shader_register;

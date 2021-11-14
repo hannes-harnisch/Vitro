@@ -84,6 +84,7 @@
 				throw std::runtime_error(MESSAGE);                                                                             \
 		} while(0)
 
+	#undef VT_DEBUG_BREAK
 	#define VT_DEBUG_BREAK()
 
 #endif

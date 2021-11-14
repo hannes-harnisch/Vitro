@@ -132,7 +132,10 @@ namespace vt::vulkan
 
 		Device make_device(Adapter const& adapter) const override
 		{
-			return VulkanDevice(adapter);
+			VkPhysicalDeviceProperties properties;
+			api->vkGetPhysicalDeviceProperties(adapter.vulkan, &properties);
+
+			return VulkanDevice(adapter, properties);
 		}
 
 	private:

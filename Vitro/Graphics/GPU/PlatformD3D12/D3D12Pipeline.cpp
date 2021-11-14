@@ -366,7 +366,7 @@ namespace vt::d3d12
 	export class D3D12RenderPipeline : public Pipeline
 	{
 	public:
-		D3D12RenderPipeline(ID3D12Device4& device, RenderPipelineSpecification const& spec) :
+		D3D12RenderPipeline(RenderPipelineSpecification const& spec, ID3D12Device4& device) :
 			primitive_topology(convert_primitive_topology(spec.primitive_topology, spec.patch_list_control_point_count))
 		{
 			FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES> input_element_descs;
@@ -498,7 +498,7 @@ namespace vt::d3d12
 	export class D3D12ComputePipeline : public Pipeline
 	{
 	public:
-		D3D12ComputePipeline(ID3D12Device4& device, ComputePipelineSpecification const& spec)
+		D3D12ComputePipeline(ComputePipelineSpecification const& spec, ID3D12Device4& device)
 		{
 			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
 				.pRootSignature = spec.root_signature.d3d12.get_handle(),

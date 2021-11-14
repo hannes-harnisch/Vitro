@@ -15,6 +15,52 @@ import vt.Graphics.Vulkan.Handle;
 
 namespace vt::vulkan
 {
+	using PipelineLayoutIndexMap = std::unordered_map<VkDescriptorSetLayout, unsigned>;
+
+	export class CommandListPipelineLayoutData
+	{
+		friend class VulkanRootSignature;
+
+	public:
+		CommandListPipelineLayoutData() = default;
+
+		VkPipelineLayout get_render_layout_handle() const
+		{
+			return render_pipeline_layout;
+		}
+
+		VkPipelineLayout get_compute_layout_handle() const
+		{
+			return compute_pipeline_layout;
+		}
+
+		unsigned get_layout_index(VkDescriptorSetLayout layout) const
+		{
+			return layout_indices.find(layout)->second;
+		}
+
+		VkShaderStageFlags get_render_push_constant_stages() const
+		{
+			return render_push_constant_stages;
+		}
+
+	private:
+		VkPipelineLayout	   render_pipeline_layout;
+		VkPipelineLayout	   compute_pipeline_layout;
+		PipelineLayoutIndexMap layout_indices;
+		VkShaderStageFlags	   render_push_constant_stages;
+
+		CommandListPipelineLayoutData(VkPipelineLayout				render_pipeline_layout,
+									  VkPipelineLayout				compute_pipeline_layout,
+									  PipelineLayoutIndexMap const& layout_indices,
+									  VkShaderStageFlags			render_push_constant_stages) :
+			render_pipeline_layout(render_pipeline_layout),
+			compute_pipeline_layout(compute_pipeline_layout),
+			layout_indices(layout_indices),
+			render_push_constant_stages(render_push_constant_stages)
+		{}
+	};
+
 	export class VulkanRootSignature
 	{
 	public:
@@ -38,16 +84,6 @@ namespace vt::vulkan
 			initialize_layout(compute_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, spec, api, layout_handles);
 		}
 
-		unsigned get_layout_index(VkDescriptorSetLayout layout) const
-		{
-			return layout_indices.find(layout)->second;
-		}
-
-		VkShaderStageFlags get_render_push_constant_stages() const
-		{
-			return render_push_constant_stages;
-		}
-
 		VkPipelineLayout get_render_layout_handle() const
 		{
 			return render_pipeline_layout.get();
@@ -58,11 +94,21 @@ namespace vt::vulkan
 			return compute_pipeline_layout.get();
 		}
 
+		CommandListPipelineLayoutData get_data_for_command_list() const
+		{
+			return {
+				render_pipeline_layout.get(),
+				compute_pipeline_layout.get(),
+				layout_indices,
+				render_push_constant_stages,
+			};
+		}
+
 	private:
-		UniqueVkPipelineLayout								render_pipeline_layout;
-		UniqueVkPipelineLayout								compute_pipeline_layout;
-		std::unordered_map<VkDescriptorSetLayout, unsigned> layout_indices;
-		VkShaderStageFlags									render_push_constant_stages;
+		UniqueVkPipelineLayout render_pipeline_layout;
+		UniqueVkPipelineLayout compute_pipeline_layout;
+		PipelineLayoutIndexMap layout_indices;
+		VkShaderStageFlags	   render_push_constant_stages;
 
 		static VkShaderStageFlags derive_render_push_constant_stages(RootSignatureSpecification const& spec)
 		{

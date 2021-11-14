@@ -45,20 +45,22 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		DescriptorPool*					 descriptor_pool;
-		RootSignatureParameterMap const* bound_compute_root_indices = nullptr;
-		ID3D12CommandSignature*			 dispatch_signature;
+		ID3D12DescriptorHeap*	view_heap;
+		ID3D12DescriptorHeap*	sampler_heap;
+		RootParameterMap		bound_compute_root_indices;
+		ID3D12CommandSignature* dispatch_signature;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
+		D3D12_CPU_DESCRIPTOR_HANDLE			   rtv_null_descriptor;
 		ID3D12CommandSignature*				   draw_signature;
 		ID3D12CommandSignature*				   draw_indexed_signature;
-		RootSignatureParameterMap const*	   bound_render_root_indices = nullptr;
-		D3D12RenderPass const*				   bound_render_pass		 = nullptr;
-		D3D12RenderTarget const*			   bound_render_target		 = nullptr;
-		D3D_PRIMITIVE_TOPOLOGY				   bound_primitive_topology	 = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		RootParameterMap					   bound_render_root_indices;
+		CommandListRenderPassData			   bound_render_pass;
+		CommandListRenderTargetData			   bound_render_target;
+		D3D_PRIMITIVE_TOPOLOGY				   bound_primitive_topology = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 		unsigned							   subpass_index;
 		FixedList<ClearValue, MAX_ATTACHMENTS> clear_values;
 	};
@@ -67,18 +69,20 @@ namespace vt::d3d12
 	{
 	public:
 		D3D12CommandList(ID3D12Device4&			 device,
-						 DescriptorPool&		 descriptor_pool,
+						 DescriptorPool const&	 descriptor_pool,
 						 ID3D12CommandSignature* dispatch_signature,
 						 ID3D12CommandSignature* draw_signature,
 						 ID3D12CommandSignature* draw_indexed_signature)
 		{
 			if constexpr(TYPE != CommandType::Copy)
 			{
-				this->descriptor_pool	 = &descriptor_pool;
+				this->view_heap			 = descriptor_pool.get_shader_visible_view_heap();
+				this->sampler_heap		 = descriptor_pool.get_shader_visible_sampler_heap();
 				this->dispatch_signature = dispatch_signature;
 			}
 			if constexpr(TYPE == CommandType::Render)
 			{
+				this->rtv_null_descriptor	 = descriptor_pool.get_rtv_null_descriptor();
 				this->draw_signature		 = draw_signature;
 				this->draw_indexed_signature = draw_indexed_signature;
 			}
@@ -109,8 +113,8 @@ namespace vt::d3d12
 			if constexpr(TYPE != CommandType::Copy)
 			{
 				ID3D12DescriptorHeap* heaps[] {
-					this->descriptor_pool->get_shader_visible_view_heap(),
-					this->descriptor_pool->get_shader_visible_sampler_heap(),
+					this->view_heap,
+					this->sampler_heap,
 				};
 				cmd->SetDescriptorHeaps(count(heaps), heaps);
 			}
@@ -199,35 +203,12 @@ namespace vt::d3d12
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
 			cmd->SetComputeRootSignature(root_signature.d3d12.get_handle());
-			this->bound_compute_root_indices = &root_signature.d3d12.get_parameter_map();
+			this->bound_compute_root_indices = root_signature.d3d12.get_parameter_map();
 		}
 
 		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			for(auto& set : descriptor_sets)
-			{
-				UINT index = this->bound_compute_root_indices->find(set.d3d12.get_layout_id());
-				switch(set.d3d12.get_parameter_type())
-				{
-					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						auto view_table	   = set.d3d12.get_view_table_start();
-						auto sampler_table = set.d3d12.get_sampler_table_start();
-						if(view_table.ptr)
-							cmd->SetComputeRootDescriptorTable(index, view_table);
-						if(sampler_table.ptr)
-							cmd->SetComputeRootDescriptorTable(index, sampler_table);
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_CBV:
-						cmd->SetComputeRootConstantBufferView(index, set.d3d12.get_gpu_address());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_SRV:
-						cmd->SetComputeRootShaderResourceView(index, set.d3d12.get_gpu_address());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_UAV:
-						cmd->SetComputeRootUnorderedAccessView(index, set.d3d12.get_gpu_address());
-						break;
-				}
-			}
+			bind_descriptor_sets<false>(descriptor_sets, this->bound_compute_root_indices);
 		}
 
 		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
@@ -254,8 +235,8 @@ namespace vt::d3d12
 							   RenderTarget const&	 render_target,
 							   ConstSpan<ClearValue> clear_values = {})
 		{
-			this->bound_render_pass	  = &render_pass.d3d12;
-			this->bound_render_target = &render_target.d3d12;
+			this->bound_render_pass	  = render_pass.d3d12.get_data_for_command_list();
+			this->bound_render_target = render_target.d3d12.get_data_for_command_list();
 			this->clear_values.assign(clear_values.begin(), clear_values.end());
 
 			begin_subpass(0);
@@ -264,7 +245,7 @@ namespace vt::d3d12
 
 		void change_subpass()
 		{
-			VT_ASSERT(this->subpass_index < this->bound_render_pass->count_subpasses() - 1,
+			VT_ASSERT(this->subpass_index < this->bound_render_pass.count_subpasses() - 1,
 					  "All subpasses of this render pass have already been transitioned through.");
 
 			cmd->EndRenderPass();
@@ -275,7 +256,7 @@ namespace vt::d3d12
 		{
 			cmd->EndRenderPass();
 
-			auto& final_transitions = this->bound_render_pass->get_final_transitions();
+			auto& final_transitions = this->bound_render_pass.get_final_transitions();
 
 			FixedList<D3D12_RESOURCE_BARRIER, MAX_ATTACHMENTS> barriers(final_transitions.size());
 
@@ -286,7 +267,7 @@ namespace vt::d3d12
 					.Type  = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION,
 					.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE,
 					.Transition {
-						.pResource	 = this->bound_render_target->get_attachment(transition.index),
+						.pResource	 = this->bound_render_target.get_attachment(transition.index),
 						.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES,
 						.StateBefore = transition.old_layout,
 						.StateAfter	 = transition.new_layout,
@@ -311,35 +292,12 @@ namespace vt::d3d12
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
 			cmd->SetGraphicsRootSignature(root_signature.d3d12.get_handle());
-			this->bound_render_root_indices = &root_signature.d3d12.get_parameter_map();
+			this->bound_render_root_indices = root_signature.d3d12.get_parameter_map();
 		}
 
 		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			for(auto& set : descriptor_sets)
-			{
-				UINT index = this->bound_render_root_indices->find(set.d3d12.get_layout_id());
-				switch(set.d3d12.get_parameter_type())
-				{
-					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
-						auto view_table	   = set.d3d12.get_view_table_start();
-						auto sampler_table = set.d3d12.get_sampler_table_start();
-						if(view_table.ptr)
-							cmd->SetGraphicsRootDescriptorTable(index, view_table);
-						if(sampler_table.ptr)
-							cmd->SetGraphicsRootDescriptorTable(index, sampler_table);
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_CBV:
-						cmd->SetGraphicsRootConstantBufferView(index, set.d3d12.get_gpu_address());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_SRV:
-						cmd->SetGraphicsRootShaderResourceView(index, set.d3d12.get_gpu_address());
-						break;
-					case D3D12_ROOT_PARAMETER_TYPE_UAV:
-						cmd->SetGraphicsRootUnorderedAccessView(index, set.d3d12.get_gpu_address());
-						break;
-				}
-			}
+			bind_descriptor_sets<true>(descriptor_sets, this->bound_render_root_indices);
 		}
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
@@ -462,7 +420,7 @@ namespace vt::d3d12
 			auto barrier = barriers.begin();
 			for(auto transition : transitions)
 			{
-				auto resource  = this->bound_render_target->get_attachment(transition.index);
+				auto resource  = this->bound_render_target.get_attachment(transition.index);
 				barrier->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 				if(transition.requires_uav_barrier)
 				{
@@ -488,8 +446,8 @@ namespace vt::d3d12
 
 		void begin_subpass(unsigned subpass_index) const
 		{
-			auto& pass	  = *this->bound_render_pass;
-			auto& target  = *this->bound_render_target;
+			auto& pass	  = this->bound_render_pass;
+			auto& target  = this->bound_render_target;
 			auto& clears  = this->clear_values;
 			auto& subpass = pass.get_subpass(subpass_index);
 			insert_subpass_barriers(subpass.transitions);
@@ -502,7 +460,7 @@ namespace vt::d3d12
 				D3D12_CPU_DESCRIPTOR_HANDLE rt_descriptor;
 				D3D12_CLEAR_VALUE			color_clear_value = {};
 				if(access.for_input)
-					rt_descriptor = this->descriptor_pool->get_rtv_null_descriptor();
+					rt_descriptor = this->rtv_null_descriptor;
 				else
 				{
 					rt_descriptor = target.get_render_target_view(index);
@@ -582,6 +540,57 @@ namespace vt::d3d12
 			}
 			auto ds_desc_ptr = subpass.uses_depth_stencil() ? &ds_desc : nullptr;
 			cmd->BeginRenderPass(count(rt_descs), rt_descs.data(), ds_desc_ptr, subpass.flags);
+		}
+
+		template<bool RENDER> void bind_descriptor_sets(ArrayView<DescriptorSet> sets, RootParameterMap const& indices)
+		{
+			for(auto& set : sets)
+			{
+				auto [view_index, sampler_table_index] = indices.find(set.d3d12.get_layout_id());
+				switch(set.d3d12.get_view_parameter_type())
+				{
+					case D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE:
+						bind_descriptor_table<RENDER>(view_index, set.d3d12.get_view_table_start());
+						break;
+					case D3D12_ROOT_PARAMETER_TYPE_CBV: bind_cbv<RENDER>(view_index, set.d3d12.get_gpu_address()); break;
+					case D3D12_ROOT_PARAMETER_TYPE_SRV: bind_srv<RENDER>(view_index, set.d3d12.get_gpu_address()); break;
+					case D3D12_ROOT_PARAMETER_TYPE_UAV: bind_uav<RENDER>(view_index, set.d3d12.get_gpu_address()); break;
+				}
+				if(sampler_table_index)
+					bind_descriptor_table<RENDER>(sampler_table_index, set.d3d12.get_sampler_table_start());
+			}
+		}
+
+		template<bool RENDER> void bind_descriptor_table(UINT index, D3D12_GPU_DESCRIPTOR_HANDLE table)
+		{
+			if constexpr(RENDER)
+				cmd->SetGraphicsRootDescriptorTable(index, table);
+			else
+				cmd->SetComputeRootDescriptorTable(index, table);
+		}
+
+		template<bool RENDER> void bind_cbv(UINT index, D3D12_GPU_VIRTUAL_ADDRESS view)
+		{
+			if constexpr(RENDER)
+				cmd->SetGraphicsRootConstantBufferView(index, view);
+			else
+				cmd->SetComputeRootConstantBufferView(index, view);
+		}
+
+		template<bool RENDER> void bind_srv(UINT index, D3D12_GPU_VIRTUAL_ADDRESS view)
+		{
+			if constexpr(RENDER)
+				cmd->SetGraphicsRootShaderResourceView(index, view);
+			else
+				cmd->SetComputeRootShaderResourceView(index, view);
+		}
+
+		template<bool RENDER> void bind_uav(UINT index, D3D12_GPU_VIRTUAL_ADDRESS view)
+		{
+			if constexpr(RENDER)
+				cmd->SetGraphicsRootUnorderedAccessView(index, view);
+			else
+				cmd->SetComputeRootUnorderedAccessView(index, view);
 		}
 	};
 }

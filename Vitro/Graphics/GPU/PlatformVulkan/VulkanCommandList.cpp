@@ -31,13 +31,13 @@ namespace vt::vulkan
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		VulkanRootSignature const* bound_compute_signature = nullptr;
+		CommandListPipelineLayoutData bound_compute_layout;
 	};
 
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		VulkanRootSignature const* bound_render_signature = nullptr;
+		CommandListPipelineLayoutData bound_render_layout;
 	};
 
 	export template<CommandType TYPE>
@@ -208,19 +208,19 @@ namespace vt::vulkan
 
 		void bind_compute_root_signature(RootSignature const& root_signature)
 		{
-			this->bound_compute_signature = &root_signature.vulkan;
+			this->bound_compute_layout = root_signature.vulkan.get_data_for_command_list();
 		}
 
 		void bind_compute_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			auto& signature = *this->bound_compute_signature;
+			auto& signature = this->bound_compute_layout;
 			auto  layout	= signature.get_compute_layout_handle();
 			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_COMPUTE, signature, layout, descriptor_sets);
 		}
 
 		void push_compute_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			auto	 layout = this->bound_compute_signature->get_compute_layout_handle();
+			auto	 layout = this->bound_compute_layout.get_compute_layout_handle();
 			uint32_t offset = static_cast<uint32_t>(byte_offset);
 			uint32_t size	= static_cast<uint32_t>(byte_size);
 			api->vkCmdPushConstants(cmd, layout, VK_SHADER_STAGE_COMPUTE_BIT, offset, size, data);
@@ -257,6 +257,8 @@ namespace vt::vulkan
 				.clearValueCount = count(clear_values),
 				.pClearValues	 = reinterpret_cast<VkClearValue const*>(clear_values.data()),
 			};
+			// static_assert(std::is_layout_compatible_v<VkClearValue, ClearValue>); // TODO: Wait for compiler fix
+
 			api->vkCmdBeginRenderPass(cmd, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 		}
 
@@ -277,20 +279,20 @@ namespace vt::vulkan
 
 		void bind_render_root_signature(RootSignature const& root_signature)
 		{
-			this->bound_render_signature = &root_signature.vulkan;
+			this->bound_render_layout = root_signature.vulkan.get_data_for_command_list();
 		}
 
 		void bind_render_descriptors(ArrayView<DescriptorSet> descriptor_sets)
 		{
-			auto& signature = *this->bound_render_signature;
+			auto& signature = this->bound_render_layout;
 			auto  layout	= signature.get_render_layout_handle();
 			bind_descriptor_sets(VK_PIPELINE_BIND_POINT_GRAPHICS, signature, layout, descriptor_sets);
 		}
 
 		void push_render_constants(size_t byte_offset, size_t byte_size, void const* data)
 		{
-			auto	 layout = this->bound_render_signature->get_render_layout_handle();
-			auto	 stages = this->bound_render_signature->get_render_push_constant_stages();
+			auto	 layout = this->bound_render_layout.get_render_layout_handle();
+			auto	 stages = this->bound_render_layout.get_render_push_constant_stages();
 			uint32_t offset = static_cast<uint32_t>(byte_offset);
 			uint32_t size	= static_cast<uint32_t>(byte_size);
 			api->vkCmdPushConstants(cmd, layout, stages, offset, size, data);
@@ -333,7 +335,7 @@ namespace vt::vulkan
 
 		void set_scissors(ArrayView<Rectangle> scissors)
 		{
-			// static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>); // TODO: Wait for compiler fix, then uncomment
+			// static_assert(std::is_layout_compatible_v<Rectangle, VkRect2D>); // TODO: Wait for compiler fix
 
 			auto data = reinterpret_cast<VkRect2D const*>(scissors.data());
 			api->vkCmdSetScissor(cmd, 0, count(scissors), data);
@@ -393,10 +395,10 @@ namespace vt::vulkan
 			VT_UNREACHABLE();
 		}
 
-		void bind_descriptor_sets(VkPipelineBindPoint		 bind_point,
-								  VulkanRootSignature const& root_signature,
-								  VkPipelineLayout			 layout,
-								  ArrayView<DescriptorSet>	 descriptor_sets) const
+		void bind_descriptor_sets(VkPipelineBindPoint				   bind_point,
+								  CommandListPipelineLayoutData const& root_signature,
+								  VkPipelineLayout					   layout,
+								  ArrayView<DescriptorSet>			   descriptor_sets) const
 		{
 			SmallList<VkDescriptorSet> sets;
 			sets.reserve(descriptor_sets.size());

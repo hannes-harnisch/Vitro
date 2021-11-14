@@ -45,11 +45,10 @@ namespace vt
 			Callback	   callback;
 			EventListener* listener;
 		};
-		std::unordered_map<std::type_index, std::vector<EventHandler>> handlers;
+		std::unordered_map<std::type_index, std::vector<EventHandler>> event_handlers;
 
 		ConsumerToken			  con_token;
-		ConcurrentQueue<std::any> async_events; // TODO: replace with custom any-like type, since any_cast never fails within
-		// event listener
+		ConcurrentQueue<std::any> async_events; // TODO: replace with custom any-like type, since we need void*.
 
 		EventSystem() : con_token(async_events)
 		{}
@@ -62,11 +61,11 @@ namespace vt
 
 		void dispatch_event(void* event, std::type_index type) const
 		{
-			auto handlers_for_type = handlers.find(type);
-			if(handlers_for_type == handlers.end())
+			auto handlers = event_handlers.find(type);
+			if(handlers == event_handlers.end())
 				return;
 
-			for(auto handler : std::views::reverse(handlers_for_type->second))
+			for(auto handler : handlers->second | std::views::reverse)
 			{
 				bool consumed = handler.callback(*handler.listener, event);
 				if(consumed)
@@ -76,40 +75,45 @@ namespace vt
 
 		void submit_handler(std::type_index event_type, Callback callback, EventListener* listener)
 		{
-			handlers[event_type].emplace_back(callback, listener);
+			event_handlers[event_type].emplace_back(callback, listener);
+		}
+
+		void remove_handler(std::type_index event_type, Callback callback, EventListener* listener)
+		{
+			auto handlers = event_handlers.find(event_type);
+			if(handlers == event_handlers.end())
+				return;
+
+			std::erase_if(handlers->second, [=](EventHandler handler) {
+				return callback == handler.callback && listener == handler.listener;
+			});
 		}
 
 		void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener)
 		{
-			for(auto& [type, list] : handlers)
-			{
-				for(size_t i = 0; i != list.size(); ++i)
+			for(auto& [type, handlers] : event_handlers)
+				for(size_t i = 0; i != handlers.size(); ++i)
 				{
-					auto handler = list[i];
+					auto handler = handlers[i];
 					if(handler.listener == &old_listener)
-						list.emplace_back(handler.callback, &new_listener);
+						handlers.emplace_back(handler.callback, &new_listener);
 				}
-			}
 		}
 
 		void replace_listener(EventListener& new_listener, EventListener& old_listener)
 		{
-			for(auto& [type, list] : handlers)
-			{
-				for(auto& handler : list)
+			for(auto& [type, handlers] : event_handlers)
+				for(auto& handler : handlers)
 					if(handler.listener == &old_listener)
 						handler.listener = &new_listener;
-			}
 		}
 
 		void remove_handlers_with_listener(EventListener& listener)
 		{
-			for(auto& [type, list] : handlers)
-			{
-				std::erase_if(list, [&](EventHandler handler) {
+			for(auto& [type, handlers] : event_handlers)
+				std::erase_if(handlers, [&](EventHandler handler) {
 					return handler.listener == &listener;
 				});
-			}
 		}
 	};
 }

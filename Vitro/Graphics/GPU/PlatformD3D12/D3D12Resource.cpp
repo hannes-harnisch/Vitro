@@ -4,6 +4,7 @@ module;
 export module vt.Graphics.D3D12.Resource;
 
 import vt.Graphics.AssetResourceSpecification;
+import vt.Graphics.D3D12.DescriptorAllocator;
 import vt.Graphics.D3D12.Handle;
 
 namespace vt::d3d12
@@ -34,8 +35,14 @@ namespace vt::d3d12
 			return resource.get();
 		}
 
+		D3D12_CPU_DESCRIPTOR_HANDLE get_descriptor() const
+		{
+			return descriptor.get();
+		}
+
 	protected:
 		ComUnique<D3D12MA::Allocation> allocation;
 		ComUnique<ID3D12Resource>	   resource;
+		UniqueCpuDescriptor			   descriptor;
 	};
 }

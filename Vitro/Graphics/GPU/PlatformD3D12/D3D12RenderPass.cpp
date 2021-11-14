@@ -1,8 +1,6 @@
 module;
 #include "D3D12API.hpp"
 #include "VitroCore/Macros.hpp"
-
-#include <vector>
 export module vt.Graphics.D3D12.RenderPass;
 
 import vt.Core.Array;
@@ -162,13 +160,71 @@ namespace vt::d3d12
 		}
 	};
 
+	using AttachmentFormatList = FixedList<DXGI_FORMAT, MAX_ATTACHMENTS>;
+
+	// Contains a copy of/view into render pass data for use in command lists, so we never have to store pointers to render
+	// passes, which is unsafe in case a render pass gets moved. We don't need to guard against destruction, since that is
+	// invalid no matter what and should be guarded against using a deferred deletion queue.
+	export class CommandListRenderPassData
+	{
+		friend class D3D12RenderPass;
+
+	public:
+		CommandListRenderPassData() = default;
+
+		DXGI_FORMAT get_attachment_format(size_t index) const
+		{
+			return formats[index];
+		}
+
+		size_t count_color_attachments() const
+		{
+			return formats.size() - uses_depth_stencil;
+		}
+
+		DXGI_FORMAT get_depth_stencil_format() const
+		{
+			VT_ASSERT(uses_depth_stencil, "This call is invalid on a render pass that never uses a depth stencil attachment.");
+			return formats.back();
+		}
+
+		Subpass const& get_subpass(size_t index) const
+		{
+			return subpasses[index];
+		}
+
+		// None of these transitions should require a UAV barrier.
+		TransitionList const& get_final_transitions() const
+		{
+			return final_transitions;
+		}
+
+		size_t count_subpasses() const
+		{
+			return subpasses.size();
+		}
+
+	private:
+		AttachmentFormatList formats;
+		ConstSpan<Subpass>	 subpasses;
+		TransitionList		 final_transitions;
+		bool				 uses_depth_stencil;
+
+		CommandListRenderPassData(AttachmentFormatList const& formats,
+								  Array<Subpass> const&		  subpasses,
+								  TransitionList const&		  final_transitions,
+								  bool						  uses_depth_stencil) :
+			formats(formats), subpasses(subpasses), final_transitions(final_transitions), uses_depth_stencil(uses_depth_stencil)
+		{}
+	};
+
 	export class D3D12RenderPass
 	{
 	public:
 		D3D12RenderPass(RenderPassSpecification const& spec) :
-			is_using_depth_stencil(spec.uses_depth_stencil_attachment()),
 			formats(spec.attachments.size()),
-			subpasses(spec.subpasses.size())
+			subpasses(spec.subpasses.size()),
+			uses_depth_stencil(spec.uses_depth_stencil_attachment())
 		{
 			initialize_formats(spec);
 			ResourceStateList		  current_layouts(spec);
@@ -181,7 +237,7 @@ namespace vt::d3d12
 				auto& usage_list = attachment_usage.subpass_attachment_usage_lists[subpass_idx];
 				for(uint8_t attach_idx = 0; auto [for_input, for_output, preserve] : usage_list)
 				{
-					bool const is_depth_stencil = is_using_depth_stencil && attach_idx == spec.attachments.size() - 1;
+					bool const is_depth_stencil_index = uses_depth_stencil && attach_idx == spec.attachments.size() - 1;
 
 					// Initialize transitions
 					D3D12_RESOURCE_STATES new_depth_layout, new_color_layout;
@@ -202,7 +258,7 @@ namespace vt::d3d12
 						new_color_layout = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 					}
 					auto old_layout = current_layouts[attach_idx];
-					auto new_layout = is_depth_stencil ? new_depth_layout : new_color_layout;
+					auto new_layout = is_depth_stencil_index ? new_depth_layout : new_color_layout;
 					if(old_layout != new_layout)
 					{
 						bool needs_uav_barrier = for_input && for_output;
@@ -231,7 +287,7 @@ namespace vt::d3d12
 						new_access.end = D3D12_RENDER_PASS_ENDING_ACCESS_TYPE_PRESERVE;
 
 					// Initialize stencil begin and end accesses
-					if(is_depth_stencil)
+					if(is_depth_stencil_index)
 					{
 						if(subpass_idx == first_subpass_where_used)
 							subpass.stencil_begin = IMAGE_LOAD_OP_LOOKUP[spec.stencil_load_op];
@@ -251,18 +307,24 @@ namespace vt::d3d12
 			initialize_final_transitions(spec, current_layouts);
 		}
 
+		CommandListRenderPassData get_data_for_command_list() const
+		{
+			return {
+				formats,
+				subpasses,
+				final_transitions,
+				uses_depth_stencil,
+			};
+		}
+
 		DXGI_FORMAT get_attachment_format(size_t index) const
 		{
 			return formats[index];
 		}
 
-		size_t count_color_attachments() const
-		{
-			return formats.size() - is_using_depth_stencil;
-		}
-
 		DXGI_FORMAT get_depth_stencil_format() const
 		{
+			VT_ASSERT(uses_depth_stencil, "This call is invalid on a render pass that never uses a depth stencil attachment.");
 			return formats.back();
 		}
 
@@ -271,22 +333,11 @@ namespace vt::d3d12
 			return subpasses[index];
 		}
 
-		// None of these transitions should require a UAV barrier.
-		TransitionList const& get_final_transitions() const
-		{
-			return final_transitions;
-		}
-
-		size_t count_subpasses() const
-		{
-			return subpasses.size();
-		}
-
 	private:
-		bool									is_using_depth_stencil;
-		FixedList<DXGI_FORMAT, MAX_ATTACHMENTS> formats;
-		std::vector<Subpass>					subpasses;
-		TransitionList							final_transitions;
+		AttachmentFormatList formats;
+		Array<Subpass>		 subpasses;
+		TransitionList		 final_transitions;
+		bool				 uses_depth_stencil;
 
 		void initialize_formats(RenderPassSpecification const& spec)
 		{

@@ -23,13 +23,13 @@ namespace vt::vulkan
 	export class VulkanDevice final : public DeviceBase
 	{
 	public:
-		VulkanDevice(Adapter const& in_adapter) :
+		VulkanDevice(Adapter const& in_adapter, VkPhysicalDeviceProperties const& properties) :
 			adapter(in_adapter.vulkan),
 			queue_families(query_queue_families()),
 			device(make_device()),
 			api(std::make_unique<DeviceApiTable>(InstanceApiTable::get().vkGetDeviceProcAddr, adapter, device.get())),
 			sync_tokens(*api),
-			descriptor_pool(*api)
+			descriptor_pool(*api, properties)
 		{
 			api->vkGetDeviceQueue(device.get(), queue_families.render, 0, &render_queue);
 			api->vkGetDeviceQueue(device.get(), queue_families.compute, 0, &compute_queue);
@@ -65,10 +65,11 @@ namespace vt::vulkan
 
 		SmallList<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
 		{
-			std::vector<VkComputePipelineCreateInfo> pipeline_infos;
-			pipeline_infos.reserve(specs.size());
+			Array<VkComputePipelineCreateInfo> pipeline_infos(specs.size());
+
+			auto info = pipeline_infos.begin();
 			for(auto const& spec : specs)
-				pipeline_infos.emplace_back(convert_compute_pipeline_spec(spec));
+				*info++ = convert_compute_pipeline_spec(spec);
 
 			Array<VkPipeline> pipelines(specs.size());
 
@@ -86,15 +87,17 @@ namespace vt::vulkan
 
 		std::vector<RenderPipeline> make_render_pipelines(ArrayView<RenderPipelineSpecification> specs) override
 		{
-			std::vector<GraphicsPipelineInfoState> states;
-			states.reserve(specs.size());
+			// This must stay alive until vkCreateGraphicsPipelines returns as it contains pointers to subobjects.
+			std::vector<GraphicsPipelineCreationData> datas;
+			datas.reserve(specs.size());
 			for(auto& spec : specs)
-				states.emplace_back(spec);
+				datas.emplace_back(spec);
 
-			std::vector<VkGraphicsPipelineCreateInfo> pipeline_infos;
-			pipeline_infos.reserve(specs.size());
-			for(auto const& state : states)
-				pipeline_infos.emplace_back(state.convert());
+			Array<VkGraphicsPipelineCreateInfo> pipeline_infos(specs.size());
+
+			auto pipeline_info = pipeline_infos.begin();
+			for(auto const& data : datas)
+				*pipeline_info++ = data.convert();
 
 			Array<VkPipeline> pipelines(specs.size());
 
@@ -110,9 +113,10 @@ namespace vt::vulkan
 			return render_pipelines;
 		}
 
-		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> layouts) override
+		std::vector<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> layouts,
+														unsigned const				   variable_counts[]) override
 		{
-			return descriptor_pool.make_descriptor_sets(layouts, *api);
+			return descriptor_pool.make_descriptor_sets(layouts, variable_counts, *api);
 		}
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
@@ -145,8 +149,13 @@ namespace vt::vulkan
 			return VulkanSwapChain(queue_families.render, window, buffer_count, sync_tokens, *api);
 		}
 
-		void update_descriptors(ArrayView<DescriptorUpdate>)
+		void update_descriptors(ArrayView<DescriptorUpdate>) override
 		{}
+
+		void reset_descriptors() override
+		{
+			api->vkResetDescriptorPool(device.get(), descriptor_pool.get_handle(), 0);
+		}
 
 		void* map(Buffer const& buffer) override
 		{
@@ -226,6 +235,16 @@ namespace vt::vulkan
 			VT_CHECK_RESULT(result, "Failed to flush Vulkan device.");
 
 			sync_tokens.await_all_fences(*api);
+		}
+
+		unsigned get_max_resource_descriptors_per_stage() const override
+		{
+			return descriptor_pool.get_max_resource_descriptors();
+		}
+
+		unsigned get_max_sampler_descriptors_per_stage() const override
+		{
+			return descriptor_pool.get_max_sampler_descriptors();
 		}
 
 	private:
@@ -450,7 +469,7 @@ namespace vt::vulkan
 				.preferredLargeHeapBlockSize	= 0, // Uses the default block size.
 				.pAllocationCallbacks			= nullptr,
 				.pDeviceMemoryCallbacks			= nullptr,
-				.frameInUseCount				= 0, // TODO: This probably needs to be changed.
+				.frameInUseCount				= MAX_FRAMES_IN_FLIGHT,
 				.pHeapSizeLimit					= nullptr,
 				.pVulkanFunctions				= &functions,
 				.pRecordSettings				= nullptr,

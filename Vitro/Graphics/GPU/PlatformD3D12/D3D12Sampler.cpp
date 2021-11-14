@@ -6,6 +6,7 @@ export module vt.Graphics.D3D12.Sampler;
 import vt.Core.LookupTable;
 import vt.Core.Vector;
 import vt.Graphics.DescriptorBinding;
+import vt.Graphics.D3D12.DescriptorAllocator;
 
 namespace vt::d3d12
 {
@@ -170,15 +171,19 @@ namespace vt::d3d12
 	export class D3D12Sampler
 	{
 	public:
-		D3D12Sampler(SamplerSpecification const& spec) : desc(convert_dynamic_sampler_spec(spec))
-		{}
-
-		D3D12_SAMPLER_DESC const& get_desc() const
+		D3D12Sampler(SamplerSpecification const& spec, ID3D12Device4& device, UniqueCpuDescriptor descriptor) :
+			sampler(std::move(descriptor))
 		{
-			return desc;
+			auto desc = convert_dynamic_sampler_spec(spec);
+			device.CreateSampler(&desc, sampler.get());
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE get_handle() const
+		{
+			return sampler.get();
 		}
 
 	private:
-		D3D12_SAMPLER_DESC desc;
+		UniqueCpuDescriptor sampler;
 	};
 }

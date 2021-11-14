@@ -3,6 +3,7 @@ module;
 #include "VitroCore/Macros.hpp"
 
 #include <fstream>
+#include <memory>
 #include <ranges>
 #include <span>
 #include <vector>
@@ -18,6 +19,7 @@ import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Queue;
 import vt.Graphics.DeviceBase;
 import vt.Graphics.Handle;
+import vt.Graphics.RingBuffer;
 
 namespace vt::d3d12
 {
@@ -29,10 +31,14 @@ namespace vt::d3d12
 		D3D12Device(Adapter const& adapter, IDXGIFactory5& factory) :
 			factory(&factory),
 			device(make_device(adapter)),
+			binding_tier(query_resource_binding_tier()),
 			render_queue(*device, D3D12_COMMAND_LIST_TYPE_DIRECT),
 			compute_queue(*device, D3D12_COMMAND_LIST_TYPE_COMPUTE),
 			copy_queue(*device, D3D12_COMMAND_LIST_TYPE_COPY),
-			descriptor_pool(*device)
+			// Heap-allocated so that it's not error-prone to store pointers to the pool in case the device object is moved.
+			descriptor_pool(std::make_unique<DescriptorPool>(*device,
+															 get_max_resource_descriptors_per_stage(),
+															 get_max_sampler_descriptors_per_stage()))
 		{
 			ensure_required_features_exist();
 			initialize_command_signatures();
@@ -41,28 +47,35 @@ namespace vt::d3d12
 
 		CopyCommandList make_copy_command_list() override
 		{
-			return D3D12CommandList<CommandType::Copy>(*device, descriptor_pool, nullptr, nullptr, nullptr);
+			return D3D12CommandList<CommandType::Copy>(*device, *descriptor_pool, nullptr, nullptr, nullptr);
 		}
 
 		ComputeCommandList make_compute_command_list() override
 		{
-			return D3D12CommandList<CommandType::Compute>(*device, descriptor_pool, dispatch_signature.get(), nullptr, nullptr);
+			return D3D12CommandList<CommandType::Compute>(*device, *descriptor_pool, dispatch_signature.get(), nullptr,
+														  nullptr);
 		}
 
 		RenderCommandList make_render_command_list() override
 		{
-			return D3D12CommandList<CommandType::Render>(*device, descriptor_pool, dispatch_signature.get(),
+			return D3D12CommandList<CommandType::Render>(*device, *descriptor_pool, dispatch_signature.get(),
 														 draw_signature.get(), draw_indexed_signature.get());
 		}
 
 		Buffer make_buffer(BufferSpecification const& spec) override
 		{
-			return {D3D12Buffer(spec, *allocator), spec};
+			return {
+				D3D12Buffer(spec, *device, *allocator, *descriptor_pool),
+				spec,
+			};
 		}
 
 		Image make_image(ImageSpecification const& spec) override
 		{
-			return {D3D12Image(spec, *allocator), spec};
+			return {
+				D3D12Image(spec, *device, *allocator, *descriptor_pool),
+				spec,
+			};
 		}
 
 		std::vector<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
@@ -70,7 +83,7 @@ namespace vt::d3d12
 			std::vector<ComputePipeline> pipelines;
 			pipelines.reserve(specs.size());
 			for(auto& spec : specs)
-				pipelines.emplace_back(D3D12ComputePipeline(*device, spec));
+				pipelines.emplace_back(D3D12ComputePipeline(spec, *device));
 			return pipelines;
 		}
 
@@ -79,13 +92,14 @@ namespace vt::d3d12
 			std::vector<RenderPipeline> pipelines;
 			pipelines.reserve(specs.size());
 			for(auto& spec : specs)
-				pipelines.emplace_back(D3D12RenderPipeline(*device, spec));
+				pipelines.emplace_back(D3D12RenderPipeline(spec, *device));
 			return pipelines;
 		}
 
-		SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts) override
+		SmallList<DescriptorSet> make_descriptor_sets(ArrayView<DescriptorSetLayout> set_layouts,
+													  unsigned const				 dynamic_counts[]) override
 		{
-			return descriptor_pool.make_descriptor_sets(set_layouts);
+			return descriptor_pool->make_descriptor_sets(set_layouts, dynamic_counts);
 		}
 
 		DescriptorSetLayout make_descriptor_set_layout(DescriptorSetLayoutSpecification const& spec) override
@@ -100,12 +114,12 @@ namespace vt::d3d12
 
 		RootSignature make_root_signature(RootSignatureSpecification const& spec) override
 		{
-			return D3D12RootSignature(*device, spec);
+			return D3D12RootSignature(spec, *device);
 		}
 
 		Sampler make_sampler(SamplerSpecification const& spec) override
 		{
-			return D3D12Sampler(spec);
+			return D3D12Sampler(spec, *device, descriptor_pool->allocate_sampler());
 		}
 
 		Shader make_shader(char const path[]) override
@@ -120,6 +134,11 @@ namespace vt::d3d12
 
 		void update_descriptors(ArrayView<DescriptorUpdate>) override
 		{}
+
+		void reset_descriptors() override
+		{
+			descriptor_pool->reset_shader_visible_heaps();
+		}
 
 		void* map(Buffer const& buffer) override
 		{
@@ -192,17 +211,39 @@ namespace vt::d3d12
 			copy_queue.flush();
 		}
 
+		unsigned get_max_resource_descriptors_per_stage() const override
+		{
+			UINT base_count;
+
+			if(binding_tier == D3D12_RESOURCE_BINDING_TIER_1)
+				base_count = D3D12_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT + D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT +
+							 D3D12_UAV_SLOT_COUNT;
+			else
+				base_count = DescriptorPool::MAX_RECOMMENDED_SRVS_ON_GPU + D3D12_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT +
+							 D3D12_UAV_SLOT_COUNT;
+
+			return MAX_FRAMES_IN_FLIGHT * base_count;
+		}
+
+		unsigned get_max_sampler_descriptors_per_stage() const override
+		{
+			if(binding_tier == D3D12_RESOURCE_BINDING_TIER_1)
+				return MAX_FRAMES_IN_FLIGHT * D3D12_COMMONSHADER_SAMPLER_SLOT_COUNT;
+			else
+				return D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
+		}
+
 	private:
 		IDXGIFactory5*					  factory;
 		ComUnique<ID3D12Device4>		  device;
+		D3D12_RESOURCE_BINDING_TIER		  binding_tier;
 		Queue							  render_queue;
 		Queue							  compute_queue;
 		Queue							  copy_queue;
-		DescriptorPool					  descriptor_pool;
+		std::unique_ptr<DescriptorPool>	  descriptor_pool;
 		ComUnique<ID3D12CommandSignature> dispatch_signature;
 		ComUnique<ID3D12CommandSignature> draw_signature;
 		ComUnique<ID3D12CommandSignature> draw_indexed_signature;
-		ComUnique<ID3D12PipelineLibrary1> pipeline_library;
 		ComUnique<D3D12MA::Allocator>	  allocator;
 
 		static ComUnique<ID3D12Device4> make_device(Adapter const& adapter)
@@ -235,16 +276,32 @@ namespace vt::d3d12
 			};
 		}
 
+		D3D12_RESOURCE_BINDING_TIER query_resource_binding_tier() const
+		{
+			D3D12_FEATURE_DATA_D3D12_OPTIONS feature_data;
+
+			auto result = device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &feature_data, sizeof feature_data);
+			VT_CHECK_RESULT(result, "Failed to query D3D12 device resource binding tier.");
+
+			return feature_data.ResourceBindingTier;
+		}
+
 		RenderTarget make_platform_render_target(RenderTargetSpecification const& spec) override
 		{
-			return {D3D12RenderTarget(spec, *device, descriptor_pool), {spec.width, spec.height}};
+			return {
+				D3D12RenderTarget(spec, *device, *descriptor_pool),
+				{spec.width, spec.height},
+			};
 		}
 
 		RenderTarget make_platform_render_target(SharedRenderTargetSpecification const& spec,
 												 SwapChain const&						swap_chain,
 												 unsigned								back_buffer_index) override
 		{
-			return {D3D12RenderTarget(spec, swap_chain, back_buffer_index, *device, descriptor_pool), swap_chain->get_size()};
+			return {
+				D3D12RenderTarget(spec, swap_chain, back_buffer_index, *device, *descriptor_pool),
+				swap_chain->get_size(),
+			};
 		}
 
 		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override

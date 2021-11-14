@@ -273,7 +273,7 @@ namespace vt
 
 		void update_cam(Tick tick)
 		{
-			float move_speed = 15 * tick;
+			float move_speed = 5 * tick;
 
 			if(Input::is_down(KeyCode::A))
 				cam.translate({-move_speed, 0, 0});
@@ -301,8 +301,8 @@ namespace vt
 
 		void on_mouse_move(MouseMoveEvent& event)
 		{
-			cam.yaw(radians(event.direction.x));
-			cam.pitch(radians(event.direction.y));
+			cam.yaw(radians(0.25f * event.direction.x));
+			cam.pitch(radians(0.25f * event.direction.y));
 		}
 	};
 }

@@ -5,6 +5,7 @@ export module vt.Graphics.D3D12.Image;
 
 import vt.Core.LookupTable;
 import vt.Graphics.AssetResourceSpecification;
+import vt.Graphics.D3D12.DescriptorPool;
 import vt.Graphics.D3D12.Resource;
 
 namespace vt::d3d12
@@ -157,12 +158,16 @@ namespace vt::d3d12
 	export class D3D12Image : public Resource
 	{
 	public:
-		D3D12Image(ImageSpecification const& spec, D3D12MA::Allocator& allocator)
+		D3D12Image(ImageSpecification const& spec, ID3D12Device4& device, D3D12MA::Allocator& allocator, DescriptorPool& pool)
 		{
-			D3D12MA::ALLOCATION_DESC const allocation_desc {
-				.HeapType = D3D12_HEAP_TYPE_DEFAULT,
-			};
-			D3D12_RESOURCE_DESC const resource_desc {
+			initialize_resource(spec, allocator);
+			initialize_descriptor(spec, device, pool);
+		}
+
+	private:
+		static D3D12_RESOURCE_DESC fill_resource_desc(ImageSpecification const& spec)
+		{
+			return {
 				.Dimension		  = IMAGE_DIMENSION_LOOKUP[spec.dimension],
 				.Alignment		  = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
 				.Width			  = spec.expanse.width,
@@ -177,11 +182,36 @@ namespace vt::d3d12
 				.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN,
 				.Flags	= derive_image_resource_flags(spec.usage),
 			};
+		}
+
+		void initialize_resource(ImageSpecification const& spec, D3D12MA::Allocator& allocator)
+		{
+			D3D12MA::ALLOCATION_DESC const allocation_desc {
+				.HeapType = D3D12_HEAP_TYPE_DEFAULT,
+			};
+			auto resource_desc = fill_resource_desc(spec);
 			auto initial_state = derive_image_resource_states(spec.usage);
 
 			auto result = allocator.CreateResource(&allocation_desc, &resource_desc, initial_state, nullptr,
 												   std::out_ptr(allocation), VT_COM_OUT(resource));
 			VT_CHECK_RESULT(result, "Failed to create D3D12 image.");
+		}
+
+		void initialize_descriptor(ImageSpecification const& spec, ID3D12Device4& device, DescriptorPool& pool)
+		{
+			auto usage = spec.usage.get();
+			using enum ImageUsage;
+
+			if(usage & Storage || usage & InputAttachment)
+			{
+				descriptor = pool.allocate_cbv_srv_uav();
+				device.CreateUnorderedAccessView(resource.get(), nullptr, nullptr, descriptor.get());
+			}
+			else if(usage & Sampled)
+			{
+				descriptor = pool.allocate_cbv_srv_uav();
+				device.CreateShaderResourceView(resource.get(), nullptr, descriptor.get());
+			}
 		}
 	};
 }
