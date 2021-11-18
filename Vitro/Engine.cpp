@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <string_view>
+#include <typeinfo>
 #include <vector>
 
 import vt.App.AppSystem;

@@ -193,12 +193,11 @@ namespace vt
 
 			while(queue.size_approx())
 			{
-				constexpr unsigned MAX_ENTRIES_DEQUEUED = 100;
+				constexpr unsigned MAX_ENTRIES_AT_ONCE = 100;
 
-				Entry  entries[MAX_ENTRIES_DEQUEUED];
-				size_t count = queue.try_dequeue_bulk(con_token, entries, MAX_ENTRIES_DEQUEUED);
-				for(auto const& entry : std::views::take(entries, count))
+				queue.try_consume<MAX_ENTRIES_AT_ONCE>(con_token, [&](Entry const& entry) {
 					write_log(entry);
+				});
 			}
 		}
 
