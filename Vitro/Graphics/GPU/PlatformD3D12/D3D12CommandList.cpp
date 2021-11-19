@@ -17,7 +17,7 @@ import vt.Graphics.D3D12.RenderPass;
 import vt.Graphics.D3D12.RenderTarget;
 import vt.Graphics.D3D12.RootSignature;
 import vt.Graphics.AssetResource;
-import vt.Graphics.CommandListBase;
+import vt.Graphics.AbstractCommandList;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Handle;
 import vt.Graphics.PipelineSpecification;
@@ -45,8 +45,7 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Compute> : protected CommandListData<CommandType::Copy>
 	{
 	protected:
-		ID3D12DescriptorHeap*	view_heap;
-		ID3D12DescriptorHeap*	sampler_heap;
+		DescriptorPool*			descriptor_pool;
 		RootParameterMap		bound_compute_root_indices;
 		ID3D12CommandSignature* dispatch_signature;
 	};
@@ -54,7 +53,6 @@ namespace vt::d3d12
 	template<> class CommandListData<CommandType::Render> : protected CommandListData<CommandType::Compute>
 	{
 	protected:
-		D3D12_CPU_DESCRIPTOR_HANDLE			   rtv_null_descriptor;
 		ID3D12CommandSignature*				   draw_signature;
 		ID3D12CommandSignature*				   draw_indexed_signature;
 		RootParameterMap					   bound_render_root_indices;
@@ -65,24 +63,23 @@ namespace vt::d3d12
 		FixedList<ClearValue, MAX_ATTACHMENTS> clear_values;
 	};
 
-	export template<CommandType TYPE> class D3D12CommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
+	export template<CommandType TYPE>
+	class D3D12CommandList final : public AbstractCommandList<TYPE>, private CommandListData<TYPE>
 	{
 	public:
 		D3D12CommandList(ID3D12Device4&			 device,
-						 DescriptorPool const&	 descriptor_pool,
+						 DescriptorPool&		 descriptor_pool,
 						 ID3D12CommandSignature* dispatch_signature,
 						 ID3D12CommandSignature* draw_signature,
 						 ID3D12CommandSignature* draw_indexed_signature)
 		{
 			if constexpr(TYPE != CommandType::Copy)
 			{
-				this->view_heap			 = descriptor_pool.get_shader_visible_view_heap();
-				this->sampler_heap		 = descriptor_pool.get_shader_visible_sampler_heap();
+				this->descriptor_pool	 = &descriptor_pool;
 				this->dispatch_signature = dispatch_signature;
 			}
 			if constexpr(TYPE == CommandType::Render)
 			{
-				this->rtv_null_descriptor	 = descriptor_pool.get_rtv_null_descriptor();
 				this->draw_signature		 = draw_signature;
 				this->draw_indexed_signature = draw_indexed_signature;
 			}
@@ -113,8 +110,8 @@ namespace vt::d3d12
 			if constexpr(TYPE != CommandType::Copy)
 			{
 				ID3D12DescriptorHeap* heaps[] {
-					this->view_heap,
-					this->sampler_heap,
+					this->descriptor_pool->get_shader_visible_view_heap(),
+					this->descriptor_pool->get_shader_visible_sampler_heap(),
 				};
 				cmd->SetDescriptorHeaps(count(heaps), heaps);
 			}
@@ -460,7 +457,7 @@ namespace vt::d3d12
 				D3D12_CPU_DESCRIPTOR_HANDLE rt_descriptor;
 				D3D12_CLEAR_VALUE			color_clear_value = {};
 				if(access.for_input)
-					rt_descriptor = this->rtv_null_descriptor;
+					rt_descriptor = this->descriptor_pool->get_rtv_null_descriptor();
 				else
 				{
 					rt_descriptor = target.get_render_target_view(index);

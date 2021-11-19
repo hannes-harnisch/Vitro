@@ -8,13 +8,13 @@ export module vt.Graphics.D3D12.SwapChain;
 
 import vt.App.Window;
 import vt.Core.FixedList;
-import vt.Graphics.SwapChainBase;
+import vt.Graphics.AbstractSwapChain;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Queue;
 
 namespace vt::d3d12
 {
-	export class D3D12SwapChain final : public SwapChainBase
+	export class D3D12SwapChain final : public AbstractSwapChain
 	{
 	public:
 		D3D12SwapChain(Queue& render_queue, IDXGIFactory5& factory, Window& window, uint8_t buffer_count) :

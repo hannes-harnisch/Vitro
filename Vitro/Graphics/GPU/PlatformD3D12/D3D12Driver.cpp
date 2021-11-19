@@ -11,11 +11,11 @@ import vt.Core.Version;
 import vt.Core.Windows.Utils;
 import vt.Graphics.D3D12.Device;
 import vt.Graphics.D3D12.Handle;
-import vt.Graphics.DriverBase;
+import vt.Graphics.AbstractDriver;
 
 namespace vt::d3d12
 {
-	export class D3D12Driver final : public DriverBase
+	export class D3D12Driver final : public AbstractDriver
 	{
 	public:
 		// The unused parameters are kept for compatibility with Vulkan, which takes an application name and versions.

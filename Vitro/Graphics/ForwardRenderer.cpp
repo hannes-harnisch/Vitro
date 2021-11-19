@@ -12,7 +12,7 @@ import vt.Core.Vector;
 import vt.Graphics.AssetResource;
 import vt.Graphics.Camera;
 import vt.Graphics.CommandList;
-import vt.Graphics.CommandListBase;
+import vt.Graphics.AbstractCommandList;
 import vt.Graphics.DeletionQueue;
 import vt.Graphics.DescriptorBinding;
 import vt.Graphics.DescriptorSetLayout;

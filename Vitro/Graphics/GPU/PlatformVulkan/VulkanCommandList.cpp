@@ -12,7 +12,7 @@ import vt.Core.Array;
 import vt.Core.FixedList;
 import vt.Core.Rect;
 import vt.Graphics.AssetResource;
-import vt.Graphics.CommandListBase;
+import vt.Graphics.AbstractCommandList;
 import vt.Graphics.DescriptorSet;
 import vt.Graphics.Handle;
 import vt.Graphics.PipelineSpecification;
@@ -41,7 +41,7 @@ namespace vt::vulkan
 	};
 
 	export template<CommandType TYPE>
-	class VulkanCommandList final : public CommandListBase<TYPE>, private CommandListData<TYPE>
+	class VulkanCommandList final : public AbstractCommandList<TYPE>, private CommandListData<TYPE>
 	{
 	public:
 		VulkanCommandList(uint32_t queue_family, DeviceApiTable const& in_api) : api(&in_api)

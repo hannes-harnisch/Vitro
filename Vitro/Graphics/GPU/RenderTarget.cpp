@@ -39,9 +39,9 @@ namespace vt
 		unsigned width;
 		unsigned height;
 
-		friend class DeviceBase;
+		friend class AbstractDevice;
 
-		// We're using these to update a RenderTarget from DeviceBase.
+		// We're using these to update a RenderTarget from AbstractDevice.
 		void set_width(unsigned new_width)
 		{
 			width = new_width;

@@ -15,6 +15,7 @@ workspace 'Vitro'
 	floatingpoint		'Fast'
 	toolset				'MSC'
 	staticruntime		'On'
+	inheritdependencies	'Off'
 	files				{
 							'%{prj.name}/**.cpp',
 							'%{prj.name}/**.hpp',
@@ -129,6 +130,7 @@ project 'VitroCore'
 project 'VitroHlslBuilder'
 	location			'%{prj.name}'
 	kind				'ConsoleApp'
+	allmodulespublic	'On'
 	includedirs			{ '' }
 	links				'VitroCore'
 	

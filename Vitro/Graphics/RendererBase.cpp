@@ -76,6 +76,6 @@ namespace vt
 		virtual void on_render_target_resize(Extent size) = 0;
 
 	private:
-		FixedList<RenderTarget, SwapChainBase::MAX_BUFFERS> shared_targets;
+		FixedList<RenderTarget, AbstractSwapChain::MAX_BUFFERS> shared_targets;
 	};
 }

@@ -13,7 +13,7 @@ import vt.Core.Algorithm;
 import vt.Core.Array;
 import vt.Core.Rect;
 import vt.Core.SmallList;
-import vt.Graphics.SwapChainBase;
+import vt.Graphics.AbstractSwapChain;
 import vt.Graphics.Vulkan.Handle;
 import vt.Graphics.Vulkan.SyncTokenPool;
 import vt.Graphics.Vulkan.Image;
@@ -67,7 +67,7 @@ namespace vt::vulkan
 		return surface;
 	}
 
-	export class VulkanSwapChain final : public SwapChainBase
+	export class VulkanSwapChain final : public AbstractSwapChain
 	{
 	public:
 		VulkanSwapChain(uint32_t			  render_queue_family_index,

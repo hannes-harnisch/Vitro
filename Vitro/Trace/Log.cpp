@@ -191,14 +191,11 @@ namespace vt
 			condition.wait(lock);
 			lock.unlock();
 
+			constexpr unsigned MAX_ENTRIES_AT_ONCE = 100;
 			while(queue.size_approx())
-			{
-				constexpr unsigned MAX_ENTRIES_AT_ONCE = 100;
-
-				queue.try_consume<MAX_ENTRIES_AT_ONCE>(con_token, [&](Entry const& entry) {
+				queue.consume<MAX_ENTRIES_AT_ONCE>(con_token, [&](Entry const& entry) {
 					write_log(entry);
 				});
-			}
 		}
 
 		void write_log(Entry const& entry)

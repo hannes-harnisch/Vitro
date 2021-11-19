@@ -17,13 +17,13 @@ import vt.Graphics.D3D12.RootSignature;
 import vt.Graphics.D3D12.SwapChain;
 import vt.Graphics.D3D12.Handle;
 import vt.Graphics.D3D12.Queue;
-import vt.Graphics.DeviceBase;
+import vt.Graphics.AbstractDevice;
 import vt.Graphics.Handle;
 import vt.Graphics.RingBuffer;
 
 namespace vt::d3d12
 {
-	export class D3D12Device final : public DeviceBase
+	export class D3D12Device final : public AbstractDevice
 	{
 	public:
 		static constexpr D3D_FEATURE_LEVEL MIN_FEATURE_LEVEL = D3D_FEATURE_LEVEL_11_1;
@@ -132,8 +132,38 @@ namespace vt::d3d12
 			return D3D12SwapChain(render_queue, *factory, window, buffer_count);
 		}
 
-		void update_descriptors(ArrayView<DescriptorUpdate>) override
-		{}
+		void update_descriptors(ArrayView<DescriptorUpdate> updates) override
+		{
+			SmallList<D3D12_CPU_DESCRIPTOR_HANDLE> src_samplers;
+			SmallList<D3D12_CPU_DESCRIPTOR_HANDLE> sampler_dst_starts;
+			sampler_dst_starts.reserve(updates.size());
+			SmallList<UINT> sampler_dst_sizes;
+			sampler_dst_sizes.reserve(updates.size());
+
+			SmallList<D3D12_CPU_DESCRIPTOR_HANDLE> src_views;
+			SmallList<D3D12_CPU_DESCRIPTOR_HANDLE> view_dst_starts;
+			view_dst_starts.reserve(updates.size());
+			SmallList<UINT> view_dst_sizes;
+			view_dst_sizes.reserve(updates.size());
+
+			SmallList<UINT> src_sizes;
+
+			for(auto& update : updates)
+			{
+				if(update.type == DescriptorType::Sampler)
+				{
+					for(Sampler const& sampler : update.samplers)
+						src_samplers.emplace_back(sampler.d3d12.get_handle());
+				}
+				else
+				{}
+			}
+			device->CopyDescriptors(count(view_dst_starts), view_dst_starts.data(), view_dst_sizes.data(), count(src_views),
+									src_views.data(), src_sizes.data(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			device->CopyDescriptors(count(sampler_dst_starts), sampler_dst_starts.data(), sampler_dst_sizes.data(),
+									count(src_samplers), src_samplers.data(), src_sizes.data(),
+									D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		}
 
 		void reset_descriptors() override
 		{

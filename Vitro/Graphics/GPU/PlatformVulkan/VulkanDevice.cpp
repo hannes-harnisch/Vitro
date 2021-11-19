@@ -11,7 +11,7 @@ export module vt.Graphics.Vulkan.Device;
 
 import vt.Core.Array;
 import vt.Core.SmallList;
-import vt.Graphics.DeviceBase;
+import vt.Graphics.AbstractDevice;
 import vt.Graphics.Handle;
 import vt.Graphics.RingBuffer;
 import vt.Graphics.Vulkan.DescriptorPool;
@@ -20,7 +20,7 @@ import vt.Graphics.Vulkan.SyncTokenPool;
 
 namespace vt::vulkan
 {
-	export class VulkanDevice final : public DeviceBase
+	export class VulkanDevice final : public AbstractDevice
 	{
 	public:
 		VulkanDevice(Adapter const& in_adapter, VkPhysicalDeviceProperties const& properties) :
@@ -55,12 +55,18 @@ namespace vt::vulkan
 
 		Buffer make_buffer(BufferSpecification const& spec) override
 		{
-			return {VulkanBuffer(spec, *api, allocator.get()), spec};
+			return {
+				VulkanBuffer(spec, *api, allocator.get()),
+				spec,
+			};
 		}
 
 		Image make_image(ImageSpecification const& spec) override
 		{
-			return {VulkanImage(spec, *api, allocator.get()), spec};
+			return {
+				VulkanImage(spec, *api, allocator.get()),
+				spec,
+			};
 		}
 
 		SmallList<ComputePipeline> make_compute_pipelines(ArrayView<ComputePipelineSpecification> specs) override
@@ -149,12 +155,40 @@ namespace vt::vulkan
 			return VulkanSwapChain(queue_families.render, window, buffer_count, sync_tokens, *api);
 		}
 
-		void update_descriptors(ArrayView<DescriptorUpdate>) override
-		{}
+		void update_descriptors(ArrayView<DescriptorUpdate> updates) override
+		{
+			SmallList<VkDescriptorImageInfo>  image_infos;
+			SmallList<VkDescriptorBufferInfo> buffer_infos;
+			image_infos.reserve(updates.size());
+			buffer_infos.reserve(updates.size());
+			SmallList<VkWriteDescriptorSet> writes(updates.size());
+
+			auto write = writes.begin();
+			for(auto& update : updates)
+			{
+				auto	 type			   = DESCRIPTOR_TYPE_LOOKUP[update.type];
+				size_t	 image_info_start  = image_infos.size();
+				size_t	 buffer_info_start = buffer_infos.size();
+				uint32_t descriptor_count  = update_descriptor_infos_and_count(type, update, image_infos, buffer_infos);
+
+				*write++ = VkWriteDescriptorSet {
+					.sType			 = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					.dstSet			 = update.set.vulkan.get_handle(),
+					.dstBinding		 = update.first_register + REGISTER_OFFSET_LOOKUP[type],
+					.dstArrayElement = update.first_array_index,
+					.descriptorCount = descriptor_count,
+					.descriptorType	 = type,
+					.pImageInfo		 = image_infos.data() + image_info_start,
+					.pBufferInfo	 = buffer_infos.data() + buffer_info_start,
+				};
+			}
+			api->vkUpdateDescriptorSets(device.get(), count(writes), writes.data(), 0, nullptr);
+		}
 
 		void reset_descriptors() override
 		{
-			api->vkResetDescriptorPool(device.get(), descriptor_pool.get_handle(), 0);
+			auto result = api->vkResetDescriptorPool(device.get(), descriptor_pool.get_handle(), 0);
+			VT_CHECK_RESULT(result, "Failed to reset Vulkan descriptor pool.");
 		}
 
 		void* map(Buffer const& buffer) override
@@ -298,16 +332,60 @@ namespace vt::vulkan
 			return flags & wanted && !(flags & unwanted);
 		}
 
+		static uint32_t update_descriptor_infos_and_count(VkDescriptorType					 type,
+														  DescriptorUpdate const&			 update,
+														  SmallList<VkDescriptorImageInfo>&	 image_infos,
+														  SmallList<VkDescriptorBufferInfo>& buffer_infos)
+		{
+			switch(type)
+			{
+				case VK_DESCRIPTOR_TYPE_SAMPLER:
+				{
+					for(Sampler const& sampler : update.samplers)
+						image_infos.emplace_back(VkDescriptorImageInfo {
+							.sampler = sampler.vulkan.get_handle(),
+						});
+					return count(update.samplers);
+				}
+				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+				case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+				case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+				{
+					for(Image const& image : update.images)
+						image_infos.emplace_back(VkDescriptorImageInfo {
+							.imageView	 = image.vulkan.get_view(),
+							.imageLayout = type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+																					: VK_IMAGE_LAYOUT_GENERAL,
+						});
+					return count(update.images);
+				}
+			}
+
+			for(Buffer const& buffer : update.buffers)
+				buffer_infos.emplace_back(VkDescriptorBufferInfo {
+					.buffer = buffer.vulkan.get_handle(),
+					.offset = 0,
+					.range	= buffer.get_size(),
+				});
+			return count(update.buffers);
+		}
+
 		RenderTarget make_platform_render_target(RenderTargetSpecification const& spec) override
 		{
-			return {VulkanRenderTarget(spec, *api), {spec.width, spec.height}};
+			return {
+				VulkanRenderTarget(spec, *api),
+				{spec.width, spec.height},
+			};
 		}
 
 		RenderTarget make_platform_render_target(SharedRenderTargetSpecification const& spec,
 												 SwapChain const&						swap_chain,
 												 unsigned								back_buffer_index) override
 		{
-			return {VulkanRenderTarget(spec, swap_chain, back_buffer_index, *api), swap_chain->get_size()};
+			return {
+				VulkanRenderTarget(spec, swap_chain, back_buffer_index, *api),
+				swap_chain->get_size(),
+			};
 		}
 
 		void recreate_platform_render_target(RenderTarget& render_target, RenderTargetSpecification const& spec) override

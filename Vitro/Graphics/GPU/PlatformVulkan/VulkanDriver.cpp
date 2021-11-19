@@ -11,7 +11,7 @@ export module vt.Graphics.Vulkan.Driver;
 import vt.Core.Array;
 import vt.Core.SharedLibrary;
 import vt.Core.Version;
-import vt.Graphics.DriverBase;
+import vt.Graphics.AbstractDriver;
 import vt.Graphics.Handle;
 import vt.Trace.Log;
 
@@ -37,7 +37,7 @@ namespace vt::vulkan
 		return false;
 	}
 
-	export class VulkanDriver final : public DriverBase
+	export class VulkanDriver final : public AbstractDriver
 	{
 	public:
 		VulkanDriver(bool enable_debug_layer, std::string const& app_name, Version app_version, Version engine_version) :

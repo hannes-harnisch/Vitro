@@ -16,7 +16,7 @@ import vttool.HlslBuilder.VulkanRegisterShiftOffsets;
 
 namespace vt::vulkan
 {
-	constexpr inline auto DESCRIPTOR_TYPE_LOOKUP = [] {
+	export constexpr inline auto DESCRIPTOR_TYPE_LOOKUP = [] {
 		LookupTable<DescriptorType, VkDescriptorType> _;
 		using enum DescriptorType;
 
@@ -53,6 +53,19 @@ namespace vt::vulkan
 		return _;
 	}();
 
+	export constexpr inline auto REGISTER_OFFSET_LOOKUP = [] {
+		LookupTable<VkDescriptorType, unsigned, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 1> _;
+		_[VK_DESCRIPTOR_TYPE_SAMPLER]			   = tool::S_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE]		   = tool::T_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_STORAGE_IMAGE]		   = tool::U_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER] = tool::T_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER] = tool::U_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER]	   = tool::B_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_STORAGE_BUFFER]	   = tool::U_BINDING_OFFSET;
+		_[VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT]	   = tool::U_BINDING_OFFSET;
+		return _;
+	}();
+
 	export class VulkanDescriptorSetLayout
 	{
 	public:
@@ -70,9 +83,10 @@ namespace vt::vulkan
 				if(binding.static_sampler_spec)
 					static_sampler = static_samplers.emplace_back(*binding.static_sampler_spec, api).get_handle();
 
+				auto type = DESCRIPTOR_TYPE_LOOKUP[binding.type];
 				bindings.emplace_back(VkDescriptorSetLayoutBinding {
-					.binding			= binding.shader_register,
-					.descriptorType		= DESCRIPTOR_TYPE_LOOKUP[binding.type],
+					.binding			= binding.shader_register + REGISTER_OFFSET_LOOKUP[type],
+					.descriptorType		= type,
 					.descriptorCount	= binding.static_sampler_spec ? 1u : binding.count.get(),
 					.stageFlags			= binding.static_sampler_spec ? SHADER_STAGE_LOOKUP[binding.static_sampler_visibility]
 																	  : visibility,

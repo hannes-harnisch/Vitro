@@ -3,6 +3,9 @@ module;
 #include "VitroCore/Macros.hpp"
 export module vt.Graphics.D3D12.DescriptorSet;
 
+import vt.Core.Array;
+import vt.Graphics.D3D12.DescriptorSetLayout;
+
 namespace vt::d3d12
 {
 	export class D3D12DescriptorSet
@@ -11,13 +14,14 @@ namespace vt::d3d12
 
 	public:
 		// Use of this constructor indicates that the descriptor set will hold a descriptor table.
-		D3D12DescriptorSet(unsigned					   layout_id,
-						   D3D12_GPU_DESCRIPTOR_HANDLE view_table_start,
-						   D3D12_GPU_DESCRIPTOR_HANDLE sampler_table_start) :
+		D3D12DescriptorSet(unsigned							  layout_id,
+						   ConstSpan<D3D12_DESCRIPTOR_RANGE1> view_ranges,
+						   D3D12_GPU_DESCRIPTOR_HANDLE		  sampler_table_start,
+						   D3D12_GPU_DESCRIPTOR_HANDLE		  view_table_start) :
 			layout_id(layout_id),
 			view_param_type(D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE),
-			view_table_start(view_table_start),
-			sampler_table_start(sampler_table_start)
+			sampler_table_start(sampler_table_start),
+			view_table_start(view_table_start)
 		{}
 
 		// Use of this constructor indicates that the descriptor set will hold a root descriptor. Initialization of the GPU
@@ -36,6 +40,11 @@ namespace vt::d3d12
 		D3D12_ROOT_PARAMETER_TYPE get_view_parameter_type() const
 		{
 			return view_param_type;
+		}
+
+		bool holds_root_descriptor() const
+		{
+			return view_param_type != D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 		}
 
 		// Returns a zero descriptor if the descriptor set contains no view descriptor table.
@@ -62,9 +71,11 @@ namespace vt::d3d12
 		}
 
 	private:
-		unsigned					layout_id;
-		D3D12_ROOT_PARAMETER_TYPE	view_param_type;
-		D3D12_GPU_DESCRIPTOR_HANDLE sampler_table_start;
+		unsigned					   layout_id;
+		D3D12_ROOT_PARAMETER_TYPE	   view_param_type : 16;
+		unsigned					   range_count	   : 16;
+		RangeOffsetMap::const_iterator range_begin;
+		D3D12_GPU_DESCRIPTOR_HANDLE	   sampler_table_start;
 		union
 		{
 			D3D12_GPU_DESCRIPTOR_HANDLE view_table_start;

@@ -13,10 +13,17 @@ namespace vt
 {
 	using SystemWindow = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, Window);
 
-	class WindowImpl : private SystemWindow
+	class WindowBaseData
+	{
+	protected:
+		bool is_cursor_enabled = true;
+		bool is_resize_enabled = true;
+	};
+
+	export class Window : private SystemWindow, private WindowBaseData, public ObjectEventSentinel<Window>
 	{
 	public:
-		WindowImpl(std::string_view title, Rectangle rect = SystemWindow::DEFAULT_RECT) : SystemWindow(title, rect)
+		Window(std::string_view title, Rectangle rect = SystemWindow::DEFAULT_RECT) : SystemWindow(title, rect)
 		{}
 
 		void open()
@@ -112,17 +119,5 @@ namespace vt
 		{
 			return SystemWindow::native_handle();
 		}
-
-	protected:
-		~WindowImpl() = default;
-
-	private:
-		bool is_cursor_enabled = true;
-		bool is_resize_enabled = true;
-	};
-
-	export class Window : public WindowImpl, public ObjectEventSentinel<Window>
-	{
-		using WindowImpl::WindowImpl;
 	};
 }

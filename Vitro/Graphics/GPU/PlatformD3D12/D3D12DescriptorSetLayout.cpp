@@ -4,6 +4,7 @@ module;
 
 #include <algorithm>
 #include <atomic>
+#include <unordered_map>
 export module vt.Graphics.D3D12.DescriptorSetLayout;
 
 import vt.Core.Array;
@@ -31,6 +32,27 @@ namespace vt::d3d12
 		_[UniformBuffer]	   = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 		return _;
 	}();
+
+	struct ShaderRegister
+	{
+		D3D12_DESCRIPTOR_RANGE_TYPE type;
+		unsigned					register_number;
+
+		bool operator==(ShaderRegister const&) const = default;
+	};
+}
+
+template<> struct std::hash<vt::d3d12::ShaderRegister>
+{
+	size_t operator()(vt::d3d12::ShaderRegister shader_register) const
+	{
+		return std::bit_cast<size_t>(shader_register);
+	}
+};
+
+namespace vt::d3d12
+{
+	export using RangeOffsetMap = std::unordered_map<ShaderRegister, unsigned>;
 
 	export class D3D12DescriptorSetLayout
 	{
@@ -99,6 +121,11 @@ namespace vt::d3d12
 			};
 		}
 
+		unsigned get_range_offset(D3D12_DESCRIPTOR_RANGE_TYPE type, unsigned register_number) const
+		{
+			return range_offsets.find({type, register_number})->second;
+		}
+
 	private:
 		static inline std::atomic_uint id_counter = 0;
 
@@ -109,6 +136,7 @@ namespace vt::d3d12
 		uint8_t							 sampler_range_start_index;
 		Array<D3D12_STATIC_SAMPLER_DESC> static_samplers;
 		Array<D3D12_DESCRIPTOR_RANGE1>	 descriptor_table_ranges;
+		RangeOffsetMap					 range_offsets;
 
 		static D3D12_ROOT_PARAMETER_TYPE determine_view_parameter_type(DescriptorSetLayoutSpecification const& spec)
 		{
@@ -190,7 +218,7 @@ namespace vt::d3d12
 			SmallList<CountRegisterPair> sampler_range_data;
 
 			auto range = descriptor_table_ranges.begin();
-			for(auto& binding : spec.bindings)
+			for(unsigned offset = 0; auto& binding : spec.bindings)
 			{
 				if(binding.static_sampler_spec)
 					continue; // If it's a static sampler there is no descriptor table range to initialize.
@@ -205,19 +233,24 @@ namespace vt::d3d12
 					root_descriptor_register = binding.shader_register;
 					break;
 				}
+				auto type = DESCRIPTOR_TYPE_LOOKUP[binding.type];
+
 				*range++ = D3D12_DESCRIPTOR_RANGE1 {
-					.RangeType						   = DESCRIPTOR_TYPE_LOOKUP[binding.type],
+					.RangeType						   = type,
 					.NumDescriptors					   = binding.count,
 					.BaseShaderRegister				   = binding.shader_register,
 					.RegisterSpace					   = 0, // Not the final value, will be set when creating root signature.
 					.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
 					.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
 				};
+				range_offsets.try_emplace({type, binding.shader_register}, offset);
+				offset += binding.count;
 			}
 
 			sampler_range_start_index = static_cast<uint8_t>(range - descriptor_table_ranges.begin());
 
-			for(auto [count, shader_register] : sampler_range_data)
+			for(unsigned offset = 0; auto [count, shader_register] : sampler_range_data)
+			{
 				*range++ = D3D12_DESCRIPTOR_RANGE1 {
 					.RangeType						   = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
 					.NumDescriptors					   = count,
@@ -226,6 +259,9 @@ namespace vt::d3d12
 					.Flags							   = D3D12_DESCRIPTOR_RANGE_FLAG_DATA_STATIC,
 					.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND,
 				};
+				range_offsets.try_emplace({D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, shader_register}, offset);
+				offset += count;
+			}
 		}
 	};
 }

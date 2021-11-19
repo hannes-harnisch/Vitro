@@ -1,136 +1,26 @@
 module;
 #include <algorithm>
+#include <any>
+#include <atomic>
 #include <concurrentqueue/concurrentqueue.h>
 #include <ranges>
-#include <typeinfo>
+#include <typeindex>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 export module vt.App.EventSystem;
 
 import vt.Core.ConcurrentQueue;
 import vt.Core.Reflect;
+import vt.Core.Singleton;
 import vt.Trace.Log;
 
 namespace vt
 {
-	template<typename E> using Callback = bool (*)(class EventListener&, E&);
-
-	class AbstractEventContext
-	{
-	public:
-		virtual void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener) = 0;
-		virtual void replace_handlers_with_listener(EventListener& new_listener, EventListener& old_listener)		  = 0;
-		virtual void remove_handlers_with_listener(EventListener& listener)											  = 0;
-		virtual void flush_async_events()																			  = 0;
-	};
-
-	std::vector<AbstractEventContext*>& get_event_contexts()
-	{
-		static std::vector<AbstractEventContext*> contexts;
-		return contexts;
-	}
-
-	template<typename E> class ConcurrentEventContext
-	{};
-
 	template<typename E>
-	concept AllowsAsyncDispatch = E::ENABLE_ASYNC_DISPATCH;
+	concept AllowsAsyncDispatch = E::ALLOW_ASYNC_DISPATCH;
 
-	template<AllowsAsyncDispatch E> class ConcurrentEventContext<E>
-	{
-	public:
-		void notify_async(E& event)
-		{
-			thread_local ProducerToken const pro_token(async_events);
-			async_events.enqueue(pro_token, std::move(event));
-		}
-
-	protected:
-		ConcurrentQueue<E> async_events;
-		ConsumerToken	   con_token;
-
-		ConcurrentEventContext() : con_token(async_events)
-		{}
-	};
-
-	template<typename E> class EventContext : public AbstractEventContext, public ConcurrentEventContext<E>
-	{
-	public:
-		EventContext()
-		{
-			get_event_contexts().emplace_back(this);
-		}
-
-		void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener) override
-		{
-			for(size_t i = 0; i != handlers.size(); ++i)
-			{
-				auto handler = handlers[i];
-				if(handler.listener == &old_listener)
-					handlers.emplace_back(handler.callback, &new_listener);
-			}
-		}
-
-		void replace_handlers_with_listener(EventListener& new_listener, EventListener& old_listener) override
-		{
-			for(auto& handler : handlers)
-				if(handler.listener == &old_listener)
-					handler.listener = &new_listener;
-		}
-
-		void remove_handlers_with_listener(EventListener& listener) override
-		{
-			std::erase_if(handlers, [&](Handler handler) {
-				return handler.listener == &listener;
-			});
-		}
-
-		void flush_async_events() override
-		{
-			if constexpr(AllowsAsyncDispatch<E>)
-			{
-				constexpr size_t MAX_EVENTS = 20;
-
-				while(this->async_events.size_approx())
-					this->async_events.try_consume<MAX_EVENTS>(this->con_token, [&](E& event) {
-						dispatch_event(event);
-					});
-			}
-		}
-
-		void add_handler(Callback<E> callback, EventListener* listener)
-		{
-			handlers.emplace_back(callback, listener);
-		}
-
-		void remove_handler(Callback<E> callback, EventListener* listener)
-		{
-			std::erase_if(handlers, [=](Handler handler) {
-				return callback == handler.callback && listener == handler.listener;
-			});
-		}
-
-		void dispatch(E& event)
-		{
-			for(auto handler : handlers | std::views::reverse)
-			{
-				bool consumed = handler.callback(*handler.listener, event);
-				if(consumed)
-					break;
-			}
-		}
-
-	private:
-		struct Handler
-		{
-			Callback<E>	   callback;
-			EventListener* listener;
-		};
-
-		std::vector<Handler> handlers;
-	};
-
-	export class EventSystem
+	export class EventSystem : public Singleton<EventSystem>
 	{
 		friend class AppSystem;
 		friend class EventListener;
@@ -139,58 +29,92 @@ namespace vt
 		template<typename E, typename... Ts> static void notify(Ts&&... ts)
 		{
 			E event {std::forward<Ts>(ts)...};
-			Log().verbose(name_of(event), ": ", event);
-
-			event_context<E>.dispatch(event);
+			// Log().verbose(name_of(event), ": ", event);
+			get().dispatch_event(&event, typeid(E));
 		}
 
 		template<typename E, typename... Ts> static void notify_async(Ts&&... ts)
 		{
 			static_assert(AllowsAsyncDispatch<E>, "This type is not allowed to be used as an async event.");
-
-			E event {std::forward<Ts>(ts)...};
-			Log().verbose(name_of(event), ": ", event);
-
-			event_context<E>.notify_async(event);
+			get().enqueue_async_event(E {std::forward<Ts>(ts)...});
 		}
 
 	private:
-		template<typename E> static inline EventContext<E> event_context;
-
-		template<typename E> static void add_handler(Callback<E> callback, EventListener* listener)
+		using Callback = bool (*)(class EventListener&, void*);
+		struct EventHandler
 		{
-			event_context<E>.add_handler(callback, listener);
+			Callback	   callback;
+			EventListener* listener;
+		};
+		std::unordered_map<std::type_index, std::vector<EventHandler>> event_handlers;
+
+		ConcurrentQueue<std::any> async_events; // TODO: replace with custom any-like type, since we need void*.
+		ConsumerToken			  con_token;
+
+		EventSystem() : con_token(async_events)
+		{}
+
+		void enqueue_async_event(std::any event)
+		{
+			thread_local ProducerToken const pro_token(async_events);
+			async_events.enqueue(pro_token, std::move(event));
 		}
 
-		template<typename E> static void remove_handler(Callback<E> callback, EventListener* listener)
+		void dispatch_event(void* event, std::type_index type) const
 		{
-			event_context<E>.remove_handler(callback, listener);
+			auto handlers = event_handlers.find(type);
+			if(handlers == event_handlers.end())
+				return;
+
+			for(auto handler : handlers->second | std::views::reverse)
+			{
+				bool consumed = handler.callback(*handler.listener, event);
+				if(consumed)
+					break;
+			}
 		}
 
-		static void flush_async_events()
+		void submit_handler(std::type_index event_type, Callback callback, EventListener* listener)
 		{
-			for(auto context : get_event_contexts())
-				context->flush_async_events();
+			event_handlers[event_type].emplace_back(callback, listener);
 		}
 
-		static void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener)
+		void remove_handler(std::type_index event_type, Callback callback, EventListener* listener)
 		{
-			for(auto context : get_event_contexts())
-				context->duplicate_handlers_with_listener(new_listener, old_listener);
+			auto handlers = event_handlers.find(event_type);
+			if(handlers == event_handlers.end())
+				return;
+
+			std::erase_if(handlers->second, [=](EventHandler handler) {
+				return callback == handler.callback && listener == handler.listener;
+			});
 		}
 
-		static void replace_listener(EventListener& new_listener, EventListener& old_listener)
+		void duplicate_handlers_with_listener(EventListener& new_listener, EventListener const& old_listener)
 		{
-			for(auto context : get_event_contexts())
-				context->replace_handlers_with_listener(new_listener, old_listener);
+			for(auto& [type, handlers] : event_handlers)
+				for(size_t i = 0; i != handlers.size(); ++i)
+				{
+					auto handler = handlers[i];
+					if(handler.listener == &old_listener)
+						handlers.emplace_back(handler.callback, &new_listener);
+				}
 		}
 
-		static void remove_handlers_with_listener(EventListener& listener)
+		void replace_listener(EventListener& new_listener, EventListener& old_listener)
 		{
-			for(auto context : get_event_contexts())
-				context->remove_handlers_with_listener(listener);
+			for(auto& [type, handlers] : event_handlers)
+				for(auto& handler : handlers)
+					if(handler.listener == &old_listener)
+						handler.listener = &new_listener;
 		}
 
-		EventSystem() = default;
+		void remove_handlers_with_listener(EventListener& listener)
+		{
+			for(auto& [type, handlers] : event_handlers)
+				std::erase_if(handlers, [&](EventHandler handler) {
+					return handler.listener == &listener;
+				});
+		}
 	};
 }

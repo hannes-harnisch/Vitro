@@ -16,7 +16,7 @@ namespace vt
 	public:
 		using moodycamel::ConcurrentQueue<T>::ConcurrentQueue;
 
-		template<size_t MAX> void try_consume(ConsumerToken& token, auto consume_func)
+		template<size_t MAX> void consume(ConsumerToken& token, auto consume_func)
 		{
 			FixedList<T, MAX> elements;
 

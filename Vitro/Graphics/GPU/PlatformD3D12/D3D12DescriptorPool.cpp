@@ -54,7 +54,8 @@ namespace vt::d3d12
 
 		void deallocate_render_target_views(D3D12_CPU_DESCRIPTOR_HANDLE rtvs, size_t units)
 		{
-			rtv_heap.deallocate(rtvs, units);
+			if(rtvs.ptr)
+				rtv_heap.deallocate(rtvs, units);
 		}
 
 		D3D12_CPU_DESCRIPTOR_HANDLE allocate_depth_stencil_view()
@@ -64,7 +65,8 @@ namespace vt::d3d12
 
 		void deallocate_depth_stencil_view(D3D12_CPU_DESCRIPTOR_HANDLE dsv)
 		{
-			dsv_heap.deallocate(dsv);
+			if(dsv.ptr)
+				dsv_heap.deallocate(dsv);
 		}
 
 		UniqueCpuDescriptor allocate_cbv_srv_uav()
@@ -103,6 +105,16 @@ namespace vt::d3d12
 		UINT get_sampler_stride() const
 		{
 			return sampler_stage_heap.get_stride();
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE mirror_view_descriptor(D3D12_GPU_DESCRIPTOR_HANDLE view_descriptor) const
+		{
+			return cbv_srv_uav_gpu_heap.mirror(view_descriptor);
+		}
+
+		D3D12_CPU_DESCRIPTOR_HANDLE mirror_sampler_descriptor(D3D12_GPU_DESCRIPTOR_HANDLE sampler_descriptor) const
+		{
+			return sampler_gpu_heap.mirror(sampler_descriptor);
 		}
 
 		// Returns a render target null descriptor for a 2D render target.
@@ -186,24 +198,25 @@ namespace vt::d3d12
 		D3D12DescriptorSet make_descriptor_set_for_descriptor_table(D3D12DescriptorSetLayout const& layout,
 																	unsigned						dynamic_count)
 		{
-			auto	 view_ranges = layout.get_view_descriptor_table_ranges();
-			unsigned view_count	 = count_descriptors_to_allocate(view_ranges, dynamic_count);
-
 			auto	 sampler_ranges = layout.get_sampler_descriptor_table_ranges();
 			unsigned sampler_count	= count_descriptors_to_allocate(sampler_ranges, dynamic_count);
-
-			D3D12_GPU_DESCRIPTOR_HANDLE view_table_start {};
-			if(view_count)
-				view_table_start = cbv_srv_uav_gpu_heap.allocate(view_count);
 
 			D3D12_GPU_DESCRIPTOR_HANDLE sampler_table_start {};
 			if(sampler_count)
 				sampler_table_start = sampler_gpu_heap.allocate(sampler_count);
 
+			auto	 view_ranges = layout.get_view_descriptor_table_ranges();
+			unsigned view_count	 = count_descriptors_to_allocate(view_ranges, dynamic_count);
+
+			D3D12_GPU_DESCRIPTOR_HANDLE view_table_start {};
+			if(view_count)
+				view_table_start = cbv_srv_uav_gpu_heap.allocate(view_count);
+
 			return {
 				layout.get_id(),
-				view_table_start,
+				view_ranges,
 				sampler_table_start,
+				view_table_start,
 			};
 		}
 	};

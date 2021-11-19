@@ -5,7 +5,7 @@ module;
 export module vt.Graphics.Driver;
 
 import vt.Core.Version;
-import vt.Graphics.DriverBase;
+import vt.Graphics.AbstractDriver;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.VT_GPU_API_MODULE.Driver;
 
@@ -15,7 +15,7 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.Driver;
 
 namespace vt
 {
-	using PlatformDriver = InterfaceVariant<DriverBase, VT_GPU_API_VARIANT_ARGS(Driver)>;
+	using PlatformDriver = InterfaceVariant<AbstractDriver, VT_GPU_API_VARIANT_ARGS(Driver)>;
 	export class Driver : public PlatformDriver
 	{
 	public:

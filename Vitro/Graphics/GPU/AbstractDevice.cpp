@@ -1,6 +1,6 @@
 module;
 #include <vector>
-export module vt.Graphics.DeviceBase;
+export module vt.Graphics.AbstractDevice;
 
 import vt.App.Window;
 import vt.Core.Array;
@@ -23,31 +23,26 @@ import vt.Graphics.SwapChain;
 
 namespace vt
 {
-	export enum class DescriptorUpdateType : uint8_t {
-		Image,
-		Sampler,
-		Buffer,
-	};
-
-	// Describes an update to a single binding of one descriptor set. Multiple descriptors in the same binding can be update
+	// Describes an update to a single binding of one descriptor set. Multiple descriptors in the same binding can be updated
+	// using one instance of this struct.
 	export struct DescriptorUpdate
 	{
-		DescriptorSet&				   set;
-		Explicit<unsigned>			   binding;
-		unsigned					   start_array_index = 0;
-		Explicit<DescriptorUpdateType> type;
+		DescriptorSet&			 set;
+		Explicit<unsigned>		 first_register;
+		unsigned				 first_array_index = 0;
+		Explicit<DescriptorType> type;
 		union
 		{
+			ConstSpan<CRef<Buffer>>	 buffers;
 			ConstSpan<CRef<Image>>	 images;
 			ConstSpan<CRef<Sampler>> samplers;
-			ConstSpan<CRef<Buffer>>	 buffers;
 		};
 	};
 
-	export class DeviceBase
+	export class AbstractDevice
 	{
 	public:
-		virtual ~DeviceBase() = default;
+		virtual ~AbstractDevice() = default;
 
 		// Makes a command list for copy and transfer operations.
 		virtual CopyCommandList make_copy_command_list() = 0;

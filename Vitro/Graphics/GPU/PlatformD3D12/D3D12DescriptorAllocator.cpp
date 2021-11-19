@@ -95,9 +95,6 @@ namespace vt::d3d12
 
 		void deallocate(D3D12_CPU_DESCRIPTOR_HANDLE alloc, size_t units)
 		{
-			if(alloc.ptr == 0)
-				return;
-
 			// Find first free block whose handle value is greater than the allocation that is being freed.
 			auto const next = std::find_if(free_blocks.begin(), free_blocks.end(), [=](FreeBlock free_block) {
 				return free_block.handle.ptr > alloc.ptr;
@@ -162,9 +159,10 @@ namespace vt::d3d12
 			heap(make_descriptor_heap(device, type, descriptor_count, D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)),
 			stride(device.GetDescriptorHandleIncrementSize(type))
 		{
-			start			 = heap->GetGPUDescriptorHandleForHeapStart();
-			current_position = start;
-			end.ptr			 = start.ptr + descriptor_count * stride;
+			gpu_start		 = heap->GetGPUDescriptorHandleForHeapStart();
+			current_position = gpu_start;
+			end.ptr			 = gpu_start.ptr + descriptor_count * stride;
+			cpu_start		 = heap->GetCPUDescriptorHandleForHeapStart();
 		}
 
 		D3D12_GPU_DESCRIPTOR_HANDLE allocate(size_t count)
@@ -180,12 +178,12 @@ namespace vt::d3d12
 
 		void reset()
 		{
-			current_position = start;
+			current_position = gpu_start;
 		}
 
-		D3D12_GPU_DESCRIPTOR_HANDLE get_gpu_heap_start() const
+		D3D12_CPU_DESCRIPTOR_HANDLE mirror(D3D12_GPU_DESCRIPTOR_HANDLE descriptor) const
 		{
-			return start;
+			return {descriptor.ptr - gpu_start.ptr + cpu_start.ptr};
 		}
 
 		ID3D12DescriptorHeap* get_handle() const
@@ -196,9 +194,10 @@ namespace vt::d3d12
 	private:
 		ComUnique<ID3D12DescriptorHeap> heap;
 		UINT							stride;
-		D3D12_GPU_DESCRIPTOR_HANDLE		start;
+		D3D12_GPU_DESCRIPTOR_HANDLE		gpu_start;
 		D3D12_GPU_DESCRIPTOR_HANDLE		current_position;
 		D3D12_GPU_DESCRIPTOR_HANDLE		end;
+		D3D12_CPU_DESCRIPTOR_HANDLE		cpu_start;
 	};
 
 	struct CpuDescriptorDeleter
