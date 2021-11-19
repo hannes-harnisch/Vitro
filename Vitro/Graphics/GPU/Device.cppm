@@ -2,7 +2,7 @@ module;
 #include "VitroCore/Macros.hpp"
 export module vt.Graphics.Device;
 
-import vt.Graphics.DeviceBase;
+import vt.Graphics.AbstractDevice;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.Handle;
 import vt.Graphics.VT_GPU_API_MODULE.Device;
@@ -13,7 +13,7 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.Device;
 
 namespace vt
 {
-	using PlatformDevice = InterfaceVariant<DeviceBase, VT_GPU_API_VARIANT_ARGS(Device)>;
+	using PlatformDevice = InterfaceVariant<AbstractDevice, VT_GPU_API_VARIANT_ARGS(Device)>;
 	export class Device : public PlatformDevice
 	{
 	public:

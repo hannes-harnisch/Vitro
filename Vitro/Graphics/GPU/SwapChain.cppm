@@ -3,7 +3,7 @@ module;
 export module vt.Graphics.SwapChain;
 
 import vt.Graphics.DynamicGpuApi;
-import vt.Graphics.SwapChainBase;
+import vt.Graphics.AbstractSwapChain;
 import vt.Graphics.VT_GPU_API_MODULE.SwapChain;
 
 #if VT_DYNAMIC_GPU_API
@@ -12,7 +12,7 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.SwapChain;
 
 namespace vt
 {
-	export using PlatformSwapChain = InterfaceVariant<SwapChainBase, VT_GPU_API_VARIANT_ARGS(SwapChain)>;
+	export using PlatformSwapChain = InterfaceVariant<AbstractSwapChain, VT_GPU_API_VARIANT_ARGS(SwapChain)>;
 	export class SwapChain : public PlatformSwapChain
 	{
 	public:

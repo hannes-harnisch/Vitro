@@ -1,6 +1,6 @@
 module;
 #include <span>
-export module vt.Graphics.CommandListBase;
+export module vt.Graphics.AbstractCommandList;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
@@ -46,10 +46,10 @@ namespace vt
 		unsigned dst_array_index = 0; // Index of the destination image in a texture array.
 	};
 
-	export class CopyCommandListBase
+	export class AbstractCopyCommandList
 	{
 	public:
-		virtual ~CopyCommandListBase() = default;
+		virtual ~AbstractCopyCommandList() = default;
 
 		// Gets a handle to the command list that can be used to easily group command lists for submission.
 		virtual CommandListHandle get_handle() = 0;
@@ -83,7 +83,7 @@ namespace vt
 		virtual void copy_image_region(Image const& src, Image& dst, ImageCopyRegion const& region) = 0;
 	};
 
-	export class ComputeCommandListBase : public CopyCommandListBase
+	export class AbstractComputeCommandList : public AbstractCopyCommandList
 	{
 	public:
 		// Binds a pipeline for compute commands.
@@ -105,7 +105,7 @@ namespace vt
 		virtual void dispatch_indirect(Buffer const& buffer, size_t offset) = 0;
 	};
 
-	export class RenderCommandListBase : public ComputeCommandListBase
+	export class AbstractRenderCommandList : public AbstractComputeCommandList
 	{
 	public:
 		// Begins a render pass, binding the given render target, potentially clearing it with the given clear values. The span
@@ -174,10 +174,10 @@ namespace vt
 	};
 
 	export template<CommandType TYPE>
-	using CommandListBase = std::conditional_t<
+	using AbstractCommandList = std::conditional_t<
 		TYPE == CommandType::Render,
-		RenderCommandListBase,
+		AbstractRenderCommandList,
 		std::conditional_t<TYPE == CommandType::Compute,
-						   ComputeCommandListBase,
-						   std::conditional_t<TYPE == CommandType::Copy, CopyCommandListBase, void>>>;
+						   AbstractComputeCommandList,
+						   std::conditional_t<TYPE == CommandType::Copy, AbstractCopyCommandList, void>>>;
 }

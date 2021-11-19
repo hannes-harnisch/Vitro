@@ -1,4 +1,5 @@
 module;
+#include <compare>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
@@ -6,7 +7,7 @@ module;
 #include <optional>
 #include <stdexcept>
 #include <string_view>
-export module vttool.HlslBuilder.BuildDispatch;
+module vttool.HlslBuilder.BuildDispatch;
 
 import vt.Core.Algorithm;
 import vt.Core.FixedList;
@@ -72,7 +73,7 @@ namespace vt::tool
 		return Process(args);
 	}
 
-	export void dispatch_build(InputArgs const& args)
+	void dispatch_build(InputArgs const& args)
 	{
 		constexpr Version MIN_DXC_SHADER_MODEL = {6, 0};
 

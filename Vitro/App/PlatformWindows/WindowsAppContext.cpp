@@ -1,9 +1,7 @@
 module;
 #include "VitroCore/Macros.hpp"
 #include "VitroCore/PlatformWindows/WindowsAPI.hpp"
-
-#include <any>
-export module vt.App.Windows.AppContext;
+module vt.App.Windows.AppContext;
 
 import vt.App.AppContextBase;
 import vt.App.EventSystem;
@@ -159,67 +157,74 @@ namespace vt::windows
 		return _;
 	}();
 
-	export class WindowsAppContext : public AppContextBase
+	HMODULE query_module_handle()
 	{
-	protected:
-		WindowsAppContext() : AppContextBase(query_module_handle())
-		{
-			WNDCLASS const window_class {
-				.style		   = CS_DBLCLKS,
-				.lpfnWndProc   = forward_messages,
-				.cbClsExtra	   = 0,
-				.cbWndExtra	   = 0,
-				.hInstance	   = get_system_window_owner(),
-				.hIcon		   = nullptr,
-				.hCursor	   = nullptr,
-				.hbrBackground = nullptr,
-				.lpszMenuName  = nullptr,
-				.lpszClassName = WindowsWindow::WINDOW_CLASS_NAME,
-			};
-			auto atom = ::RegisterClass(&window_class);
-			check_winapi_error(atom, "Failed to register window class.");
+		auto handle = ::GetModuleHandle(nullptr);
+		check_winapi_error(handle, "Failed to get module handle.");
+		return handle;
+	}
 
-			RAWINPUTDEVICE const raw_input_device {
-				.usUsagePage = 0x01, // Usage page constant for generic desktop controls
-				.usUsage	 = 0x02, // Usage constant for a generic mouse
-				.dwFlags	 = 0,
-				.hwndTarget	 = nullptr,
-			};
-			auto succeeded = ::RegisterRawInputDevices(&raw_input_device, 1, sizeof(RAWINPUTDEVICE));
-			check_winapi_error(succeeded, "Failed to register raw input device.");
+	KeyCode convert_virtual_key(WPARAM virtual_key)
+	{
+		auto key = VIRTUAL_KEY_LOOKUP[virtual_key];
+
+		if(key == KeyCode::None)
+			Log().error("Encountered unknown Windows virtual key code: ", virtual_key);
+
+		return key;
+	}
+
+	MouseCode convert_extra_button(WPARAM w_param)
+	{
+		switch(HIWORD(w_param))
+		{
+			case XBUTTON1: return MouseCode::Extra1;
+			case XBUTTON2: return MouseCode::Extra2;
 		}
+		VT_UNREACHABLE();
+	}
 
-		void pump_system_events()
+	WindowsAppContext::WindowsAppContext() : AppContextBase(query_module_handle())
+	{
+		WNDCLASS const window_class {
+			.style		   = CS_DBLCLKS,
+			.lpfnWndProc   = forward_messages,
+			.cbClsExtra	   = 0,
+			.cbWndExtra	   = 0,
+			.hInstance	   = get_system_window_owner(),
+			.hIcon		   = nullptr,
+			.hCursor	   = nullptr,
+			.hbrBackground = nullptr,
+			.lpszMenuName  = nullptr,
+			.lpszClassName = WindowsWindow::WINDOW_CLASS_NAME,
+		};
+		auto atom = ::RegisterClass(&window_class);
+		check_winapi_error(atom, "Failed to register window class.");
+
+		RAWINPUTDEVICE const raw_input_device {
+			.usUsagePage = 0x01, // Usage page constant for generic desktop controls
+			.usUsage	 = 0x02, // Usage constant for a generic mouse
+			.dwFlags	 = 0,
+			.hwndTarget	 = nullptr,
+		};
+		auto succeeded = ::RegisterRawInputDevices(&raw_input_device, 1, sizeof(RAWINPUTDEVICE));
+		check_winapi_error(succeeded, "Failed to register raw input device.");
+	}
+
+	void WindowsAppContext::pump_system_events()
+	{
+		MSG message;
+		while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
 		{
-			MSG message;
-			while(::PeekMessage(&message, nullptr, 0, 0, PM_REMOVE))
-			{
-				::TranslateMessage(&message);
-				::DispatchMessage(&message);
-			}
+			::TranslateMessage(&message);
+			::DispatchMessage(&message);
 		}
+	}
 
-	private:
-		unsigned key_repeats		 = 0;
-		KeyCode	 last_key_code		 = KeyCode::None;
-		Int2	 last_mouse_position = {};
-
-		static HMODULE query_module_handle()
-		{
-			auto handle = ::GetModuleHandle(nullptr);
-			check_winapi_error(handle, "Failed to get module handle.");
-			return handle;
-		}
-
-		static WindowsAppContext& get()
-		{
-			return static_cast<WindowsAppContext&>(AppContextBase::get());
-		}
-
-		static LRESULT CALLBACK forward_messages(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
-		{
-			switch(message)
-			{ // clang-format off
+	LRESULT CALLBACK WindowsAppContext::forward_messages(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param)
+	{
+		switch(message)
+		{ // clang-format off
 				case WM_MOVE:		   get().on_window_move(hwnd, l_param); return 0;
 				case WM_SIZE:		   get().on_window_size(hwnd, l_param); return 0;
 				case WM_ACTIVATE:	   get().restore_window_cursor_state(hwnd, w_param); return 0;
@@ -251,185 +256,164 @@ namespace vt::windows
 				case WM_MOUSEWHEEL:	   get().on_vertical_scroll(hwnd, w_param); return 0;
 				case WM_MOUSEHWHEEL:   get().on_horizontal_scroll(hwnd, w_param); return 0;
 			} // clang-format on
-			return ::DefWindowProc(hwnd, message, w_param, l_param);
-		}
+		return ::DefWindowProc(hwnd, message, w_param, l_param);
+	}
 
-		KeyCode convert_virtual_key(WPARAM virtual_key)
-		{
-			auto key = VIRTUAL_KEY_LOOKUP[virtual_key];
+	void WindowsAppContext::on_window_move(HWND hwnd, LPARAM l_param) const
+	{
+		auto window = find_window(hwnd);
+		if(!window)
+			return;
 
-			if(key == KeyCode::None)
-				Log().error("Encountered unknown Windows virtual key code: ", virtual_key);
+		Int2 position {
+			.x = GET_X_LPARAM(l_param),
+			.y = GET_Y_LPARAM(l_param),
+		};
+		EventSystem::notify<WindowMoveEvent>(*window, position);
+	}
 
-			return key;
-		}
+	void WindowsAppContext::on_window_size(HWND hwnd, LPARAM l_param) const
+	{
+		Extent size {
+			.width	= LOWORD(l_param),
+			.height = HIWORD(l_param),
+		};
+		if(size.zero())
+			return;
 
-		static MouseCode convert_extra_button(WPARAM w_param)
-		{
-			switch(HIWORD(w_param))
-			{
-				case XBUTTON1: return MouseCode::Extra1;
-				case XBUTTON2: return MouseCode::Extra2;
-			}
-			VT_UNREACHABLE();
-		}
+		auto window = find_window(hwnd);
+		if(window)
+			EventSystem::notify<WindowSizeEvent>(*window, size);
+	}
 
-		void on_window_move(HWND hwnd, LPARAM l_param) const
-		{
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
+	void WindowsAppContext::restore_window_cursor_state(HWND hwnd, WPARAM w_param) const
+	{
+		auto window = find_window(hwnd);
+		if(!window || window->cursor_enabled())
+			return;
 
-			Int2 position {
-				.x = GET_X_LPARAM(l_param),
-				.y = GET_Y_LPARAM(l_param),
-			};
-			EventSystem::notify<WindowMoveEvent>(*window, position);
-		}
+		if(w_param & WA_ACTIVE || w_param & WA_CLICKACTIVE)
+			window->disable_cursor();
+	}
 
-		void on_window_size(HWND hwnd, LPARAM l_param) const
-		{
-			Extent size {
-				.width	= LOWORD(l_param),
-				.height = HIWORD(l_param),
-			};
-			if(size.zero())
-				return;
+	template<typename E> void WindowsAppContext::on_window_event(HWND hwnd) const
+	{
+		auto window = find_window(hwnd);
+		if(window)
+			EventSystem::notify<E>(*window);
+	}
 
-			auto window = find_window(hwnd);
-			if(window)
-				EventSystem::notify<WindowSizeEvent>(*window, size);
-		}
+	void WindowsAppContext::on_window_close(HWND hwnd) const
+	{
+		auto window = find_window(hwnd);
+		if(window)
+			window->close();
+	}
 
-		void restore_window_cursor_state(HWND hwnd, WPARAM w_param) const
-		{
-			auto window = find_window(hwnd);
-			if(!window || window->cursor_enabled())
-				return;
+	void WindowsAppContext::on_window_show(HWND hwnd, WPARAM w_param) const
+	{
+		if(w_param)
+			on_window_event<WindowOpenEvent>(hwnd);
+		else
+			on_window_event<WindowCloseEvent>(hwnd);
+	}
 
-			if(w_param & WA_ACTIVE || w_param & WA_CLICKACTIVE)
-				window->disable_cursor();
-		}
+	void WindowsAppContext::on_raw_input(HWND hwnd, LPARAM l_param) const
+	{
+		auto window = find_window(hwnd);
+		if(!window)
+			return;
 
-		template<typename E> void on_window_event(HWND hwnd) const
-		{
-			auto window = find_window(hwnd);
-			if(window)
-				EventSystem::notify<E>(*window);
-		}
+		auto input_handle = reinterpret_cast<HRAWINPUT>(l_param);
+		UINT size;
 
-		void on_window_close(HWND hwnd) const
-		{
-			auto window = find_window(hwnd);
-			if(window)
-				window->close();
-		}
+		UINT result = ::GetRawInputData(input_handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
+		VT_ENSURE(result != -1, "Failed to query raw input data size.");
 
-		void on_window_show(HWND hwnd, WPARAM w_param) const
-		{
-			if(w_param)
-				on_window_event<WindowOpenEvent>(hwnd);
-			else
-				on_window_event<WindowCloseEvent>(hwnd);
-		}
+		SmallList<BYTE> bytes(size);
+		result = ::GetRawInputData(input_handle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
+		VT_ENSURE(result != -1, "Failed to read raw input data.");
 
-		void on_raw_input(HWND hwnd, LPARAM l_param) const
-		{
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
+		auto input = new(bytes.data()) RAWINPUT;
+		Int2 direction {
+			.x = input->data.mouse.lLastX,
+			.y = -input->data.mouse.lLastY, // Negation results in more intuitive behavior.
+		};
+		EventSystem::notify<MouseMoveEvent>(*window, last_mouse_position, direction);
+	}
 
-			auto input_handle = reinterpret_cast<HRAWINPUT>(l_param);
-			UINT size;
+	void WindowsAppContext::on_key_down(HWND hwnd, WPARAM w_param)
+	{
+		auto key = convert_virtual_key(w_param);
 
-			UINT result = ::GetRawInputData(input_handle, RID_INPUT, nullptr, &size, sizeof(RAWINPUTHEADER));
-			VT_ENSURE(result != -1, "Failed to query raw input data size.");
+		if(key == last_key_code)
+			++key_repeats;
+		else
+			key_repeats = 0;
+		last_key_code = key;
 
-			SmallList<BYTE> bytes(size);
-			result = ::GetRawInputData(input_handle, RID_INPUT, bytes.data(), &size, sizeof(RAWINPUTHEADER));
-			VT_ENSURE(result != -1, "Failed to read raw input data.");
+		auto window = find_window(hwnd);
+		if(window)
+			EventSystem::notify<KeyDownEvent>(*window, key, key_repeats);
+	}
 
-			auto input = new(bytes.data()) RAWINPUT;
-			Int2 direction {
-				.x = input->data.mouse.lLastX,
-				.y = -input->data.mouse.lLastY, // Negation results in more intuitive behavior.
-			};
-			EventSystem::notify<MouseMoveEvent>(*window, last_mouse_position, direction);
-		}
+	void WindowsAppContext::on_key_up(HWND hwnd, WPARAM w_param)
+	{
+		key_repeats	  = 0;
+		last_key_code = KeyCode::None;
 
-		void on_key_down(HWND hwnd, WPARAM w_param)
-		{
-			auto key = convert_virtual_key(w_param);
+		auto window = find_window(hwnd);
+		if(!window)
+			return;
 
-			if(key == last_key_code)
-				++key_repeats;
-			else
-				key_repeats = 0;
-			last_key_code = key;
+		auto key = convert_virtual_key(w_param);
+		EventSystem::notify<KeyUpEvent>(*window, key);
+	}
 
-			auto window = find_window(hwnd);
-			if(window)
-				EventSystem::notify<KeyDownEvent>(*window, key, key_repeats);
-		}
+	void WindowsAppContext::on_key_text(HWND hwnd, WPARAM w_param) const
+	{
+		auto window = find_window(hwnd);
+		if(!window)
+			return;
 
-		void on_key_up(HWND hwnd, WPARAM w_param)
-		{
-			key_repeats	  = 0;
-			last_key_code = KeyCode::None;
+		TCHAR const chars[] {static_cast<TCHAR>(w_param), TEXT('\0')};
+		EventSystem::notify<KeyTextEvent>(*window, last_key_code, narrow_string(chars));
+	}
 
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
+	void WindowsAppContext::store_last_mouse_position(LPARAM l_param)
+	{
+		last_mouse_position.x = GET_X_LPARAM(l_param);
+		last_mouse_position.y = GET_Y_LPARAM(l_param);
+	}
 
-			auto key = convert_virtual_key(w_param);
-			EventSystem::notify<KeyUpEvent>(*window, key);
-		}
+	template<typename E> void WindowsAppContext::on_mouse_event(HWND hwnd, MouseCode button) const
+	{
+		auto window = find_window(hwnd);
+		if(window)
+			EventSystem::notify<E>(*window, button);
+	}
 
-		void on_key_text(HWND hwnd, WPARAM w_param) const
-		{
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
+	void WindowsAppContext::on_vertical_scroll(HWND hwnd, WPARAM w_param) const
+	{
+		auto window = find_window(hwnd);
+		if(!window)
+			return;
 
-			TCHAR const chars[] {static_cast<TCHAR>(w_param), TEXT('\0')};
-			EventSystem::notify<KeyTextEvent>(*window, last_key_code, narrow_string(chars));
-		}
+		Float2 offset {
+			.y = GET_WHEEL_DELTA_WPARAM(w_param) / float(WHEEL_DELTA),
+		};
+		EventSystem::notify<MouseScrollEvent>(*window, offset);
+	}
 
-		void store_last_mouse_position(LPARAM l_param)
-		{
-			last_mouse_position.x = GET_X_LPARAM(l_param);
-			last_mouse_position.y = GET_Y_LPARAM(l_param);
-		}
+	void WindowsAppContext::on_horizontal_scroll(HWND hwnd, WPARAM w_param) const
+	{
+		auto window = find_window(hwnd);
+		if(!window)
+			return;
 
-		template<typename E> void on_mouse_event(HWND hwnd, MouseCode button) const
-		{
-			auto window = find_window(hwnd);
-			if(window)
-				EventSystem::notify<E>(*window, button);
-		}
-
-		void on_vertical_scroll(HWND hwnd, WPARAM w_param) const
-		{
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
-
-			Float2 offset {
-				.y = GET_WHEEL_DELTA_WPARAM(w_param) / float(WHEEL_DELTA),
-			};
-			EventSystem::notify<MouseScrollEvent>(*window, offset);
-		}
-
-		void on_horizontal_scroll(HWND hwnd, WPARAM w_param) const
-		{
-			auto window = find_window(hwnd);
-			if(!window)
-				return;
-
-			Float2 offset {
-				.x = GET_WHEEL_DELTA_WPARAM(w_param) / float(WHEEL_DELTA),
-			};
-			EventSystem::notify<MouseScrollEvent>(*window, offset);
-		}
-	};
+		Float2 offset {
+			.x = GET_WHEEL_DELTA_WPARAM(w_param) / float(WHEEL_DELTA),
+		};
+		EventSystem::notify<MouseScrollEvent>(*window, offset);
+	}
 }

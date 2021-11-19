@@ -1,6 +1,6 @@
 module;
 #include <optional>
-export module vt.Graphics.SwapChainBase;
+export module vt.Graphics.AbstractSwapChain;
 
 import vt.App.WindowEvent;
 import vt.Core.Rect;
@@ -9,12 +9,12 @@ import vt.Graphics.Handle;
 
 namespace vt
 {
-	export class SwapChainBase
+	export class AbstractSwapChain
 	{
 	public:
 		static constexpr unsigned MAX_BUFFERS = 3;
 
-		virtual ~SwapChainBase() = default;
+		virtual ~AbstractSwapChain() = default;
 
 		virtual ImageFormat get_format() const				= 0;
 		virtual unsigned	get_current_image_index() const = 0;

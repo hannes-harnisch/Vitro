@@ -1,3 +1,4 @@
+#include <compare>
 #include <exception>
 #include <iostream>
 #include <string_view>

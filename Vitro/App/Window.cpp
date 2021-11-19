@@ -1,8 +1,9 @@
 module;
 #include "VitroCore/Macros.hpp"
+#include VT_SYSTEM_HEADER
 
 #include <string_view>
-export module vt.App.Window;
+module vt.App.Window;
 
 import vt.App.ObjectEvent;
 import vt.App.VT_SYSTEM_MODULE.Window;
@@ -11,118 +12,100 @@ import vt.Core.Vector;
 
 namespace vt
 {
-	using SystemWindow = VT_SYSTEM_NAME::VT_PASTE(VT_SYSTEM_MODULE, Window);
+	Window::Window(std::string_view title, Rectangle rect) : SystemWindow(title, rect)
+	{}
 
-	class WindowImpl : private SystemWindow
+	void Window::open()
 	{
-	public:
-		WindowImpl(std::string_view title, Rectangle rect = SystemWindow::DEFAULT_RECT) : SystemWindow(title, rect)
-		{}
+		SystemWindow::open();
+	}
 
-		void open()
-		{
-			SystemWindow::open();
-		}
-
-		void close()
-		{
-			SystemWindow::close();
-		}
-
-		void maximize()
-		{
-			SystemWindow::maximize();
-		}
-
-		void minimize()
-		{
-			SystemWindow::minimize();
-		}
-
-		void enable_cursor()
-		{
-			is_cursor_enabled = true;
-			SystemWindow::enable_cursor();
-		}
-
-		void disable_cursor()
-		{
-			is_cursor_enabled = false;
-			SystemWindow::disable_cursor();
-		}
-
-		bool cursor_enabled() const
-		{
-			return is_cursor_enabled;
-		}
-
-		void enable_resize()
-		{
-			is_resize_enabled = true;
-			SystemWindow::enable_resize();
-		}
-
-		void disable_resize()
-		{
-			is_resize_enabled = false;
-			SystemWindow::disable_resize();
-		}
-
-		bool resize_enabled() const
-		{
-			return is_resize_enabled;
-		}
-
-		Extent get_size() const
-		{
-			return SystemWindow::get_size();
-		}
-
-		void set_size(Extent size)
-		{
-			SystemWindow::set_size(size);
-		}
-
-		Int2 get_position() const
-		{
-			return SystemWindow::get_position();
-		}
-
-		void set_position(Int2 position)
-		{
-			SystemWindow::set_position(position);
-		}
-
-		std::string get_title() const
-		{
-			return SystemWindow::get_title();
-		}
-
-		void set_title(std::string_view title)
-		{
-			SystemWindow::set_title(title);
-		}
-
-		Rectangle client_area() const
-		{
-			return SystemWindow::client_area();
-		}
-
-		auto native_handle()
-		{
-			return SystemWindow::native_handle();
-		}
-
-	protected:
-		~WindowImpl() = default;
-
-	private:
-		bool is_cursor_enabled = true;
-		bool is_resize_enabled = true;
-	};
-
-	export class Window : public WindowImpl, public ObjectEventSentinel<Window>
+	void Window::close()
 	{
-		using WindowImpl::WindowImpl;
-	};
+		SystemWindow::close();
+	}
+
+	void Window::maximize()
+	{
+		SystemWindow::maximize();
+	}
+
+	void Window::minimize()
+	{
+		SystemWindow::minimize();
+	}
+
+	void Window::enable_cursor()
+	{
+		is_cursor_enabled = true;
+		SystemWindow::enable_cursor();
+	}
+
+	void Window::disable_cursor()
+	{
+		is_cursor_enabled = false;
+		SystemWindow::disable_cursor();
+	}
+
+	bool Window::cursor_enabled() const
+	{
+		return is_cursor_enabled;
+	}
+
+	void Window::enable_resize()
+	{
+		is_resize_enabled = true;
+		SystemWindow::enable_resize();
+	}
+
+	void Window::disable_resize()
+	{
+		is_resize_enabled = false;
+		SystemWindow::disable_resize();
+	}
+
+	bool Window::resize_enabled() const
+	{
+		return is_resize_enabled;
+	}
+
+	Extent Window::get_size() const
+	{
+		return SystemWindow::get_size();
+	}
+
+	void Window::set_size(Extent size)
+	{
+		SystemWindow::set_size(size);
+	}
+
+	Int2 Window::get_position() const
+	{
+		return SystemWindow::get_position();
+	}
+
+	void Window::set_position(Int2 position)
+	{
+		SystemWindow::set_position(position);
+	}
+
+	std::string Window::get_title() const
+	{
+		return SystemWindow::get_title();
+	}
+
+	void Window::set_title(std::string_view title)
+	{
+		SystemWindow::set_title(title);
+	}
+
+	Rectangle Window::client_area() const
+	{
+		return SystemWindow::client_area();
+	}
+
+	SystemWindowHandle Window::native_handle()
+	{
+		return SystemWindow::native_handle();
+	}
 }

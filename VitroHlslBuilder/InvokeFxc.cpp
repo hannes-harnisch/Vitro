@@ -9,7 +9,7 @@ module;
 #if VT_GPU_API_D3D12
 	#include <d3dcompiler.h>
 #endif
-export module vttool.HlslBuilder.InvokeFxc;
+module vttool.HlslBuilder.InvokeFxc;
 
 #if VT_GPU_API_D3D12
 import vt.Core.Windows.Utils;
@@ -19,7 +19,7 @@ namespace vt::tool
 {
 #if VT_GPU_API_D3D12
 
-	export void invoke_fxc(std::string_view input_path, std::string_view output_path, std::string_view type)
+	void invoke_fxc(std::string_view input_path, std::string_view output_path, std::string_view type)
 	{
 		using namespace windows;
 		auto wide_input_path = widen_string(input_path);
@@ -46,7 +46,7 @@ namespace vt::tool
 
 #else
 
-	export void invoke_fxc(std::string_view, std::string_view, std::string_view)
+	void invoke_fxc(std::string_view, std::string_view, std::string_view)
 	{
 		throw std::runtime_error("A shader cannot be compiled for D3D12 when HLSL Builder is not built under Windows.");
 	}

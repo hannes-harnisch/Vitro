@@ -2,7 +2,7 @@ module;
 #include "VitroCore/Macros.hpp"
 export module vt.Graphics.CommandList;
 
-import vt.Graphics.CommandListBase;
+import vt.Graphics.AbstractCommandList;
 import vt.Graphics.DynamicGpuApi;
 import vt.Graphics.VT_GPU_API_MODULE.CommandList;
 
@@ -12,13 +12,13 @@ import vt.Graphics.VT_GPU_API_MODULE_SECONDARY.CommandList;
 
 namespace vt
 {
-	using PlatformCopyCommandList = InterfaceVariant<CopyCommandListBase,
+	using PlatformCopyCommandList = InterfaceVariant<AbstractCopyCommandList,
 													 VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Copy>)>;
 
-	using PlatformComputeCommandList = InterfaceVariant<ComputeCommandListBase,
+	using PlatformComputeCommandList = InterfaceVariant<AbstractComputeCommandList,
 														VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Compute>)>;
 
-	using PlatformRenderCommandList = InterfaceVariant<RenderCommandListBase,
+	using PlatformRenderCommandList = InterfaceVariant<AbstractRenderCommandList,
 													   VT_GPU_API_VARIANT_ARGS(CommandList<CommandType::Render>)>;
 
 	// Use the arrow operator on it to record various copy commands.

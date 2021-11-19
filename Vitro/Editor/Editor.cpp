@@ -1,21 +1,9 @@
-module;
-#include <new>
-export module vt.Editor.Editor;
-
-import vt.App.Window;
-import vt.App.WindowEvent;
+module vt.Editor.Editor;
 
 namespace vt
 {
-	export class Editor
+	Editor::Editor() : window(VT_ENGINE_NAME)
 	{
-	public:
-		Editor() : window(VT_ENGINE_NAME)
-		{
-			window.open();
-		}
-
-	private:
-		Window window;
-	};
+		window.open();
+	}
 }

@@ -4,47 +4,26 @@ module;
 #include <exception>
 #include <format>
 #include <string_view>
-export module vt.Trace.CrashHandler;
+module vt.Trace.CrashHandler;
 
 import vt.Core.Reflect;
 import vt.Core.VT_SYSTEM_MODULE.Utils;
 
 namespace vt
 {
-	export void on_failure(std::string_view message)
+	void on_failure(std::string_view message)
 	{
 		auto text = std::format("\n\n\nFatal error: {}", message);
 		std::puts(text.data());
 		VT_SYSTEM_NAME::show_error_message_box("Fatal error", message);
 	}
 
-	export [[noreturn]] void crash(std::string_view message)
+	[[noreturn]] void crash(std::string_view message)
 	{
 		on_failure(message);
 		std::exit(EXIT_FAILURE);
 	}
-}
 
-extern "C"
-{
-	export void handle_arithmetic_signal(int)
-	{
-		vt::crash("Attempted to divide an integer by zero.");
-	}
-
-	export void handle_access_violation_signal(int)
-	{
-		vt::crash("Attempted to access a restricted memory location.");
-	}
-
-	export void handle_abort_signal(int)
-	{
-		vt::crash("A fatal error occurred that led to an abort signal.");
-	}
-}
-
-namespace vt
-{
 	void on_terminate()
 	{
 		std::string msg;
@@ -68,12 +47,30 @@ namespace vt
 		crash(msg);
 	}
 
-	export void set_crash_handlers()
+	void set_crash_handlers()
 	{
 		std::set_terminate(on_terminate);
 
 		std::signal(SIGFPE, handle_arithmetic_signal);
 		std::signal(SIGSEGV, handle_access_violation_signal);
 		std::signal(SIGABRT, handle_abort_signal);
+	}
+}
+
+extern "C"
+{
+	void handle_arithmetic_signal(int)
+	{
+		vt::crash("Attempted to divide an integer by zero.");
+	}
+
+	void handle_access_violation_signal(int)
+	{
+		vt::crash("Attempted to access a restricted memory location.");
+	}
+
+	void handle_abort_signal(int)
+	{
+		vt::crash("A fatal error occurred that led to an abort signal.");
 	}
 }

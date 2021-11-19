@@ -4,7 +4,7 @@ module;
 #include <cmath>
 #include <limits>
 #include <numbers>
-export module vt.Core.Transform;
+module vt.Core.Transform;
 
 import vt.Core.Matrix;
 import vt.Core.Rect;
@@ -12,7 +12,7 @@ import vt.Core.Vector;
 
 namespace vt
 {
-	export Float4x4 project_orthographic(float left, float right, float bottom, float top, float near_z, float far_z)
+	Float4x4 project_orthographic(float left, float right, float bottom, float top, float near_z, float far_z)
 	{
 		return {{
 			{2 / (right - left), 0, 0, 0},
@@ -22,7 +22,7 @@ namespace vt
 		}};
 	}
 
-	export Float4x4 project_perspective(float fov_in_radians, Extent size, float near_z, float far_z)
+	Float4x4 project_perspective(float fov_in_radians, Extent size, float near_z, float far_z)
 	{
 		auto [width, height] = size;
 
@@ -38,7 +38,7 @@ namespace vt
 		}};
 	}
 
-	export Float4x4 look_at(Float3 const eye, Float3 const at, Float3 const up)
+	Float4x4 look_at(Float3 const eye, Float3 const at, Float3 const up)
 	{
 		auto z_axis = normalize(at - eye);
 		auto x_axis = normalize(cross(up, z_axis));
@@ -51,7 +51,7 @@ namespace vt
 		}};
 	}
 
-	export Float4x4 translate(Float4x4 const& mat, Float3 const vec)
+	Float4x4 translate(Float4x4 const& mat, Float3 const vec)
 	{
 		return {
 			mat.rows[0],
@@ -61,7 +61,7 @@ namespace vt
 		};
 	}
 
-	export Float4x4 rotate(Float4x4 const& mat, float const angle, Float3 const vec)
+	Float4x4 rotate(Float4x4 const& mat, float const angle, Float3 const vec)
 	{
 		float const cos = std::cos(angle);
 		float const sin = std::sin(angle);
@@ -94,7 +94,7 @@ namespace vt
 		};
 	}
 
-	export Float4x4 scale(Float4x4 const& mat, Float3 const vec)
+	Float4x4 scale(Float4x4 const& mat, Float3 const vec)
 	{
 		return {
 			mat.rows[0] * vec.x,
@@ -102,15 +102,5 @@ namespace vt
 			mat.rows[2] * vec.z,
 			mat.rows[3],
 		};
-	}
-
-	export constexpr auto degrees(auto radians)
-	{
-		return 180.0f / std::numbers::pi_v<float> * radians;
-	}
-
-	export constexpr auto radians(auto degrees)
-	{
-		return degrees / (180.0f / std::numbers::pi_v<float>);
 	}
 }

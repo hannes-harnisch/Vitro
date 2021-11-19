@@ -1,6 +1,6 @@
 module;
 #include <vector>
-export module vt.Graphics.DriverBase;
+export module vt.Graphics.AbstractDriver;
 
 import vt.Core.SmallList;
 import vt.Graphics.Device;
@@ -8,10 +8,10 @@ import vt.Graphics.Handle;
 
 namespace vt
 {
-	export class DriverBase
+	export class AbstractDriver
 	{
 	public:
-		virtual ~DriverBase() = default;
+		virtual ~AbstractDriver() = default;
 
 		// Returns a list of all GPUs available on the system.
 		virtual SmallList<Adapter> enumerate_adapters() const = 0;

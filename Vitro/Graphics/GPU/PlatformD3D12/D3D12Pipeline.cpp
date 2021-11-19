@@ -1,7 +1,7 @@
 module;
 #include "D3D12API.hpp"
 #include "VitroCore/Macros.hpp"
-export module vt.Graphics.D3D12.Pipeline;
+module vt.Graphics.D3D12.Pipeline;
 
 import vt.Core.Array;
 import vt.Core.FixedList;
@@ -203,17 +203,10 @@ namespace vt::d3d12
 		};
 	}
 
-	class Pipeline
+	ID3D12PipelineState* Pipeline::get_handle() const
 	{
-	public:
-		ID3D12PipelineState* get_handle() const
-		{
-			return pipeline.get();
-		}
-
-	protected:
-		ComUnique<ID3D12PipelineState> pipeline;
-	};
+		return pipeline.get();
+	}
 
 	// TODO: Wait for compiler fix, then make subobject types get default-initialized with the correct value instead of later.
 	struct RenderPipelineStream
@@ -363,149 +356,137 @@ namespace vt::d3d12
 		return {};
 	}
 
-	export class D3D12RenderPipeline : public Pipeline
+	D3D12RenderPipeline::D3D12RenderPipeline(RenderPipelineSpecification const& spec, ID3D12Device4& device) :
+		primitive_topology(convert_primitive_topology(spec.primitive_topology, spec.patch_list_control_point_count))
 	{
-	public:
-		D3D12RenderPipeline(RenderPipelineSpecification const& spec, ID3D12Device4& device) :
-			primitive_topology(convert_primitive_topology(spec.primitive_topology, spec.patch_list_control_point_count))
-		{
-			FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES> input_element_descs;
+		FixedList<D3D12_INPUT_ELEMENT_DESC, MAX_VERTEX_BUFFERS * MAX_VERTEX_ATTRIBUTES> input_element_descs;
 
-			UINT index = 0;
-			for(auto& buffer_binding : spec.vertex_buffer_bindings)
+		UINT index = 0;
+		for(auto& buffer_binding : spec.vertex_buffer_bindings)
+		{
+			D3D12_INPUT_CLASSIFICATION input_rate;
+			UINT					   step_rate;
+			if(buffer_binding.input_rate == VertexBufferInputRate::PerVertex)
 			{
-				D3D12_INPUT_CLASSIFICATION input_rate;
-				UINT					   step_rate;
-				if(buffer_binding.input_rate == VertexBufferInputRate::PerVertex)
-				{
-					input_rate = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-					step_rate  = 0;
-				}
-				else
-				{
-					input_rate = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
-					step_rate  = 1;
-				}
-				size_t offset = 0;
-				for(auto attribute : buffer_binding.attributes)
-				{
-					input_element_descs.emplace_back(D3D12_INPUT_ELEMENT_DESC {
-						.SemanticName		  = VERTEX_DATA_TYPE_SEMANTIC_LOOKUP[attribute.type],
-						.SemanticIndex		  = attribute.semantic_index,
-						.Format				  = VERTEX_DATA_TYPE_LOOKUP[attribute.type],
-						.InputSlot			  = index,
-						.AlignedByteOffset	  = static_cast<UINT>(offset),
-						.InputSlotClass		  = input_rate,
-						.InstanceDataStepRate = step_rate,
-					});
-					offset += get_vertex_data_type_size(attribute.type);
-				}
-				++index;
+				input_rate = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+				step_rate  = 0;
 			}
-
-			auto& pass = spec.render_pass.d3d12;
-
-			RenderPipelineStream stream {
-				.type_0					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE,
-				.root_signature			  = spec.root_signature.d3d12.get_handle(),
-				.type_1					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS,
-				.vertex_shader_bytecode	  = spec.vertex_shader.d3d12.get_bytecode(),
-				.type_2					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS,
-				.fragment_shader_bytecode = get_optional_bytecode(spec.fragment_shader),
-				.type_3					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS,
-				.domain_shader_bytecode	  = get_optional_bytecode(spec.domain_shader),
-				.type_4					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS,
-				.hull_shader_bytecode	  = get_optional_bytecode(spec.hull_shader),
-				.type_5					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND,
-				.blend_desc {
-					.AlphaToCoverageEnable	= spec.multisample.enable_alpha_to_coverage,
-					.IndependentBlendEnable = false,
-				},
-				.type_6		 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK,
-				.sample_mask = spec.multisample.sample_mask,
-				.type_7		 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER,
-				.rasterizer_desc {
-					.FillMode			   = FILL_MODE_LOOKUP[spec.rasterizer.fill_mode],
-					.CullMode			   = CULL_MODE_LOOKUP[spec.rasterizer.cull_mode],
-					.FrontCounterClockwise = spec.rasterizer.winding_order == WindingOrder::CounterClockwise,
-					.DepthBias			   = spec.rasterizer.depth_bias,
-					.DepthBiasClamp		   = spec.rasterizer.depth_bias_clamp,
-					.SlopeScaledDepthBias  = spec.rasterizer.depth_bias_slope,
-					.DepthClipEnable	   = false,
-					.ForcedSampleCount	   = 0,
-				},
-				.type_8 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT,
-				.input_layout_desc {
-					.pInputElementDescs = input_element_descs.data(),
-					.NumElements		= count(input_element_descs),
-				},
-				.type_9						  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE,
-				.index_buffer_strip_cut_value = spec.enable_primitive_restart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
-																			  : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
-				.type_10					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY,
-				.primitive_topology_type	  = PRIMITIVE_TOPOLOGY_CATEGORIES[spec.primitive_topology],
-				.type_11					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS,
-				.render_target_formats {
-					.NumRenderTargets = spec.blend.attachment_states.count(),
-				},
-				.type_12			  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT,
-				.depth_stencil_format = pass.get_subpass(spec.subpass_index).uses_depth_stencil()
-											? pass.get_depth_stencil_format()
-											: DXGI_FORMAT_UNKNOWN,
-				.type_13			  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC,
-				.sample_desc {
-					.Count = spec.multisample.sample_count,
-				},
-				.type_14 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1,
-				.depth_stencil_desc1 {
-					.DepthEnable		   = spec.depth_stencil.enable_depth_test,
-					.DepthWriteMask		   = spec.depth_stencil.enable_depth_write ? D3D12_DEPTH_WRITE_MASK_ALL
-																				   : D3D12_DEPTH_WRITE_MASK_ZERO,
-					.DepthFunc			   = COMPARE_OP_LOOKUP[spec.depth_stencil.depth_compare_op],
-					.StencilEnable		   = spec.depth_stencil.enable_stencil_test,
-					.StencilReadMask	   = spec.depth_stencil.stencil_read_mask,
-					.StencilWriteMask	   = spec.depth_stencil.stencil_write_mask,
-					.FrontFace			   = convert_stencil_op_state(spec.depth_stencil.front),
-					.BackFace			   = convert_stencil_op_state(spec.depth_stencil.back),
-					.DepthBoundsTestEnable = spec.depth_stencil.enable_depth_bounds_test,
-				},
-			};
-			size_t i = 0;
-			for(auto state : spec.blend.attachment_states)
-				stream.blend_desc.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
-
-			i = 0;
-			for(; i != spec.blend.attachment_states.size(); ++i)
-				stream.render_target_formats.RTFormats[i] = pass.get_attachment_format(i);
-
-			D3D12_PIPELINE_STATE_STREAM_DESC const desc {
-				.SizeInBytes				   = sizeof stream,
-				.pPipelineStateSubobjectStream = &stream,
-			};
-			auto result = device.CreatePipelineState(&desc, VT_COM_OUT(pipeline));
-			VT_CHECK_RESULT(result, "Failed to create D3D12 render pipeline.");
+			else
+			{
+				input_rate = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+				step_rate  = 1;
+			}
+			size_t offset = 0;
+			for(auto attribute : buffer_binding.attributes)
+			{
+				input_element_descs.emplace_back(D3D12_INPUT_ELEMENT_DESC {
+					.SemanticName		  = VERTEX_DATA_TYPE_SEMANTIC_LOOKUP[attribute.type],
+					.SemanticIndex		  = attribute.semantic_index,
+					.Format				  = VERTEX_DATA_TYPE_LOOKUP[attribute.type],
+					.InputSlot			  = index,
+					.AlignedByteOffset	  = static_cast<UINT>(offset),
+					.InputSlotClass		  = input_rate,
+					.InstanceDataStepRate = step_rate,
+				});
+				offset += get_vertex_data_type_size(attribute.type);
+			}
+			++index;
 		}
 
-		D3D_PRIMITIVE_TOPOLOGY get_topology() const
-		{
-			return primitive_topology;
-		}
+		auto& pass = spec.render_pass.d3d12;
 
-	private:
-		D3D_PRIMITIVE_TOPOLOGY primitive_topology;
-	};
+		RenderPipelineStream stream {
+			.type_0					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_ROOT_SIGNATURE,
+			.root_signature			  = spec.root_signature.d3d12.get_handle(),
+			.type_1					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_VS,
+			.vertex_shader_bytecode	  = spec.vertex_shader.d3d12.get_bytecode(),
+			.type_2					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PS,
+			.fragment_shader_bytecode = get_optional_bytecode(spec.fragment_shader),
+			.type_3					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DS,
+			.domain_shader_bytecode	  = get_optional_bytecode(spec.domain_shader),
+			.type_4					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_HS,
+			.hull_shader_bytecode	  = get_optional_bytecode(spec.hull_shader),
+			.type_5					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_BLEND,
+			.blend_desc {
+				.AlphaToCoverageEnable	= spec.multisample.enable_alpha_to_coverage,
+				.IndependentBlendEnable = false,
+			},
+			.type_6		 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_MASK,
+			.sample_mask = spec.multisample.sample_mask,
+			.type_7		 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RASTERIZER,
+			.rasterizer_desc {
+				.FillMode			   = FILL_MODE_LOOKUP[spec.rasterizer.fill_mode],
+				.CullMode			   = CULL_MODE_LOOKUP[spec.rasterizer.cull_mode],
+				.FrontCounterClockwise = spec.rasterizer.winding_order == WindingOrder::CounterClockwise,
+				.DepthBias			   = spec.rasterizer.depth_bias,
+				.DepthBiasClamp		   = spec.rasterizer.depth_bias_clamp,
+				.SlopeScaledDepthBias  = spec.rasterizer.depth_bias_slope,
+				.DepthClipEnable	   = false,
+				.ForcedSampleCount	   = 0,
+			},
+			.type_8 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_INPUT_LAYOUT,
+			.input_layout_desc {
+				.pInputElementDescs = input_element_descs.data(),
+				.NumElements		= count(input_element_descs),
+			},
+			.type_9						  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_IB_STRIP_CUT_VALUE,
+			.index_buffer_strip_cut_value = spec.enable_primitive_restart ? D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_0xFFFFFFFF
+																		  : D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED,
+			.type_10					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_PRIMITIVE_TOPOLOGY,
+			.primitive_topology_type	  = PRIMITIVE_TOPOLOGY_CATEGORIES[spec.primitive_topology],
+			.type_11					  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_RENDER_TARGET_FORMATS,
+			.render_target_formats {
+				.NumRenderTargets = spec.blend.attachment_states.count(),
+			},
+			.type_12			  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL_FORMAT,
+			.depth_stencil_format = pass.get_subpass(spec.subpass_index).uses_depth_stencil() ? pass.get_depth_stencil_format()
+																							  : DXGI_FORMAT_UNKNOWN,
+			.type_13			  = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_SAMPLE_DESC,
+			.sample_desc {
+				.Count = spec.multisample.sample_count,
+			},
+			.type_14 = D3D12_PIPELINE_STATE_SUBOBJECT_TYPE_DEPTH_STENCIL1,
+			.depth_stencil_desc1 {
+				.DepthEnable		   = spec.depth_stencil.enable_depth_test,
+				.DepthWriteMask		   = spec.depth_stencil.enable_depth_write ? D3D12_DEPTH_WRITE_MASK_ALL
+																			   : D3D12_DEPTH_WRITE_MASK_ZERO,
+				.DepthFunc			   = COMPARE_OP_LOOKUP[spec.depth_stencil.depth_compare_op],
+				.StencilEnable		   = spec.depth_stencil.enable_stencil_test,
+				.StencilReadMask	   = spec.depth_stencil.stencil_read_mask,
+				.StencilWriteMask	   = spec.depth_stencil.stencil_write_mask,
+				.FrontFace			   = convert_stencil_op_state(spec.depth_stencil.front),
+				.BackFace			   = convert_stencil_op_state(spec.depth_stencil.back),
+				.DepthBoundsTestEnable = spec.depth_stencil.enable_depth_bounds_test,
+			},
+		};
+		size_t i = 0;
+		for(auto state : spec.blend.attachment_states)
+			stream.blend_desc.RenderTarget[i++] = convert_color_attachment_blend_state(spec.blend, state);
 
-	export class D3D12ComputePipeline : public Pipeline
+		i = 0;
+		for(; i != spec.blend.attachment_states.size(); ++i)
+			stream.render_target_formats.RTFormats[i] = pass.get_attachment_format(i);
+
+		D3D12_PIPELINE_STATE_STREAM_DESC const desc {
+			.SizeInBytes				   = sizeof stream,
+			.pPipelineStateSubobjectStream = &stream,
+		};
+		auto result = device.CreatePipelineState(&desc, VT_COM_OUT(pipeline));
+		VT_CHECK_RESULT(result, "Failed to create D3D12 render pipeline.");
+	}
+
+	D3D_PRIMITIVE_TOPOLOGY D3D12RenderPipeline::get_topology() const
 	{
-	public:
-		D3D12ComputePipeline(ComputePipelineSpecification const& spec, ID3D12Device4& device)
-		{
-			D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
-				.pRootSignature = spec.root_signature.d3d12.get_handle(),
-				.CS				= spec.compute_shader.d3d12.get_bytecode(),
-			};
-			auto result = device.CreateComputePipelineState(&desc, VT_COM_OUT(pipeline));
-			VT_CHECK_RESULT(result, "Failed to create D3D12 compute pipeline.");
-		}
-	};
+		return primitive_topology;
+	}
+
+	D3D12ComputePipeline::D3D12ComputePipeline(ComputePipelineSpecification const& spec, ID3D12Device4& device)
+	{
+		D3D12_COMPUTE_PIPELINE_STATE_DESC const desc {
+			.pRootSignature = spec.root_signature.d3d12.get_handle(),
+			.CS				= spec.compute_shader.d3d12.get_bytecode(),
+		};
+		auto result = device.CreateComputePipelineState(&desc, VT_COM_OUT(pipeline));
+		VT_CHECK_RESULT(result, "Failed to create D3D12 compute pipeline.");
+	}
 }

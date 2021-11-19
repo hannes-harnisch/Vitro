@@ -15,8 +15,10 @@ workspace 'Vitro'
 	floatingpoint		'Fast'
 	toolset				'MSC'
 	staticruntime		'On'
+	inheritdependencies	'Off'
 	files				{
 							'%{prj.name}/**.cpp',
+							'%{prj.name}/**.cppm',
 							'%{prj.name}/**.hpp',
 							'%{prj.name}/**.hlsl',
 							'%{prj.name}/**.hlsli',
@@ -25,9 +27,6 @@ workspace 'Vitro'
 	debugdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
 	targetdir			('.bin/'	 .. output_dir .. '/%{prj.name}')
 	objdir				('.bin_int/' .. output_dir .. '/%{prj.name}')
-
-	filter 'files:**.cpp'
-		compileas		'Module' -- Change to ModulePartition eventually
 
 	filter 'files:**.hlsl'
 		buildmessage	'Compiling shader %{file.relpath}'
@@ -129,6 +128,7 @@ project 'VitroCore'
 project 'VitroHlslBuilder'
 	location			'%{prj.name}'
 	kind				'ConsoleApp'
+	allmodulespublic	'On'
 	includedirs			{ '' }
 	links				'VitroCore'
 	
